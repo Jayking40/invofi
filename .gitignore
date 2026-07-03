@@ -8,6 +8,7 @@ node_modules/
 .next/
 .swc/
 out/
+*.tsbuildinfo
 
 # ── Environment files ─────────────────────────────────────────────────────────
 .env

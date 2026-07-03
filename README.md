@@ -486,7 +486,7 @@ cargo test -- --nocapture
 - [x] Marketplace and portfolio views
 - [ ] Mainnet deployment
 - [x] USDC token transfer integration (actual on-chain fund movement) — implemented, **pending redeploy**: needs a fresh `CONTRACT_ID` + `initialize()` call before it's live (see [Smart Contract Reference](#smart-contract-reference))
-- [ ] Oracle-based invoice verification (see [#8](https://github.com/Stellar-VaultLink/invofi/issues/8), yield-rate half in progress)
+- [ ] Oracle-based invoice verification — yield-rate half done (`set_rate`/`get_rate` per risk tier, see [Smart Contract Reference](#smart-contract-reference)); fraud/authenticity verification not started
 - [ ] Multi-signature treasury and escrow
 - [ ] KYC/AML with SEP-12 support
 - [ ] Contract upgradeability with timelock governance (see [invofi-contracts#5](https://github.com/Stellar-VaultLink/invofi-contracts/issues/5))

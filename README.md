@@ -37,7 +37,7 @@ InvoFi's code lives across three repos with distinct jobs:
 | **[invofi-frontend](https://github.com/Stellar-VaultLink/invofi-frontend)** | Where frontend contributions happen. Fork/PR here for UI, hooks, and client-side work — scoped CI, its own issue queue. |
 | **[invofi-contracts](https://github.com/Stellar-VaultLink/invofi-contracts)** | Where contract contributions happen. Fork/PR here for Soroban/Rust work — scoped CI, its own issue queue. |
 
-Merged PRs in `invofi-frontend` / `invofi-contracts` are periodically pulled into this monorepo (via `git subtree`) and deployed from here. If you want your change live, open the PR in the component repo that matches what you're touching — not this one.
+Merged PRs in `invofi-frontend` / `invofi-contracts` are periodically pulled into this monorepo (via `git subtree`, see `scripts/sync-subtrees.sh`) and deployed from here. If you want your change live, open the PR in the component repo that matches what you're touching — not this one.
 
 ---
 
@@ -168,7 +168,8 @@ invofi/
 ├── scripts/
 │   ├── close-issues.sh                  Bulk GitHub issue close script
 │   ├── deploy.sh                        Build + deploy contract to testnet/mainnet
-│   └── fund-and-deploy.sh               Generate + fund a deployer key, then deploy
+│   ├── fund-and-deploy.sh               Generate + fund a deployer key, then deploy
+│   └── sync-subtrees.sh                 Pull/push invofi-frontend and invofi-contracts
 ├── .github/
 │   ├── ISSUE_TEMPLATE/                  Bug + feature request templates
 │   └── PULL_REQUEST_TEMPLATE.md         PR checklist

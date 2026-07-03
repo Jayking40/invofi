@@ -225,3 +225,34 @@ export async function repayInvoice(
   );
   return parseInvoice(val);
 }
+
+// Marks a Financed invoice Overdue once its due_date has passed. Callable
+// by anyone — no auth required on-chain, so any signed-in wallet can submit it.
+export async function markOverdue(
+  invoiceId: string,
+  callerAddress: string,
+): Promise<Invoice> {
+  const val = await invokeContract(
+    'mark_overdue',
+    [encodeSymbol(invoiceId)],
+    callerAddress,
+  );
+  return parseInvoice(val);
+}
+
+// After an Overdue invoice's 7-day grace period elapses, the financing
+// lender can mark their offer Defaulted. This is an on-chain default
+// record for off-chain recovery — no funds move, since principal was
+// already paid to the business at accept_offer time.
+export async function reclaimInvoice(
+  invoiceId: string,
+  offerId: string,
+  lenderAddress: string,
+): Promise<FinancingOffer> {
+  const val = await invokeContract(
+    'reclaim_invoice',
+    [encodeSymbol(invoiceId), encodeSymbol(offerId), encodeAddress(lenderAddress)],
+    lenderAddress,
+  );
+  return parseOffer(val);
+}

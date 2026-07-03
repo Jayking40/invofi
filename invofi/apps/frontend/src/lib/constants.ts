@@ -13,6 +13,11 @@ export const OFFER_STATUSES = ['Pending', 'Accepted', 'Repaid', 'Rejected', 'Def
 export const CURRENCIES = ['XLM', 'USDC'] as const;
 export const USER_ROLES = ['business', 'lender'] as const;
 
+// Must match GRACE_PERIOD_SECS in invofi/apps/contracts/lib.rs — how long
+// after due_date a Financed offer stays reclaimable-pending before a lender
+// can mark it Defaulted.
+export const GRACE_PERIOD_SECS = 604_800; // 7 days
+
 export const RISK_TIERS = {
   A: { label: 'Low Risk', color: 'green', baseRate: 500 },
   B: { label: 'Medium Risk', color: 'yellow', baseRate: 800 },

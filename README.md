@@ -166,7 +166,9 @@ invofi/
 │                   └── utils.ts          Formatting, class utils
 ├── docs/                                 Full project documentation
 ├── scripts/
-│   └── close-issues.sh                  Bulk GitHub issue close script
+│   ├── close-issues.sh                  Bulk GitHub issue close script
+│   ├── deploy.sh                        Build + deploy contract to testnet/mainnet
+│   └── fund-and-deploy.sh               Generate + fund a deployer key, then deploy
 ├── .github/
 │   ├── ISSUE_TEMPLATE/                  Bug + feature request templates
 │   └── PULL_REQUEST_TEMPLATE.md         PR checklist

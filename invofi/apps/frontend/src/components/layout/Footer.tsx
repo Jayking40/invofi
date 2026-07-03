@@ -1,10 +1,11 @@
 import Link from 'next/link';
 
 const LINKS = [
-  { label: 'GitHub', href: 'https://github.com/Stellar-VaultLink/invofi-frontend' },
+  { label: 'GitHub', href: 'https://github.com/Stellar-VaultLink/invofi' },
+  { label: 'Frontend', href: 'https://github.com/Stellar-VaultLink/invofi-frontend' },
   { label: 'Contracts', href: 'https://github.com/Stellar-VaultLink/invofi-contracts' },
   { label: 'Docs', href: 'https://stellar-vault-link.gitbook.io/stellar-vault-link-docs' },
-  { label: 'Issues', href: 'https://github.com/Stellar-VaultLink/invofi-frontend/issues' },
+  { label: 'Issues', href: 'https://github.com/Stellar-VaultLink/invofi/issues' },
 ];
 
 export function Footer() {

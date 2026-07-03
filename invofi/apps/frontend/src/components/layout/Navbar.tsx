@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Store, Briefcase, LogOut } from 'lucide-react';
+import { LayoutDashboard, Store, Briefcase, Settings, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { WalletButton } from '@/components/auth/WalletButton';
 import { supabase } from '@/lib/supabase';
@@ -54,6 +54,16 @@ export function Navbar() {
         {/* Right side */}
         <div className="flex items-center gap-3">
           <WalletButton />
+          <Link
+            href="/settings"
+            className={cn(
+              'hidden md:flex items-center text-gray-400 hover:text-gray-700 transition-colors',
+              pathname.startsWith('/settings') && 'text-blue-700',
+            )}
+            title="Settings"
+          >
+            <Settings className="h-4 w-4" />
+          </Link>
           <button
             onClick={handleSignOut}
             className="hidden md:flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-700 transition-colors"

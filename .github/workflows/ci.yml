@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  frontend-lint-and-typecheck:
+    name: Frontend / Lint & Type Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: invofi/apps/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: invofi/apps/frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run type-check
+
+  frontend-build:
+    name: Frontend / Build
+    runs-on: ubuntu-latest
+    needs: frontend-lint-and-typecheck
+    defaults:
+      run:
+        working-directory: invofi/apps/frontend
+    env:
+      # Placeholder values — CI only needs the build to succeed, not to talk to
+      # a real Supabase project or contract. Real secrets live in Vercel.
+      NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: placeholder-anon-key
+      NEXT_PUBLIC_CONTRACT_ID: CDJS6AFE6VRPAPWOPWOPZLSLQ7NCISA7YHOMAE7HJWOD7G6CQDCVT4L2
+      NEXT_PUBLIC_STELLAR_NETWORK: testnet
+      NEXT_PUBLIC_RPC_URL: https://soroban-testnet.stellar.org
+      NEXT_PUBLIC_HORIZON_URL: https://horizon-testnet.stellar.org
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: invofi/apps/frontend/package-lock.json
+      - run: npm ci
+      - run: npm run build
+
+  contracts-test:
+    name: Contracts / Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: invofi/apps/contracts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: invofi/apps/contracts
+      - run: cargo test -- --nocapture
+
+  contracts-build:
+    name: Contracts / Build WASM
+    runs-on: ubuntu-latest
+    needs: contracts-test
+    defaults:
+      run:
+        working-directory: invofi/apps/contracts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: invofi/apps/contracts
+      - name: Install Stellar CLI
+        run: cargo install --locked stellar-cli
+      - name: Build contract
+        run: stellar contract build

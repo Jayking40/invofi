@@ -51,8 +51,8 @@ For anything not on the roadmap or larger than a bug fix, **open an issue first*
 
 ```bash
 # 1. Fork the repo on GitHub, then:
-git clone https://github.com/YOUR_USERNAME/vault-link.git
-cd vault-link
+git clone https://github.com/YOUR_USERNAME/invofi.git
+cd invofi
 
 # 2. Add the upstream remote
 git remote add upstream https://github.com/Stellar-VaultLink/invofi.git

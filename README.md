@@ -27,6 +27,20 @@ Business registers invoice → Lenders compete with offers → Business accepts 
 
 ---
 
+## Repositories
+
+InvoFi's code lives across three repos with distinct jobs:
+
+| Repo | Role |
+| --- | --- |
+| **[invofi](https://github.com/Stellar-VaultLink/invofi)** (this repo) | The integration monorepo. This is what's deployed — Vercel builds the frontend straight out of `invofi/apps/frontend`, and this is where the full history, issue backlog, and roadmap live. |
+| **[invofi-frontend](https://github.com/Stellar-VaultLink/invofi-frontend)** | Where frontend contributions happen. Fork/PR here for UI, hooks, and client-side work — scoped CI, its own issue queue. |
+| **[invofi-contracts](https://github.com/Stellar-VaultLink/invofi-contracts)** | Where contract contributions happen. Fork/PR here for Soroban/Rust work — scoped CI, its own issue queue. |
+
+Merged PRs in `invofi-frontend` / `invofi-contracts` are periodically pulled into this monorepo (via `git subtree`) and deployed from here. If you want your change live, open the PR in the component repo that matches what you're touching — not this one.
+
+---
+
 ## Live Demo
 
 > **Frontend:** [invofi-five.vercel.app](https://invofi-five.vercel.app)
@@ -114,7 +128,7 @@ Supabase mirrors on-chain data (invoices, offers) for fast UI queries. The smart
 ## Project Structure
 
 ```text
-vault-link/
+invofi/
 ├── invofi/
 │   └── apps/
 │       ├── contracts/                    Soroban Rust smart contract
@@ -256,7 +270,7 @@ register_invoice()
 
 ```bash
 git clone https://github.com/Stellar-VaultLink/invofi.git
-cd vault-link
+cd invofi
 ```
 
 ### 2. Set up Supabase

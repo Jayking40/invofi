@@ -7,6 +7,13 @@ updates:
     open-pull-requests-limit: 5
     commit-message:
       prefix: "chore(frontend)"
+    ignore:
+      # Major bumps need a deliberate migration (breaking API/config changes),
+      # not an automated PR — see React 18->19, ESLint 8->9 /
+      # eslint-config-next, and Tailwind 3->4, which are each pinned here for
+      # a reason. Dependabot still proposes minor/patch updates.
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "cargo"
     directory: "/invofi/apps/contracts"
@@ -15,6 +22,9 @@ updates:
     open-pull-requests-limit: 5
     commit-message:
       prefix: "chore(contracts)"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "github-actions"
     directory: "/"

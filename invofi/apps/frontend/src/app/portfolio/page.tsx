@@ -2,12 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { TrendingUp, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
+import { TrendingUp, Clock, CheckCircle2, AlertCircle, Download } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { supabase } from '@/lib/supabase';
 import { formatAmount, formatDate, interestRateLabel, durationLabel, OFFER_STATUS_COLORS } from '@/lib/utils';
+import { STROOPS_PER_XLM } from '@/lib/constants';
+import { toCsv, downloadCsv } from '@/lib/csv';
 import type { FinancingOffer } from '@/types';
 
 const STATUS_ICONS = {
@@ -42,12 +45,38 @@ export default function PortfolioPage() {
   const totalDeployed = active.reduce((sum, o) => sum + parseFloat(String(o.amount)), 0);
   const totalRepaid = repaid.reduce((sum, o) => sum + parseFloat(String(o.amount)), 0);
 
+  const exportOffersCsv = () => {
+    const rows = offers.map(o => ({
+      ...o,
+      amount: Number(o.amount) / STROOPS_PER_XLM,
+      funded_at: o.funded_at > 0 ? new Date(o.funded_at * 1000).toISOString().slice(0, 10) : '',
+    }));
+    const csv = toCsv(rows, [
+      { key: 'id', header: 'Offer ID' },
+      { key: 'invoice_id', header: 'Invoice ID' },
+      { key: 'amount', header: 'Amount' },
+      { key: 'currency', header: 'Currency' },
+      { key: 'interest_rate', header: 'Interest Rate (bps)' },
+      { key: 'duration', header: 'Duration (seconds)' },
+      { key: 'status', header: 'Status' },
+      { key: 'funded_at', header: 'Funded At' },
+    ]);
+    downloadCsv(`invofi-offers-${new Date().toISOString().slice(0, 10)}.csv`, csv);
+  };
+
   return (
     <AuthGuard>
       <div className="max-w-5xl mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Your Portfolio</h1>
-          <p className="text-gray-500 text-sm mt-1">Track your financing offers and returns</p>
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Your Portfolio</h1>
+            <p className="text-gray-500 text-sm mt-1">Track your financing offers and returns</p>
+          </div>
+          {offers.length > 0 && (
+            <Button variant="outline" size="sm" onClick={exportOffersCsv}>
+              <Download className="mr-1.5 h-3.5 w-3.5" /> Export CSV
+            </Button>
+          )}
         </div>
 
         {/* Summary cards */}

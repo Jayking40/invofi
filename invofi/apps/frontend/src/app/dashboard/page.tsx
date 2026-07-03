@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, FileText, TrendingUp, Wallet } from 'lucide-react';
+import { Plus, FileText, TrendingUp, Wallet, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AuthGuard } from '@/components/auth/AuthGuard';
@@ -12,6 +12,8 @@ import { WalletButton } from '@/components/auth/WalletButton';
 import { getUserProfile, supabase } from '@/lib/supabase';
 import { getXlmBalance } from '@/lib/horizon';
 import { useWallet } from '@/components/auth/WalletProvider';
+import { STROOPS_PER_XLM } from '@/lib/constants';
+import { toCsv, downloadCsv } from '@/lib/csv';
 import type { UserProfile, Invoice } from '@/types';
 
 export default function DashboardPage() {
@@ -42,6 +44,24 @@ export default function DashboardPage() {
   }, [publicKey]);
 
   const isBusiness = profile?.role === 'business';
+
+  const exportInvoicesCsv = () => {
+    // Render amount in whole units (not stroops) and due_date as an ISO date.
+    const rows = invoices.map(inv => ({
+      ...inv,
+      amount: Number(inv.amount) / STROOPS_PER_XLM,
+      due_date: new Date(inv.due_date * 1000).toISOString().slice(0, 10),
+    }));
+    const csv = toCsv(rows, [
+      { key: 'id', header: 'Invoice ID' },
+      { key: 'originator', header: 'Originator' },
+      { key: 'amount', header: 'Amount' },
+      { key: 'currency', header: 'Currency' },
+      { key: 'due_date', header: 'Due Date' },
+      { key: 'status', header: 'Status' },
+    ]);
+    downloadCsv(`invofi-invoices-${new Date().toISOString().slice(0, 10)}.csv`, csv);
+  };
 
   return (
     <AuthGuard>
@@ -114,7 +134,14 @@ export default function DashboardPage() {
         {/* Invoices / offers */}
         {isBusiness && (
           <section>
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Your Invoices</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-800">Your Invoices</h2>
+              {invoices.length > 0 && (
+                <Button variant="outline" size="sm" onClick={exportInvoicesCsv}>
+                  <Download className="mr-1.5 h-3.5 w-3.5" /> Export CSV
+                </Button>
+              )}
+            </div>
             {invoices.length === 0 ? (
               <div className="text-center py-16 border-2 border-dashed border-gray-200 rounded-xl">
                 <FileText className="h-10 w-10 text-gray-300 mx-auto mb-3" />

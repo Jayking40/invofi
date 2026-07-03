@@ -214,15 +214,23 @@ Contract: `invofi-invoice-registry` (`invofi/apps/contracts/lib.rs`)
 
 | Function | Caller | Description |
 | --- | --- | --- |
+| `initialize(admin, token)` | Anyone (once) | One-time setup — sets the admin and the SEP-41 token used for fund movement |
 | `register_invoice(id, originator, amount, currency, due_date)` | Business | Register a new invoice on-chain |
 | `get_invoice(id)` | Anyone | Read invoice state |
 | `update_invoice_status(id, status)` | Originator | Change invoice status manually |
 | `create_offer(offer_id, invoice_id, lender, amount, currency, rate, duration)` | Lender | Submit a financing offer |
 | `get_offer(id)` | Anyone | Read offer state |
-| `accept_offer(offer_id, originator)` | Business | Accept an offer → invoice becomes Financed |
+| `accept_offer(offer_id, originator)` | Business | Accept an offer → pulls the lender's approved principal, pays it to the business, invoice becomes Financed |
 | `reject_offer(offer_id, originator)` | Business | Reject a pending offer |
-| `repay_invoice(invoice_id, offer_id, repayer)` | Business | Mark invoice as Repaid |
+| `repay_invoice(invoice_id, offer_id, repayer)` | Business | Pays principal + yield to the lender, marks invoice Repaid |
 | `mark_overdue(invoice_id)` | Anyone | Mark a past-due financed invoice Overdue |
+| `reclaim_invoice(invoice_id, offer_id, lender)` | Lender | After the 7-day grace period on an Overdue invoice, marks the offer Defaulted (on-chain record, not a refund — see below) |
+| `set_rate(admin, tier, rate_bps)` | Admin | Set the yield rate (basis points) for a `RiskTier` (A/B/C) |
+| `get_rate(tier)` | Anyone | Read the configured rate for a risk tier |
+| `transfer_admin(admin, new_admin)` | Admin | Rotate the admin address |
+| `get_admin()` / `get_token()` | Anyone | Read the configured admin / SEP-41 token address |
+
+**Fund movement:** `accept_offer` pulls the lender's principal via a prior `token.approve()` and pays it directly to the business — this is what makes "immediate liquidity" literally true on-chain. `repay_invoice` pays principal + yield (`amount * interest_rate / 10000`) directly from the business to the lender. There is no collateral custody: if a business never repays, `reclaim_invoice` only produces an on-chain default record after the grace period — the lender's principal was already disbursed at acceptance, so recovery from default happens off-chain.
 
 ### Invoice Lifecycle
 
@@ -232,14 +240,16 @@ register_invoice()
       ▼
   [Pending] ──── reject_offer() ──── stays Pending (other offers possible)
       │
-  accept_offer()
+  accept_offer() ── pays principal to business
       │
       ▼
   [Financed]
       │
-      ├── repay_invoice() ──► [Repaid]
+      ├── repay_invoice() ──► [Repaid]        (pays principal + yield to lender)
       │
       └── mark_overdue()  ──► [Overdue]
+                                  │
+                                  └── reclaim_invoice() (after 7-day grace) ──► offer marked Defaulted
 ```
 
 ---
@@ -448,10 +458,21 @@ cargo test -- --nocapture
 | `test_get_non_existent_invoice` | Not-found panic |
 | `test_update_invoice_status` | Status mutation |
 | `test_create_and_get_offer` | Offer creation and retrieval |
-| `test_accept_offer` | Offer acceptance + invoice state change |
+| `test_accept_offer` | Offer acceptance + principal transferred to business |
 | `test_reject_offer` | Offer rejection, invoice stays Pending |
-| `test_repay_invoice` | Full repayment flow |
+| `test_repay_invoice` | Full repayment flow, principal + yield transferred to lender |
 | `test_repay_unfinanced_invoice_panics` | Guard against premature repayment |
+| `test_initialize_twice_panics` | `initialize()` can only be called once |
+| `test_reclaim_invoice_after_grace_period` | Reclaim marks offer Defaulted after the grace period |
+| `test_reclaim_before_grace_period_panics` | Reclaim rejected before the grace period elapses |
+| `test_set_and_get_rate` | Yield rate set/read for all three risk tiers |
+| `test_set_rate_out_of_range_panics` | Rate validated to 0-10000 bps |
+| `test_set_rate_unauthorized_panics` | Only admin can set rates |
+| `test_get_unset_rate_panics` | Reading an unconfigured tier panics |
+| `test_transfer_admin` | Admin rotation, new admin can act |
+| `test_transfer_admin_unauthorized_panics` | Only the current admin can transfer admin rights |
+
+18 tests total.
 
 ---
 

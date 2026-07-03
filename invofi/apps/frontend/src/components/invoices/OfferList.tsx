@@ -11,9 +11,10 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useWallet } from '@/components/auth/WalletProvider';
-import { createOffer, acceptOffer, rejectOffer } from '@/lib/contract';
+import { createOffer, acceptOffer, rejectOffer, repayInvoice, markOverdue, reclaimInvoice } from '@/lib/contract';
 import { supabase } from '@/lib/supabase';
 import { formatAmount, interestRateLabel, durationLabel, generateOfferId, amountToStroops, OFFER_STATUS_COLORS } from '@/lib/utils';
+import { GRACE_PERIOD_SECS } from '@/lib/constants';
 import { useToast } from '@/components/ui/use-toast';
 import type { Currency, FinancingOffer, Invoice } from '@/types';
 
@@ -124,18 +125,83 @@ export function OfferList({ invoiceId, invoice, onUpdate }: OfferListProps) {
     }
   };
 
+  const handleRepay = async (offer: FinancingOffer) => {
+    if (!publicKey) return;
+    setActionId(offer.id);
+    try {
+      const updatedInvoice = await repayInvoice(invoiceId, offer.id, publicKey);
+      setOffers(prev => prev.map(o => o.id === offer.id ? { ...o, status: 'Repaid' } : o));
+      await supabase.from('financing_offers').update({ status: 'Repaid' }).eq('id', offer.id);
+      await supabase.from('invoices').update({ status: 'Repaid' }).eq('id', invoiceId);
+      onUpdate(updatedInvoice);
+      toast({ title: 'Repayment sent', description: 'Principal + yield transferred to the lender.' });
+    } catch (err: unknown) {
+      toast({ title: 'Failed to repay', description: err instanceof Error ? err.message : 'Error', variant: 'destructive' });
+    } finally {
+      setActionId(null);
+    }
+  };
+
+  const handleMarkOverdue = async () => {
+    if (!publicKey) return;
+    setActionId('__overdue__');
+    try {
+      const updatedInvoice = await markOverdue(invoiceId, publicKey);
+      await supabase.from('invoices').update({ status: 'Overdue' }).eq('id', invoiceId);
+      onUpdate(updatedInvoice);
+      toast({ title: 'Invoice marked overdue.' });
+    } catch (err: unknown) {
+      toast({ title: 'Failed to mark overdue', description: err instanceof Error ? err.message : 'Error', variant: 'destructive' });
+    } finally {
+      setActionId(null);
+    }
+  };
+
+  const handleReclaim = async (offer: FinancingOffer) => {
+    if (!publicKey) return;
+    setActionId(offer.id);
+    try {
+      const updatedOffer = await reclaimInvoice(invoiceId, offer.id, publicKey);
+      setOffers(prev => prev.map(o => o.id === offer.id ? updatedOffer : o));
+      await supabase.from('financing_offers').update({ status: 'Defaulted' }).eq('id', offer.id);
+      toast({ title: 'Offer marked defaulted.', description: 'This is an on-chain record — pursue recovery off-chain.' });
+    } catch (err: unknown) {
+      toast({ title: 'Failed to reclaim', description: err instanceof Error ? err.message : 'Error', variant: 'destructive' });
+    } finally {
+      setActionId(null);
+    }
+  };
+
   const isOriginator = publicKey === invoice.originator;
   const canMakeOffer = invoice.status === 'Pending' && publicKey && !isOriginator;
+  const nowSecs = Math.floor(Date.now() / 1000);
+  const canMarkOverdue = invoice.status === 'Financed' && publicKey && nowSecs > invoice.due_date;
+  const canReclaim = (offer: FinancingOffer) =>
+    invoice.status === 'Overdue' && offer.status === 'Accepted' && publicKey === offer.lender &&
+    nowSecs >= invoice.due_date + GRACE_PERIOD_SECS;
 
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-base">Financing Offers ({offers.length})</CardTitle>
-        {canMakeOffer && (
-          <Button size="sm" onClick={() => setShowForm(v => !v)}>
-            <Plus className="h-4 w-4 mr-1" /> Make Offer
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {canMarkOverdue && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleMarkOverdue}
+              disabled={actionId === '__overdue__'}
+            >
+              {actionId === '__overdue__' && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
+              Mark Overdue
+            </Button>
+          )}
+          {canMakeOffer && (
+            <Button size="sm" onClick={() => setShowForm(v => !v)}>
+              <Plus className="h-4 w-4 mr-1" /> Make Offer
+            </Button>
+          )}
+        </div>
       </CardHeader>
 
       <CardContent className="space-y-3">
@@ -213,6 +279,27 @@ export function OfferList({ invoiceId, invoice, onUpdate }: OfferListProps) {
                     Reject
                   </Button>
                 </>
+              )}
+              {isOriginator && offer.status === 'Accepted' && invoice.status === 'Financed' && (
+                <Button
+                  size="sm"
+                  onClick={() => handleRepay(offer)}
+                  disabled={actionId === offer.id}
+                >
+                  {actionId === offer.id && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
+                  Repay
+                </Button>
+              )}
+              {canReclaim(offer) && (
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => handleReclaim(offer)}
+                  disabled={actionId === offer.id}
+                >
+                  {actionId === offer.id && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
+                  Reclaim
+                </Button>
               )}
             </div>
           </div>

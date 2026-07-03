@@ -14,7 +14,7 @@ jobs:
       run:
         working-directory: invofi/apps/frontend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -41,7 +41,7 @@ jobs:
       NEXT_PUBLIC_RPC_URL: https://soroban-testnet.stellar.org
       NEXT_PUBLIC_HORIZON_URL: https://horizon-testnet.stellar.org
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -57,7 +57,7 @@ jobs:
       run:
         working-directory: invofi/apps/contracts
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
@@ -74,7 +74,7 @@ jobs:
       run:
         working-directory: invofi/apps/contracts
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown,wasm32v1-none

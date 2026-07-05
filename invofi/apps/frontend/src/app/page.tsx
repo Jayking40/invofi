@@ -26,7 +26,7 @@ const FEATURES = [
     icon: Shield,
     title: 'Trustless & Transparent',
     description:
-      'All terms, transfers, and repayments are governed by smart contracts — no middlemen.',
+      'All terms, transfers, and repayments are governed by smart contracts â€” no middlemen.',
   },
   {
     icon: Zap,
@@ -55,7 +55,7 @@ export default function LandingPage() {
 
           <p className="text-xl text-blue-100 max-w-2xl mx-auto mb-10 leading-relaxed">
             Businesses tokenize unpaid invoices as Soroban assets and get immediate
-            liquidity. Investors earn yield by financing real-world receivables —
+            liquidity. Investors earn yield by financing real-world receivables â€”
             trustlessly.
           </p>
 
@@ -107,7 +107,7 @@ export default function LandingPage() {
 
           <p className="text-center text-muted-foreground mb-14 max-w-xl mx-auto">
             A two-sided marketplace connecting businesses needing liquidity with
-            investors seeking yield — all settled on the Stellar blockchain.
+            investors seeking yield â€” all settled on the Stellar blockchain.
           </p>
 
           <div className="grid md:grid-cols-2 gap-8">
@@ -163,7 +163,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-border py-8 px-4 text-center text-sm text-muted-foreground">
         <p>
-          InvoFi — Decentralized Invoice Financing on Stellar Soroban.{' '}
+          InvoFi â€” Decentralized Invoice Financing on Stellar Soroban.{' '}
           <a
             href="https://github.com/Stellar-VaultLink/invofi"
             target="_blank"

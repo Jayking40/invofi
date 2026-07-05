@@ -14,7 +14,7 @@ export function Footer() {
       <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
         <p>
           <span className="font-semibold text-foreground">InvoFi</span>
-          {' '}— Decentralized Invoice Financing on Stellar Soroban
+          {' '}â€” Decentralized Invoice Financing on Stellar Soroban
         </p>
 
         <nav className="flex gap-5">

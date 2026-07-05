@@ -9,14 +9,14 @@ import { Toaster } from '@/components/ui/toaster';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'InvoFi — Decentralized Invoice Financing on Stellar',
+  title: 'InvoFi â€” Decentralized Invoice Financing on Stellar',
   description:
-    'Tokenize invoices as on-chain assets and get immediate financing from investors — powered by Stellar Soroban.',
+    'Tokenize invoices as on-chain assets and get immediate financing from investors â€” powered by Stellar Soroban.',
   keywords: ['invoice financing', 'DeFi', 'Stellar', 'Soroban', 'blockchain'],
   openGraph: {
-    title: 'InvoFi — Decentralized Invoice Financing on Stellar',
+    title: 'InvoFi â€” Decentralized Invoice Financing on Stellar',
     description:
-      'Tokenize invoices as on-chain assets and get immediate financing from investors — powered by Stellar Soroban.',
+      'Tokenize invoices as on-chain assets and get immediate financing from investors â€” powered by Stellar Soroban.',
     url: 'https://invofi-five.vercel.app',
     siteName: 'InvoFi',
     images: [
@@ -31,9 +31,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'InvoFi — Decentralized Invoice Financing on Stellar',
+    title: 'InvoFi â€” Decentralized Invoice Financing on Stellar',
     description:
-      'Tokenize invoices as on-chain assets and get immediate financing from investors — powered by Stellar Soroban.',
+      'Tokenize invoices as on-chain assets and get immediate financing from investors â€” powered by Stellar Soroban.',
     images: ['/og-image.svg'],
   },
 };

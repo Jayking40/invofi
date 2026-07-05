@@ -73,7 +73,7 @@ export function Navbar() {
         </Link>
 
         {/* Navigation */}
-        <nav className="hidden md:flex items-center gap-1">
+        <nav aria-label="Main navigation" className="hidden md:flex items-center gap-1">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
@@ -97,6 +97,7 @@ export function Navbar() {
             onClick={toggleTheme}
             className="p-2 rounded-md text-muted-foreground hover:bg-accent transition-colors"
             title="Toggle theme"
+            aria-label="Toggle dark mode"
           >
             {theme === 'light' ? (
               <Moon className="h-5 w-5" />
@@ -115,6 +116,7 @@ export function Navbar() {
                 'text-blue-700 dark:text-blue-400'
             )}
             title="Settings"
+            aria-label="Settings"
           >
             <Settings className="h-4 w-4" />
           </Link>
@@ -123,6 +125,7 @@ export function Navbar() {
             onClick={handleSignOut}
             className="hidden md:flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
             title="Sign out"
+            aria-label="Sign out"
           >
             <LogOut className="h-4 w-4" />
           </button>

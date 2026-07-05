@@ -10,19 +10,21 @@ const LINKS = [
 
 export function Footer() {
   return (
-    <footer className="border-t bg-white py-8 px-4">
-      <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
+    <footer className="border-t border-border bg-background py-8 px-4">
+      <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
         <p>
-          <span className="font-semibold text-gray-700">InvoFi</span> â€” Decentralized Invoice Financing on Stellar Soroban
+          <span className="font-semibold text-foreground">InvoFi</span>
+          {' '}— Decentralized Invoice Financing on Stellar Soroban
         </p>
+
         <nav className="flex gap-5">
-          {LINKS.map(l => (
+          {LINKS.map((l) => (
             <Link
               key={l.label}
               href={l.href}
               target="_blank"
               rel="noreferrer"
-              className="hover:text-gray-800 transition-colors"
+              className="hover:text-foreground transition-colors"
             >
               {l.label}
             </Link>

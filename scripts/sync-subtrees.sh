@@ -87,6 +87,14 @@ case "$DIRECTION" in
     git clone --branch "$BRANCH" --single-branch --depth 50 "$REMOTE_URL" "$WORKDIR"
     (cd "$WORKDIR" && git checkout -b "$BRANCH_NAME")
 
+    # Save the split repo's own lockfile/manifest before anything touches the
+    # tree — these drift independently (own Dependabot) and must survive both
+    # the deletion pass below and the cp -a overwrite.
+    PRESERVE_DIR=$(mktemp -d)
+    for f in "${INDEPENDENT_ON_PUSH[@]}"; do
+      [ -f "$WORKDIR/$f" ] && cp -a "$WORKDIR/$f" "$PRESERVE_DIR/$(basename "$f").bak"
+    done
+
     # Remove everything except .git and scaffolding, then copy in the current
     # prefix content, so deletions in the monorepo are reflected too.
     find "$WORKDIR" -mindepth 1 -maxdepth 1 ! -name '.git' -print0 |
@@ -99,14 +107,9 @@ case "$DIRECTION" in
         [ "$skip" = false ] && rm -rf "$entry"
       done || true
 
-    # Preserve the split repo's own lockfile/manifest versions across the copy.
-    PRESERVE_DIR=$(mktemp -d)
-    for f in "${INDEPENDENT_ON_PUSH[@]}"; do
-      [ -f "$WORKDIR/$f" ] && cp -a "$WORKDIR/$f" "$PRESERVE_DIR/$(basename "$f").bak"
-    done
-
     cp -a "$PREFIX"/. "$WORKDIR"/
 
+    # Restore the preserved lockfile/manifest over whatever cp -a just wrote.
     for f in "${INDEPENDENT_ON_PUSH[@]}"; do
       [ -f "$PRESERVE_DIR/$(basename "$f").bak" ] && cp -a "$PRESERVE_DIR/$(basename "$f").bak" "$WORKDIR/$f"
     done

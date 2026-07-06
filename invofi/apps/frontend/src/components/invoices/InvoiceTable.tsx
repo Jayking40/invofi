@@ -80,7 +80,7 @@ export function InvoiceTable({ invoices, onRowClick }: InvoiceTableProps) {
         <TableHeader>
           <TableRow>
             <TableHead>Invoice ID</TableHead>
-            <TableHead>Debtor</TableHead>
+            <TableHead>Business</TableHead>
             <SortableHead field="amount" label="Amount" />
             <SortableHead field="due_date" label="Due Date" />
             <SortableHead field="status" label="Status" />

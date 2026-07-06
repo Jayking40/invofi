@@ -1,0 +1,114 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="dotgrid" width="28" height="28" patternUnits="userSpaceOnUse">
+      <circle cx="1.4" cy="1.4" r="1.4" fill="#ffffff" opacity="0.05" />
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#0a0f1e" />
+  <rect width="1200" height="630" fill="url(#dotgrid)" />
+
+  <!-- Faint decorative hexagons, far background -->
+  <polygon
+    points="1280,470 1340,505 1340,575 1280,610 1220,575 1220,505"
+    fill="none" stroke="#3B82F6" stroke-width="2" opacity="0.06"
+  />
+  <polygon
+    points="1180,40 1230,68 1230,124 1180,152 1130,124 1130,68"
+    fill="none" stroke="#06B6D4" stroke-width="2" opacity="0.05"
+  />
+  <polygon
+    points="-40,40 10,68 10,124 -40,152 -90,124 -90,68"
+    fill="none" stroke="#3B82F6" stroke-width="2" opacity="0.04"
+  />
+
+  <!-- ===================== LEFT: Logo + Wordmark ===================== -->
+  <g transform="translate(0,68)">
+    <!-- Logomark: hexagon with mini corner-cut document inside -->
+    <g transform="translate(90,128)">
+      <polygon
+        points="28,0 56,14 56,42 28,56 0,42 0,14"
+        fill="none" stroke="#3B82F6" stroke-width="3" stroke-linejoin="round"
+      />
+      <path
+        d="M 18,14 L 32,14 L 38,20 L 38,42 L 18,42 Z"
+        fill="#F8FAFC"
+      />
+      <path d="M32,14 L32,20 L38,20 Z" fill="#0a0f1e" opacity="0.35" />
+    </g>
+
+    <!-- Wordmark -->
+    <text x="168" y="172" font-family="Arial, Helvetica, sans-serif" font-size="56" font-weight="700">
+      <tspan fill="#3B82F6">Invo</tspan><tspan fill="#F8FAFC">Fi</tspan>
+    </text>
+
+    <!-- Tagline -->
+    <text x="92" y="238" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="400" fill="#94A3B8">
+      Decentralized Invoice Financing on Stellar
+    </text>
+
+    <!-- Stellar / Soroban badge pill -->
+    <rect x="92" y="270" width="222" height="36" rx="18" fill="none" stroke="#06B6D4" stroke-width="1.5" opacity="0.8" />
+    <text x="203" y="293" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" letter-spacing="1.5" fill="#06B6D4">
+      STELLAR &#183; SOROBAN
+    </text>
+  </g>
+
+  <!-- ===================== RIGHT: Invoice tokenizing into chain ===================== -->
+  <g transform="translate(0,64)">
+    <!-- Connections (drawn first, under nodes) -->
+    <line x1="800" y1="176" x2="866" y2="222" stroke="#06B6D4" stroke-width="2.5" opacity="0.9" />
+    <circle cx="826" cy="192" r="3.5" fill="#06B6D4" opacity="0.9" />
+    <circle cx="846" cy="207" r="2.5" fill="#06B6D4" opacity="0.6" />
+
+    <line x1="909" y1="243" x2="965" y2="297" stroke="#06B6D4" stroke-width="2" opacity="0.7" />
+    <line x1="965" y1="353" x2="965" y2="297" stroke="#06B6D4" stroke-width="2" opacity="0.35" />
+    <line x1="989" y1="325" x2="1034" y2="242" stroke="#06B6D4" stroke-width="2" opacity="0.5" />
+    <line x1="989" y1="335" x2="1026" y2="405" stroke="#06B6D4" stroke-width="2" opacity="0.35" />
+
+    <!-- Document (invoice) -->
+    <path
+      d="M 634,130 L 768,130 L 800,162 L 800,406 A14,14 0 0 1 786,420 L 634,420 A14,14 0 0 1 620,406 L 620,144 A14,14 0 0 1 634,130 Z"
+      fill="#0a0f1e" stroke="#F8FAFC" stroke-width="2.5" stroke-linejoin="round"
+    />
+    <path d="M768,130 L768,162 L800,162 Z" fill="none" stroke="#F8FAFC" stroke-width="2.5" stroke-linejoin="round" />
+
+    <!-- Invoice content lines -->
+    <rect x="644" y="188" width="112" height="7" rx="3.5" fill="#F8FAFC" opacity="0.85" />
+    <rect x="644" y="212" width="80" height="6" rx="3" fill="#F8FAFC" opacity="0.4" />
+    <rect x="644" y="232" width="96" height="6" rx="3" fill="#F8FAFC" opacity="0.4" />
+
+    <line x1="644" y1="264" x2="756" y2="264" stroke="#F8FAFC" stroke-width="1" opacity="0.15" />
+
+    <rect x="644" y="284" width="60" height="6" rx="3" fill="#F8FAFC" opacity="0.35" />
+    <rect x="644" y="302" width="72" height="6" rx="3" fill="#F8FAFC" opacity="0.35" />
+    <rect x="644" y="320" width="52" height="6" rx="3" fill="#F8FAFC" opacity="0.35" />
+
+    <line x1="644" y1="352" x2="756" y2="352" stroke="#F8FAFC" stroke-width="1" opacity="0.15" />
+
+    <text x="644" y="384" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#94A3B8" letter-spacing="1">TOTAL</text>
+    <rect x="644" y="394" width="76" height="12" rx="6" fill="#3B82F6" />
+
+    <!-- Blockchain nodes (network) -->
+    <!-- Node A -->
+    <polygon points="909.4,252 880,269 850.6,252 850.6,218 880,201 909.4,218"
+      fill="#0a0f1e" stroke="#3B82F6" stroke-width="2.5" />
+    <circle cx="880" cy="235" r="5" fill="#3B82F6" />
+
+    <!-- Node B -->
+    <polygon points="989.25,339 965,353 940.75,339 940.75,311 965,297 989.25,311"
+      fill="#0a0f1e" stroke="#06B6D4" stroke-width="2.5" />
+    <circle cx="965" cy="325" r="5" fill="#06B6D4" />
+
+    <!-- Node C -->
+    <polygon points="1075.78,242 1055,254 1034.22,242 1034.22,218 1055,206 1075.78,218"
+      fill="#0a0f1e" stroke="#06B6D4" stroke-width="2" />
+    <circle cx="1055" cy="230" r="4" fill="#06B6D4" />
+
+    <!-- Node D -->
+    <polygon points="1064.05,416 1045,427 1025.95,416 1025.95,394 1045,383 1064.05,394"
+      fill="#0a0f1e" stroke="#06B6D4" stroke-width="2" />
+    <circle cx="1045" cy="405" r="4" fill="#06B6D4" />
+  </g>
+</svg>

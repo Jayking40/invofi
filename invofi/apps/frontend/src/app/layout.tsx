@@ -9,6 +9,7 @@ import { Toaster } from '@/components/ui/toaster';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://invofi-five.vercel.app'),
   title: 'InvoFi — Decentralized Invoice Financing on Stellar',
   description:
     'Tokenize invoices as on-chain assets and get immediate financing from investors — powered by Stellar Soroban.',
@@ -21,10 +22,10 @@ export const metadata: Metadata = {
     siteName: 'InvoFi',
     images: [
       {
-        url: '/og-image.svg',
+        url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'InvoFi',
+        alt: 'InvoFi — Decentralized Invoice Financing on Stellar',
       },
     ],
     type: 'website',
@@ -34,7 +35,7 @@ export const metadata: Metadata = {
     title: 'InvoFi — Decentralized Invoice Financing on Stellar',
     description:
       'Tokenize invoices as on-chain assets and get immediate financing from investors — powered by Stellar Soroban.',
-    images: ['/og-image.svg'],
+    images: ['/og-image.png'],
   },
 };
 

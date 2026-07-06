@@ -3,15 +3,17 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, FileText, TrendingUp, Wallet, Download } from 'lucide-react';
+import { Plus, FileText, TrendingUp, Wallet, Download, LayoutGrid, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { InvoiceCard } from '@/components/invoices/InvoiceCard';
+import { InvoiceTable } from '@/components/invoices/InvoiceTable';
 import { WalletButton } from '@/components/auth/WalletButton';
 import { getUserProfile, supabase } from '@/lib/supabase';
 import { getXlmBalance } from '@/lib/horizon';
 import { useWallet } from '@/components/auth/WalletProvider';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { STROOPS_PER_XLM } from '@/lib/constants';
 import { toCsv, downloadCsv } from '@/lib/csv';
 import type { UserProfile, Invoice } from '@/types';
@@ -22,6 +24,7 @@ export default function DashboardPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [xlmBalance, setXlmBalance] = useState<string | null>(null);
+  const [view, setView] = useLocalStorage<'grid' | 'table'>('dashboard-invoice-view', 'grid');
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
@@ -136,11 +139,35 @@ export default function DashboardPage() {
           <section>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-800">Your Invoices</h2>
-              {invoices.length > 0 && (
-                <Button variant="outline" size="sm" onClick={exportInvoicesCsv}>
-                  <Download className="mr-1.5 h-3.5 w-3.5" /> Export CSV
-                </Button>
-              )}
+              <div className="flex items-center gap-2">
+                {invoices.length > 0 && (
+                  <div className="flex items-center rounded-md border">
+                    <button
+                      onClick={() => setView('grid')}
+                      className={`p-2 rounded-l-md ${view === 'grid' ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
+                      title="Grid view"
+                      aria-label="Grid view"
+                      aria-pressed={view === 'grid'}
+                    >
+                      <LayoutGrid className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => setView('table')}
+                      className={`p-2 rounded-r-md border-l ${view === 'table' ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
+                      title="Table view"
+                      aria-label="Table view"
+                      aria-pressed={view === 'table'}
+                    >
+                      <List className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
+                {invoices.length > 0 && (
+                  <Button variant="outline" size="sm" onClick={exportInvoicesCsv}>
+                    <Download className="mr-1.5 h-3.5 w-3.5" /> Export CSV
+                  </Button>
+                )}
+              </div>
             </div>
             {invoices.length === 0 ? (
               <div className="text-center py-16 border-2 border-dashed border-gray-200 rounded-xl">
@@ -152,6 +179,11 @@ export default function DashboardPage() {
                   </Link>
                 </Button>
               </div>
+            ) : view === 'table' ? (
+              <InvoiceTable
+                invoices={invoices}
+                onRowClick={inv => router.push(`/invoices/${inv.id}`)}
+              />
             ) : (
               <div className="grid md:grid-cols-2 gap-4">
                 {invoices.map(inv => (

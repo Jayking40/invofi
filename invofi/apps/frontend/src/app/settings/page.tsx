@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { User, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageHeader } from '@/components/common/PageHeader';
@@ -26,6 +28,21 @@ export default function SettingsPage() {
       <PageHeader title="Settings" description="Manage your account preferences" />
 
       <div className="space-y-4">
+        <Link href="/profile">
+          <Card className="hover:bg-accent transition-colors">
+            <CardContent className="flex items-center justify-between py-4">
+              <div className="flex items-center gap-3">
+                <User className="h-4 w-4 text-gray-400" />
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Profile</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Edit your display name and view account details</p>
+                </div>
+              </div>
+              <ChevronRight className="h-4 w-4 text-gray-400" />
+            </CardContent>
+          </Card>
+        </Link>
+
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Network</CardTitle>

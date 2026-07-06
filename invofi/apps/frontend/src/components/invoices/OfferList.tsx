@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { useWallet } from '@/components/auth/WalletProvider';
 import { createOffer, acceptOffer, rejectOffer, repayInvoice, markOverdue, reclaimInvoice } from '@/lib/contract';
 import { supabase } from '@/lib/supabase';
@@ -40,6 +41,9 @@ export function OfferList({ invoiceId, invoice, onUpdate }: OfferListProps) {
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [actionId, setActionId] = useState<string | null>(null);
+  const [confirmTarget, setConfirmTarget] = useState<
+    { offer: FinancingOffer; kind: 'reject' | 'reclaim' } | null
+  >(null);
 
   const { register, handleSubmit, formState: { errors }, reset } = useForm<OfferFormValues>({
     resolver: zodResolver(offerSchema),
@@ -273,7 +277,7 @@ export function OfferList({ invoiceId, invoice, onUpdate }: OfferListProps) {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => handleReject(offer)}
+                    onClick={() => setConfirmTarget({ offer, kind: 'reject' })}
                     disabled={actionId === offer.id}
                   >
                     Reject
@@ -294,7 +298,7 @@ export function OfferList({ invoiceId, invoice, onUpdate }: OfferListProps) {
                 <Button
                   size="sm"
                   variant="destructive"
-                  onClick={() => handleReclaim(offer)}
+                  onClick={() => setConfirmTarget({ offer, kind: 'reclaim' })}
                   disabled={actionId === offer.id}
                 >
                   {actionId === offer.id && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
@@ -305,6 +309,26 @@ export function OfferList({ invoiceId, invoice, onUpdate }: OfferListProps) {
           </div>
         ))}
       </CardContent>
+
+      <ConfirmDialog
+        open={confirmTarget !== null}
+        onOpenChange={open => { if (!open) setConfirmTarget(null); }}
+        title={confirmTarget?.kind === 'reclaim' ? 'Reclaim this offer?' : 'Reject this offer?'}
+        description={
+          confirmTarget?.kind === 'reclaim'
+            ? 'This marks the offer Defaulted on-chain. Principal was already paid to the business at acceptance — this does not return funds, and cannot be undone.'
+            : 'The lender will be notified their offer was rejected. This cannot be undone.'
+        }
+        confirmLabel={confirmTarget?.kind === 'reclaim' ? 'Reclaim' : 'Reject'}
+        variant={confirmTarget?.kind === 'reclaim' ? 'destructive' : 'default'}
+        onConfirm={() => {
+          if (!confirmTarget) return;
+          const { offer, kind } = confirmTarget;
+          setConfirmTarget(null);
+          if (kind === 'reclaim') handleReclaim(offer);
+          else handleReject(offer);
+        }}
+      />
     </Card>
   );
 }

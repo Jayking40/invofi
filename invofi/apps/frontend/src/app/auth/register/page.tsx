@@ -57,12 +57,17 @@ function RegisterForm() {
   const onSubmit = async (values: FormValues) => {
     setLoading(true);
     try {
-      await signUpWithEmail(values.email, values.password, role, values.displayName);
-      toast({
-        title: 'Account created!',
-        description: 'Check your email to verify your account, then sign in.',
-      });
-      router.push('/auth/login');
+      const result = await signUpWithEmail(values.email, values.password, role, values.displayName);
+      if (result.session) {
+        // Email confirmation is disabled — user is immediately active
+        router.push('/dashboard');
+      } else {
+        toast({
+          title: 'Account created!',
+          description: 'Check your email for a confirmation link, then sign in.',
+        });
+        router.push('/auth/login');
+      }
     } catch (err: unknown) {
       toast({
         title: 'Registration failed',
@@ -75,11 +80,11 @@ function RegisterForm() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-4 py-12 bg-gray-50">
+    <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-4 py-12 bg-gray-50 dark:bg-gray-950">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900">Create your account</h1>
-          <p className="text-gray-500 mt-1">Join InvoFi and start financing invoices on-chain</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-50">Create your account</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Join InvoFi and start financing invoices on-chain</p>
         </div>
 
         {/* Role picker */}
@@ -92,15 +97,15 @@ function RegisterForm() {
               className={cn(
                 'p-4 rounded-xl border-2 text-left transition-all',
                 role === r.id
-                  ? 'border-blue-600 bg-blue-50'
-                  : 'border-gray-200 bg-white hover:border-gray-300',
+                  ? 'border-blue-600 bg-blue-50 dark:bg-blue-950'
+                  : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:border-gray-300 dark:hover:border-gray-600',
               )}
             >
               <r.icon className={cn('h-5 w-5 mb-2', role === r.id ? 'text-blue-600' : 'text-gray-400')} />
-              <p className={cn('font-semibold text-sm', role === r.id ? 'text-blue-700' : 'text-gray-700')}>
+              <p className={cn('font-semibold text-sm', role === r.id ? 'text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300')}>
                 {r.label}
               </p>
-              <p className="text-xs text-gray-500 mt-0.5 leading-tight">{r.description}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-tight">{r.description}</p>
             </button>
           ))}
         </div>
@@ -140,9 +145,9 @@ function RegisterForm() {
           </CardContent>
         </Card>
 
-        <p className="text-center text-sm text-gray-500">
+        <p className="text-center text-sm text-gray-500 dark:text-gray-400">
           Already have an account?{' '}
-          <Link href="/auth/login" className="text-blue-600 hover:underline font-medium">
+          <Link href="/auth/login" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
             Sign in
           </Link>
         </p>

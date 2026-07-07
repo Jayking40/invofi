@@ -48,11 +48,11 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-4 py-12 bg-gray-50">
+    <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-4 py-12 bg-gray-50 dark:bg-gray-950">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
-          <p className="text-gray-500 mt-1">Sign in to your InvoFi account</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-50">Welcome back</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Sign in to your InvoFi account</p>
         </div>
 
         {/* Wallet login */}
@@ -68,10 +68,10 @@ export default function LoginPage() {
 
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-200" />
+            <div className="w-full border-t border-gray-200 dark:border-gray-700" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-gray-50 px-2 text-gray-400">or sign in with email</span>
+            <span className="bg-gray-50 dark:bg-gray-950 px-2 text-gray-400 dark:text-gray-500">or sign in with email</span>
           </div>
         </div>
 
@@ -99,9 +99,9 @@ export default function LoginPage() {
           </CardContent>
         </Card>
 
-        <p className="text-center text-sm text-gray-500">
+        <p className="text-center text-sm text-gray-500 dark:text-gray-400">
           Don&apos;t have an account?{' '}
-          <Link href="/auth/register" className="text-blue-600 hover:underline font-medium">
+          <Link href="/auth/register" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
             Create one
           </Link>
         </p>

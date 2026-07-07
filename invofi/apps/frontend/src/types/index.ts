@@ -37,4 +37,6 @@ export interface WalletState {
   publicKey: string | null;
   isConnected: boolean;
   isConnecting: boolean;
+  isInstalled: boolean;
+  networkMismatch: boolean;
 }

@@ -2,6 +2,7 @@ import {
   isConnected,
   isAllowed,
   getAddress,
+  getNetwork,
   signTransaction,
   requestAccess,
 } from '@stellar/freighter-api';
@@ -40,6 +41,16 @@ export async function getFreighterPublicKey(): Promise<string | null> {
     const result = await getAddress();
     if (result.error) return null;
     return result.address;
+  } catch {
+    return null;
+  }
+}
+
+export async function getFreighterNetwork(): Promise<string | null> {
+  try {
+    const result = await getNetwork();
+    if ('error' in result && result.error) return null;
+    return (result as { network: string }).network ?? null;
   } catch {
     return null;
   }

@@ -1,28 +1,39 @@
-# InvoFi
+```
+ ██╗███╗   ██╗██╗   ██╗ ██████╗ ███████╗██╗
+ ██║████╗  ██║██║   ██║██╔═══██╗██╔════╝██║
+ ██║██╔██╗ ██║██║   ██║██║   ██║█████╗  ██║
+ ██║██║╚██╗██║╚██╗ ██╔╝██║   ██║██╔══╝  ██║
+ ██║██║ ╚████║ ╚████╔╝ ╚██████╔╝██║     ██║
+ ╚═╝╚═╝  ╚═══╝  ╚═══╝   ╚═════╝ ╚═╝     ╚═╝
+```
+
+<div align="center">
 
 **Decentralized Invoice Financing on Stellar Soroban**
 
+[![CI](https://github.com/Stellar-VaultLink/invofi/actions/workflows/ci.yml/badge.svg)](https://github.com/Stellar-VaultLink/invofi/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 [![Built on Stellar](https://img.shields.io/badge/Built%20on-Stellar-7B4FE2)](https://stellar.org)
 [![Soroban](https://img.shields.io/badge/Smart%20Contracts-Soroban-FF5B36)](https://soroban.stellar.org)
 [![Next.js](https://img.shields.io/badge/Frontend-Next.js%2014-black)](https://nextjs.org)
 [![Supabase](https://img.shields.io/badge/Auth-Supabase-3ECF8E)](https://supabase.com)
-[![GitBook](https://img.shields.io/badge/Docs-GitBook-3884FF)](https://stellar-vault-link.gitbook.io/stellar-vault-link-docs)
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-Vercel-black)](https://invofi-five.vercel.app)
 
-[Live Demo](https://invofi-five.vercel.app) · [Documentation](https://stellar-vault-link.gitbook.io/stellar-vault-link-docs) · [Contributing](./CONTRIBUTING.md) · [Report Bug](https://github.com/Stellar-VaultLink/invofi/issues)
+[Live Demo](https://invofi-five.vercel.app) · [Docs](https://stellar-vault-link.gitbook.io/stellar-vault-link-docs) · [Contributing](./CONTRIBUTING.md) · [Report Bug](https://github.com/Stellar-VaultLink/invofi/issues)
+
+</div>
 
 ---
 
 ## What is InvoFi?
 
-InvoFi is an open-source, decentralized invoice financing protocol built on **Stellar Soroban**. It solves a real problem: small and medium businesses often wait 30–90 days to get paid on invoices, starving them of working capital.
+InvoFi is an open-source, decentralised invoice financing protocol built on **Stellar Soroban**. It solves a real problem: small and medium businesses often wait 30–90 days to get paid on invoices, starving them of working capital.
 
-InvoFi lets businesses **tokenize their invoices as on-chain assets** and instantly receive financing from a global pool of investors. Investors earn yield. Businesses get liquidity. Everything is governed by smart contracts — no banks, no middlemen, no trust required.
+InvoFi lets businesses **tokenise their invoices as on-chain assets** and instantly receive financing from a global pool of investors. Investors earn yield. Businesses get liquidity. Everything is governed by smart contracts — no banks, no middlemen, no trust required.
 
 ```text
-Business registers invoice → Lenders compete with offers → Business accepts best offer
-→ Funds available immediately → Business repays at due date → Lender earns yield
+Business registers invoice  →  Lenders compete with offers  →  Business accepts best offer
+→  Funds available immediately  →  Business repays (full or partial)  →  Lender earns yield
 ```
 
 ---
@@ -32,26 +43,24 @@ Business registers invoice → Lenders compete with offers → Business accepts 
 InvoFi's code lives across three repos with distinct jobs:
 
 | Repo | Role |
-| --- | --- |
-| **[invofi](https://github.com/Stellar-VaultLink/invofi)** (this repo) | The integration monorepo. This is what's deployed — Vercel builds the frontend straight out of `invofi/apps/frontend`, and this is where the full history, issue backlog, and roadmap live. |
-| **[invofi-frontend](https://github.com/Stellar-VaultLink/invofi-frontend)** | Where frontend contributions happen. Fork/PR here for UI, hooks, and client-side work — scoped CI, its own issue queue. |
-| **[invofi-contracts](https://github.com/Stellar-VaultLink/invofi-contracts)** | Where contract contributions happen. Fork/PR here for Soroban/Rust work — scoped CI, its own issue queue. |
+|---|---|
+| **[invofi](https://github.com/Stellar-VaultLink/invofi)** (this repo) | Integration monorepo. Vercel deploys the frontend straight out of `invofi/apps/frontend`. Full history, issue backlog, and roadmap live here. |
+| **[invofi-frontend](https://github.com/Stellar-VaultLink/invofi-frontend)** | Where frontend contributions happen — UI, hooks, client-side work. Scoped CI, its own issue queue. |
+| **[invofi-contracts](https://github.com/Stellar-VaultLink/invofi-contracts)** | Where contract contributions happen — Soroban/Rust. Scoped CI, its own issue queue. |
 
-Merged PRs in `invofi-frontend` / `invofi-contracts` are periodically pulled into this monorepo (via `git subtree`, see `scripts/sync-subtrees.sh`) and deployed from here. If you want your change live, open the PR in the component repo that matches what you're touching — not this one.
+Merged PRs in the component repos are periodically pulled into this monorepo (via `scripts/sync-subtrees.sh`) and deployed from here.
 
 ---
 
 ## Live Demo
 
 > **Frontend:** [invofi-five.vercel.app](https://invofi-five.vercel.app)
-> **Contract live on Stellar testnet:** [`CDJS6AFE6VRPAPWOPWOPZLSLQ7NCISA7YHOMAE7HJWOD7G6CQDCVT4L2`](https://lab.stellar.org/r/testnet/contract/CDJS6AFE6VRPAPWOPWOPZLSLQ7NCISA7YHOMAE7HJWOD7G6CQDCVT4L2)
-
-To run locally:
+> **Contract on Stellar Testnet:** [`CDJS6AFE6VRPAPWOPWOPZLSLQ7NCISA7YHOMAE7HJWOD7G6CQDCVT4L2`](https://lab.stellar.org/r/testnet/contract/CDJS6AFE6VRPAPWOPWOPZLSLQ7NCISA7YHOMAE7HJWOD7G6CQDCVT4L2)
 
 ```bash
 git clone https://github.com/Stellar-VaultLink/invofi.git
 cd invofi/apps/frontend
-cp .env.local.example .env.local   # fill in your Supabase + contract values
+cp .env.local.example .env.local   # fill in Supabase + contract values
 npm install && npm run dev
 # → http://localhost:3000
 ```
@@ -61,67 +70,63 @@ npm install && npm run dev
 ## Key Features
 
 ### For Businesses
-
 - Register invoices on-chain in under 60 seconds
-- Receive competing financing offers from global investors
+- Receive competing financing offers from a global investor pool
 - Accept the best offer and get immediate liquidity
-- Full repayment flow tracked on-chain
+- Full and **partial repayment** tracked on-chain
 - No bank account or credit history needed — your invoice is the collateral
 
 ### For Lenders / Investors
-
 - Browse a marketplace of verified on-chain invoices
 - Submit financing offers with custom interest rates and duration
 - Track active investments and yields in a live portfolio
-- Transparent repayment history on the Stellar blockchain
+- Transparent partial repayment history on the Stellar blockchain
 
 ### Protocol Properties
-
-- **Trustless** — all terms, state transitions, and repayments are enforced by Soroban smart contracts
+- **Trustless** — all terms, state transitions, and repayments enforced by Soroban smart contracts
 - **Transparent** — every action is a public transaction on Stellar, auditable by anyone
-- **Permissionless** — anyone with a Stellar wallet can participate as a business or lender
-- **Dual auth** — supports both email/password (via Supabase) and Stellar wallet (via Freighter)
-- **Multi-currency** — invoices can be denominated in XLM or USDC
-- **Free to deploy** — entire stack runs on Vercel (free) + Supabase (free) + Stellar testnet
+- **Permissionless** — anyone with a Stellar wallet can participate
+- **Dual auth** — email/password (Supabase) and Stellar wallet (Freighter)
+- **Multi-currency** — invoices denominated in XLM or USDC
+- **Partial repayment** — businesses can repay incrementally; offer stays Financed until fully cleared
+- **Free to deploy** — Vercel (free) + Supabase (free) + Stellar testnet
 
 ---
 
 ## Architecture
 
 ```text
-┌─────────────────────────────────────────────────────────────┐
-│                     Browser (User)                          │
-│  Next.js 14 frontend — hosted on Vercel (free tier)        │
-│                                                             │
-│   ┌──────────────────┐    ┌────────────────────────────┐   │
-│   │  Email / Password│    │   Freighter Wallet          │   │
-│   │  auth via        │    │   signs & submits           │   │
-│   │  Supabase        │    │   Soroban transactions      │   │
-│   └────────┬─────────┘    └────────────┬───────────────┘   │
-└────────────┼──────────────────────────┼───────────────────┘
-             │                          │
-             ▼                          ▼
-    ┌─────────────────┐      ┌──────────────────────────┐
-    │  Supabase       │      │  Stellar Soroban         │
-    │  (free tier)    │      │  Smart Contract          │
-    │                 │      │  invofi-invoice-registry  │
-    │  - Auth         │      │                          │
-    │  - user_profiles│      │  - register_invoice()    │
-    │  - invoices     │      │  - create_offer()        │
-    │  - offers       │      │  - accept_offer()        │
-    │    (mirror)     │      │  - repay_invoice()       │
-    └─────────────────┘      └──────────┬───────────────┘
-                                        │
-                             ┌──────────▼───────────────┐
-                             │  Stellar Horizon API      │
-                             │  - Balance queries        │
-                             │  - Transaction history    │
-                             └──────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                        Browser (User)                           │
+│   Next.js 14 App Router — deployed on Vercel                   │
+│                                                                  │
+│   ┌──────────────────┐      ┌──────────────────────────────┐   │
+│   │  Email / Password │      │   Freighter Wallet            │   │
+│   │  auth via Supabase│      │   signs Soroban transactions  │   │
+│   └────────┬──────────┘      └──────────────┬───────────────┘   │
+└────────────┼────────────────────────────────┼───────────────────┘
+             │                                │
+             ▼                                ▼
+    ┌─────────────────┐          ┌────────────────────────────┐
+    │    Supabase      │          │   Stellar Soroban Contract │
+    │  Auth + mirror   │          │   invofi-invoice-registry  │
+    │                  │          │                            │
+    │  user_profiles   │          │  register_invoice()        │
+    │  invoices        │          │  create_offer()            │
+    │  financing_offers│          │  accept_offer()            │
+    └─────────────────┘          │  repay_invoice()  ◄─ partial│
+                                  │  mark_overdue()            │
+                                  │  reclaim_invoice()         │
+                                  │  get_invoices_by_status()  │
+                                  └──────────────┬─────────────┘
+                                                 │
+                                  ┌──────────────▼─────────────┐
+                                  │   Stellar Horizon API       │
+                                  │   Balance + tx history      │
+                                  └────────────────────────────┘
 ```
 
 No backend server. No database to manage. 100% free hosting.
-
-Supabase mirrors on-chain data (invoices, offers) for fast UI queries. The smart contract is always the source of truth — Supabase is only for display speed.
 
 ---
 
@@ -129,77 +134,75 @@ Supabase mirrors on-chain data (invoices, offers) for fast UI queries. The smart
 
 ```text
 invofi/
-├── invofi/
-│   └── apps/
-│       ├── contracts/                    Soroban Rust smart contract
-│       │   ├── lib.rs                    Main contract — all protocol logic
-│       │   ├── test.rs                   9 contract tests
-│       │   ├── Cargo.toml                Workspace root + dependency pins
-│       │   └── invofi-core/              Secondary module (storage helpers)
-│       │       └── src/
-│       │           ├── lib.rs            Entry point
-│       │           ├── invoice.rs        Invoice data types
-│       │           ├── financing.rs      Offer data types
-│       │           └── storage.rs        Counter management
-│       └── frontend/                     Next.js 14 web application
-│           └── src/
-│               ├── app/                  Pages (App Router)
-│               │   ├── page.tsx          Landing page
-│               │   ├── layout.tsx        Root layout + providers
-│               │   ├── auth/             Login and registration pages
-│               │   ├── dashboard/        Business invoice dashboard
-│               │   ├── invoices/         Create and view invoices
-│               │   ├── marketplace/      Lender invoice browser
-│               │   └── portfolio/        Lender investment tracker
-│               ├── components/
-│               │   ├── auth/             AuthGuard, WalletButton, WalletProvider
-│               │   ├── invoices/         InvoiceCard, InvoiceForm, OfferList
-│               │   ├── marketplace/      MarketplaceCard
-│               │   ├── layout/           Navbar, Providers
-│               │   └── ui/               shadcn/ui base components
-│               └── lib/
-│                   ├── supabase.ts       Auth + database helpers
-│                   ├── freighter.ts      Freighter wallet helpers
-│                   ├── contract.ts       Soroban contract calls
-│                   ├── horizon.ts        Stellar Horizon API helpers
-│                   ├── types.ts          Shared TypeScript types
-│                   └── utils.ts          Formatting, class utils
-├── docs/                                 Full project documentation
+├── invofi/apps/
+│   ├── contracts/                    Soroban Rust smart contract
+│   │   ├── lib.rs                    Core protocol — all 17 contract functions
+│   │   ├── test.rs                   21+ contract tests
+│   │   ├── Cargo.toml
+│   │   └── scripts/
+│   │       ├── deploy.sh             Build + deploy to testnet/mainnet
+│   │       └── fund-and-deploy.sh    Generate + fund deployer key, then deploy
+│   └── frontend/                     Next.js 14 web application
+│       └── src/
+│           ├── app/
+│           │   ├── page.tsx          Landing page
+│           │   ├── layout.tsx        Root layout + providers
+│           │   ├── dashboard/        Business invoice dashboard
+│           │   ├── invoices/         Create and view invoices
+│           │   ├── marketplace/      Lender invoice browser
+│           │   ├── portfolio/        Lender investment tracker
+│           │   ├── profile/          User profile + display name
+│           │   └── settings/         Account settings
+│           ├── components/
+│           │   ├── auth/             AuthGuard, WalletButton, WalletProvider
+│           │   ├── common/           ConfirmDialog, StatsCard, StatsGrid,
+│           │   │                     StatusBadge, PageHeader, EmptyState
+│           │   ├── invoices/         InvoiceCard, InvoiceForm, InvoiceTable,
+│           │   │                     OfferList
+│           │   ├── layout/           Navbar (dark mode + a11y), Footer
+│           │   └── ui/               shadcn/ui — button, dialog, table,
+│           │                         badge, card, input, tabs, toast...
+│           ├── hooks/                useInvoices, useOffers, useMarketplace,
+│           │                         useLocalStorage, useDebounce, useMediaQuery
+│           └── lib/
+│               ├── contract.ts       Soroban contract call helpers
+│               ├── freighter.ts      Freighter v6 wallet helpers
+│               ├── horizon.ts        Stellar Horizon API helpers
+│               ├── supabase.ts       Auth + database helpers
+│               ├── formatters.ts     Amount, date, address formatters
+│               ├── csv.ts            CSV export helpers
+│               └── constants.ts      Network config, risk tiers, enums
 ├── scripts/
-│   ├── close-issues.sh                  Bulk GitHub issue close script
-│   ├── deploy.sh                        Build + deploy contract to testnet/mainnet
-│   ├── fund-and-deploy.sh               Generate + fund a deployer key, then deploy
-│   └── sync-subtrees.sh                 Pull/push invofi-frontend and invofi-contracts
-├── .github/
-│   ├── ISSUE_TEMPLATE/                  Bug + feature request templates
-│   └── PULL_REQUEST_TEMPLATE.md         PR checklist
-├── CONTRIBUTING.md                       Contribution guide
-├── CODE_OF_CONDUCT.md                   Community standards
-├── SECURITY.md                          Vulnerability reporting
-└── LICENSE                              MIT
+│   ├── sync-subtrees.sh              Pull/push invofi-frontend + invofi-contracts
+│   └── close-issues.sh              Bulk GitHub issue close
+├── docs/
+├── CONTRIBUTING.md
+├── CODE_OF_CONDUCT.md
+├── SECURITY.md
+└── LICENSE
 ```
 
 ---
 
 ## Smart Contract Reference
 
-Contract: `invofi-invoice-registry` (`invofi/apps/contracts/lib.rs`)
+Contract: `invofi-invoice-registry` · `invofi/apps/contracts/lib.rs`
 
 ### Invoice Fields
 
 | Field | Type | Description |
-| --- | --- | --- |
+|---|---|---|
 | `id` | `Symbol` | Unique invoice identifier |
 | `originator` | `Address` | Stellar address of the business |
-| `amount` | `i128` | Amount in stroops (1 unit = 10,000,000 stroops) |
+| `amount` | `i128` | Invoice amount in stroops (10,000,000 stroops = 1 unit) |
 | `currency` | `Symbol` | `XLM` or `USDC` |
-| `due_date` | `u64` | Unix timestamp of the payment due date |
+| `due_date` | `u64` | Unix timestamp of payment due date |
 | `status` | `InvoiceStatus` | `Pending → Financed → Repaid / Overdue / Cancelled` |
 
 ### FinancingOffer Fields
 
 | Field | Type | Description |
-| --- | --- | --- |
+|---|---|---|
 | `id` | `Symbol` | Unique offer identifier |
 | `invoice_id` | `Symbol` | Invoice this offer targets |
 | `lender` | `Address` | Stellar address of the investor |
@@ -207,30 +210,31 @@ Contract: `invofi-invoice-registry` (`invofi/apps/contracts/lib.rs`)
 | `currency` | `Symbol` | `XLM` or `USDC` |
 | `interest_rate` | `u32` | Basis points (500 = 5.00%) |
 | `duration` | `u64` | Financing duration in seconds |
-| `status` | `OfferStatus` | `Pending → Accepted → Repaid / Rejected / Defaulted` |
+| `amount_repaid` | `i128` | Running total of stroops repaid so far |
+| `status` | `OfferStatus` | `Pending → Accepted → Financed → Repaid / Rejected / Defaulted` |
 | `funded_at` | `u64` | Unix timestamp when offer was accepted |
 
 ### Contract Functions
 
-| Function | Caller | Description |
-| --- | --- | --- |
-| `initialize(admin, token)` | Anyone (once) | One-time setup — sets the admin and the SEP-41 token used for fund movement |
-| `register_invoice(id, originator, amount, currency, due_date)` | Business | Register a new invoice on-chain |
+| Function | Auth | Description |
+|---|---|---|
+| `initialize(admin, token)` | Anyone (once) | One-time setup — sets admin and SEP-41 token |
+| `register_invoice(id, originator, amount, currency, due_date)` | Originator | Register a new invoice; validates `amount > 0` and `due_date > now` |
 | `get_invoice(id)` | Anyone | Read invoice state |
-| `update_invoice_status(id, status)` | Originator | Change invoice status manually |
-| `create_offer(offer_id, invoice_id, lender, amount, currency, rate, duration)` | Lender | Submit a financing offer |
+| `update_invoice_status(id, status)` | Originator | Manually change invoice status |
+| `create_offer(offer_id, invoice_id, lender, amount, currency, rate, duration)` | Lender | Submit a financing offer; validates `amount > 0`, `rate > 0` |
 | `get_offer(id)` | Anyone | Read offer state |
-| `accept_offer(offer_id, originator)` | Business | Accept an offer → pulls the lender's approved principal, pays it to the business, invoice becomes Financed |
+| `accept_offer(offer_id, originator)` | Business | Accept offer → pulls lender's principal via prior `token.approve`, pays business; invoice → Financed |
 | `reject_offer(offer_id, originator)` | Business | Reject a pending offer |
-| `repay_invoice(invoice_id, offer_id, repayer)` | Business | Pays principal + yield to the lender, marks invoice Repaid |
-| `mark_overdue(invoice_id)` | Anyone | Mark a past-due financed invoice Overdue |
-| `reclaim_invoice(invoice_id, offer_id, lender)` | Lender | After the 7-day grace period on an Overdue invoice, marks the offer Defaulted (on-chain record, not a refund — see below) |
-| `set_rate(admin, tier, rate_bps)` | Admin | Set the yield rate (basis points) for a `RiskTier` (A/B/C) |
+| `repay_invoice(invoice_id, offer_id, repayer, amount)` | Business | Pay `amount` stroops toward the outstanding balance. Offer stays Financed until `amount_repaid >= principal + yield`; then → Repaid |
+| `mark_overdue(invoice_id)` | Anyone | Mark a past-due Financed invoice as Overdue |
+| `reclaim_invoice(invoice_id, offer_id, lender)` | Lender | After 7-day grace period on Overdue invoice, marks offer Defaulted |
+| `get_invoices_by_status(status)` | Anyone | Return all invoices matching a given `InvoiceStatus` |
+| `set_rate(admin, tier, rate_bps)` | Admin | Set yield rate for risk tier A/B/C |
 | `get_rate(tier)` | Anyone | Read the configured rate for a risk tier |
 | `transfer_admin(admin, new_admin)` | Admin | Rotate the admin address |
-| `get_admin()` / `get_token()` | Anyone | Read the configured admin / SEP-41 token address |
-
-**Fund movement:** `accept_offer` pulls the lender's principal via a prior `token.approve()` and pays it directly to the business — this is what makes "immediate liquidity" literally true on-chain. `repay_invoice` pays principal + yield (`amount * interest_rate / 10000`) directly from the business to the lender. There is no collateral custody: if a business never repays, `reclaim_invoice` only produces an on-chain default record after the grace period — the lender's principal was already disbursed at acceptance, so recovery from default happens off-chain.
+| `get_admin()` | Anyone | Read the admin address |
+| `get_token()` | Anyone | Read the configured SEP-41 token address |
 
 ### Invoice Lifecycle
 
@@ -238,18 +242,22 @@ Contract: `invofi-invoice-registry` (`invofi/apps/contracts/lib.rs`)
 register_invoice()
       │
       ▼
-  [Pending] ──── reject_offer() ──── stays Pending (other offers possible)
+  [Pending] ────────────────────────────────────── reject_offer() ──► stays Pending
       │
   accept_offer() ── pays principal to business
       │
       ▼
-  [Financed]
+  [Financed] ◄──────────────────────────────────── repay_invoice() (partial)
       │
-      ├── repay_invoice() ──► [Repaid]        (pays principal + yield to lender)
+      ├── repay_invoice() (balance cleared) ──────► [Repaid]
       │
-      └── mark_overdue()  ──► [Overdue]
-                                  │
-                                  └── reclaim_invoice() (after 7-day grace) ──► offer marked Defaulted
+      └── mark_overdue() ────────────────────────► [Overdue]
+                                                       │
+                                                   reclaim_invoice()
+                                                   (after 7-day grace)
+                                                       │
+                                                       ▼
+                                                  offer → [Defaulted]
 ```
 
 ---
@@ -257,16 +265,16 @@ register_invoice()
 ## Tech Stack
 
 | Layer | Technology | Why |
-| --- | --- | --- |
+|---|---|---|
 | Smart Contracts | Rust + Soroban SDK 22 | Native Stellar contract platform |
-| Frontend | Next.js 14 (App Router) + TypeScript | Free Vercel deployment, SSR |
+| Frontend | Next.js 14 (App Router) + TypeScript 5.5 | Free Vercel deployment, SSR |
 | Styling | Tailwind CSS + shadcn/ui | Fast, accessible, composable |
-| Auth | Supabase | Free tier, row-level security, easy setup |
-| Wallet | Freighter browser extension | Standard Stellar wallet |
+| Auth | Supabase | Free tier, row-level security |
+| Wallet | Freighter v6 extension | Standard Stellar wallet |
 | Data Fetching | TanStack Query v5 | Caching, background refetch |
 | Forms | React Hook Form + Zod | Type-safe validation |
 | Icons | Lucide React | Consistent icon set |
-| Stellar SDK | stellar-sdk v12 | Contract calls, Horizon queries |
+| Stellar SDK | `@stellar/stellar-sdk` v16 | Contract calls, Horizon queries |
 
 ---
 
@@ -275,11 +283,11 @@ register_invoice()
 ### Prerequisites
 
 - [Node.js 20+](https://nodejs.org)
-- [Rust 1.70+](https://rustup.rs) with `wasm32-unknown-unknown` target
+- [Rust 1.70+](https://rustup.rs) with `wasm32-unknown-unknown` target (`rustup target add wasm32-unknown-unknown`)
 - [Freighter wallet](https://freighter.app) browser extension
 - A free [Supabase](https://supabase.com) account
 
-### 1. Clone the repository
+### 1. Clone
 
 ```bash
 git clone https://github.com/Stellar-VaultLink/invofi.git
@@ -289,67 +297,56 @@ cd invofi
 ### 2. Set up Supabase
 
 1. Create a project at [supabase.com](https://supabase.com).
-1. Go to **SQL Editor** and run the schema from the [Supabase Setup](#supabase-setup) section below.
-1. Copy your **Project URL** and **Anon Key** from Settings → API.
+2. Run the schema below in **SQL Editor**.
+3. Copy your **Project URL** and **Anon Key** from Settings → API.
 
 ### 3. Configure environment
 
 ```bash
 cd invofi/apps/frontend
 cp .env.local.example .env.local
+# Fill in NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, NEXT_PUBLIC_CONTRACT_ID
 ```
 
-Open `.env.local` and fill in your Supabase values and contract ID.
-
-### 4. Install and run the frontend
+### 4. Run the frontend
 
 ```bash
-npm install
-npm run dev
+npm install && npm run dev
 # → http://localhost:3000
 ```
 
-### 5. Build and test the contracts
+### 5. Build and test contracts
 
 ```bash
 cd ../contracts
-cargo test
-# 9 tests should pass
-
+cargo test          # 21+ tests
 stellar contract build
-# Output: target/wasm32v1-none/release/invofi_invoice_registry.wasm
 ```
 
-### 6. Deploy the contract to Stellar testnet
+### 6. Deploy contract to testnet
 
 ```bash
-# Install Stellar CLI
 cargo install --locked stellar-cli
-
-# Generate and fund a deployer keypair
 stellar keys generate --global invofi-deployer --network testnet
 stellar keys fund invofi-deployer --network testnet
-
-# Build then deploy
 stellar contract build
 stellar contract deploy \
   --wasm target/wasm32v1-none/release/invofi_invoice_registry.wasm \
   --source invofi-deployer \
   --network testnet
-# Copy the CONTRACT_ID output into your .env.local
+# Copy CONTRACT_ID into .env.local, then call initialize() once
+stellar contract invoke \
+  --id <CONTRACT_ID> --source invofi-deployer --network testnet \
+  -- initialize --admin <ADMIN_ADDRESS> --token <SEP41_TOKEN>
 ```
 
-The live InvoFi testnet contract ID is:
-`CDJS6AFE6VRPAPWOPWOPZLSLQ7NCISA7YHOMAE7HJWOD7G6CQDCVT4L2`
+Live testnet contract: `CDJS6AFE6VRPAPWOPWOPZLSLQ7NCISA7YHOMAE7HJWOD7G6CQDCVT4L2`
 
 ---
 
 ## Supabase Setup
 
-Run this SQL in your Supabase **SQL Editor**:
-
 ```sql
--- User profiles
 create table user_profiles (
   id uuid primary key references auth.users(id),
   email text not null,
@@ -359,7 +356,6 @@ create table user_profiles (
   created_at timestamptz default now()
 );
 
--- Invoice mirror (for fast UI queries)
 create table invoices (
   id text primary key,
   originator text not null,
@@ -371,7 +367,6 @@ create table invoices (
   created_at timestamptz default now()
 );
 
--- Financing offers mirror
 create table financing_offers (
   id text primary key,
   invoice_id text references invoices(id),
@@ -381,6 +376,7 @@ create table financing_offers (
   currency text not null,
   interest_rate integer not null,
   duration integer not null,
+  amount_repaid text not null default '0',
   status text not null default 'Pending',
   funded_at integer default 0,
   created_at timestamptz default now()
@@ -397,30 +393,22 @@ create policy "Owner can update invoices" on invoices for update using (originat
 create policy "Anyone can read offers" on financing_offers for select using (true);
 create policy "Lender can insert offers" on financing_offers for insert with check (lender_id = auth.uid());
 create policy "Parties can update offers" on financing_offers for update
-  using (
-    lender_id = auth.uid()
-    or exists (
-      select 1 from invoices
-      where id = invoice_id and originator_id = auth.uid()
-    )
-  );
+  using (lender_id = auth.uid() or
+    exists (select 1 from invoices where id = invoice_id and originator_id = auth.uid()));
 
 create policy "Own profile" on user_profiles for all using (id = auth.uid());
 ```
 
 ---
 
-## Deployment
+## Deployment (Vercel)
 
-### Deploy to Vercel (Frontend)
-
-1. Push your fork to GitHub.
-1. Go to [vercel.com](https://vercel.com) → **New Project** → import from GitHub.
-1. Set **Root Directory** to `invofi/apps/frontend`.
-1. Add these environment variables in the Vercel dashboard, then click **Deploy**:
+1. Push fork to GitHub.
+2. Vercel → **New Project** → import → set **Root Directory** to `invofi/apps/frontend`.
+3. Add environment variables:
 
 | Variable | Value |
-| --- | --- |
+|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Your Supabase anon key |
 | `NEXT_PUBLIC_CONTRACT_ID` | Output from `stellar contract deploy` |
@@ -430,80 +418,31 @@ create policy "Own profile" on user_profiles for all using (id = auth.uid());
 
 ---
 
-## Environment Variables Reference
-
-| Variable | Required | Description |
-| --- | --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase public anon key |
-| `NEXT_PUBLIC_CONTRACT_ID` | Yes | Deployed Soroban contract address |
-| `NEXT_PUBLIC_STELLAR_NETWORK` | Yes | `testnet` or `mainnet` |
-| `NEXT_PUBLIC_RPC_URL` | Yes | Soroban RPC endpoint |
-| `NEXT_PUBLIC_HORIZON_URL` | Yes | Stellar Horizon endpoint |
-| `NEXT_PUBLIC_USDC_ISSUER` | No | USDC issuer address |
-
----
-
-## Contract Tests
-
-```bash
-cd invofi/apps/contracts
-cargo test -- --nocapture
-```
-
-| Test | What it verifies |
-| --- | --- |
-| `test_register_and_get_invoice` | Invoice creation and retrieval |
-| `test_duplicate_invoice_id_panics` | Duplicate ID rejection |
-| `test_get_non_existent_invoice` | Not-found panic |
-| `test_update_invoice_status` | Status mutation |
-| `test_create_and_get_offer` | Offer creation and retrieval |
-| `test_accept_offer` | Offer acceptance + principal transferred to business |
-| `test_reject_offer` | Offer rejection, invoice stays Pending |
-| `test_repay_invoice` | Full repayment flow, principal + yield transferred to lender |
-| `test_repay_unfinanced_invoice_panics` | Guard against premature repayment |
-| `test_initialize_twice_panics` | `initialize()` can only be called once |
-| `test_reclaim_invoice_after_grace_period` | Reclaim marks offer Defaulted after the grace period |
-| `test_reclaim_before_grace_period_panics` | Reclaim rejected before the grace period elapses |
-| `test_set_and_get_rate` | Yield rate set/read for all three risk tiers |
-| `test_set_rate_out_of_range_panics` | Rate validated to 0-10000 bps |
-| `test_set_rate_unauthorized_panics` | Only admin can set rates |
-| `test_get_unset_rate_panics` | Reading an unconfigured tier panics |
-| `test_transfer_admin` | Admin rotation, new admin can act |
-| `test_transfer_admin_unauthorized_panics` | Only the current admin can transfer admin rights |
-
-18 tests total.
-
----
-
 ## Roadmap
 
-- [x] Core invoice registry contract
-- [x] Financing offer flow (create, accept, reject)
-- [x] Repayment and overdue marking
-- [x] Next.js frontend with Freighter wallet
-- [x] Supabase auth (email + wallet)
-- [x] Marketplace and portfolio views
+- [x] Core invoice registry contract (register, offer, accept, reject, repay, overdue, reclaim)
+- [x] Partial repayment — `amount_repaid` tracking, offer stays Financed until balance cleared
+- [x] Query helper — `get_invoices_by_status(status)` for server-side filtering
+- [x] Input validation — `amount > 0`, `due_date > now`, `interest_rate > 0`
+- [x] Next.js 14 frontend with Freighter v6 wallet
+- [x] Supabase auth (email + wallet), dark mode, accessibility
+- [x] Marketplace and portfolio views, sortable InvoiceTable, StatsCard KPIs
+- [x] Profile page, ConfirmDialog, EmptyState, LoadingSkeleton components
 - [ ] Mainnet deployment
-- [x] USDC token transfer integration (actual on-chain fund movement) — implemented, **pending redeploy**: needs a fresh `CONTRACT_ID` + `initialize()` call before it's live (see [Smart Contract Reference](#smart-contract-reference))
-- [ ] Oracle-based invoice verification — yield-rate half done (`set_rate`/`get_rate` per risk tier, see [Smart Contract Reference](#smart-contract-reference)); fraud/authenticity verification not started
+- [ ] Oracle-based invoice verification and risk scoring
 - [ ] Multi-signature treasury and escrow
-- [ ] KYC/AML with SEP-12 support
-- [ ] Contract upgradeability with timelock governance (see [invofi-contracts#5](https://github.com/Stellar-VaultLink/invofi-contracts/issues/5))
+- [ ] KYC / AML with SEP-12 support
+- [ ] Contract upgradeability with timelock governance
 
 ---
 
 ## Contributing
 
-Contributions are welcome. Please read [CONTRIBUTING.md](./CONTRIBUTING.md) before opening a pull request. For bugs and features, use [GitHub Issues](https://github.com/Stellar-VaultLink/invofi/issues).
-
----
+Read [CONTRIBUTING.md](./CONTRIBUTING.md) before opening a pull request. For bugs and features, use [GitHub Issues](https://github.com/Stellar-VaultLink/invofi/issues).
 
 ## Security
 
-If you discover a security vulnerability, do not open a public issue. Please read [SECURITY.md](./SECURITY.md) for responsible disclosure instructions.
-
----
+Do not open a public issue for security vulnerabilities. See [SECURITY.md](./SECURITY.md) for responsible disclosure.
 
 ## License
 

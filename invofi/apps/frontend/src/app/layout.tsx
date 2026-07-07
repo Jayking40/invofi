@@ -10,7 +10,10 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://invofi-five.vercel.app'),
-  title: 'InvoFi — Decentralized Invoice Financing on Stellar',
+  title: {
+    template: '%s — InvoFi',
+    default: 'InvoFi — Decentralized Invoice Financing on Stellar',
+  },
   description:
     'Tokenize invoices as on-chain assets and get immediate financing from investors — powered by Stellar Soroban.',
   keywords: ['invoice financing', 'DeFi', 'Stellar', 'Soroban', 'blockchain'],

@@ -55,11 +55,11 @@ export default function LoginPage() {
           <p className="text-gray-500 dark:text-gray-400 mt-1">Sign in to your InvoFi account</p>
         </div>
 
-        {/* Wallet login */}
-        <Card>
+        {/* Wallet login — primary auth method */}
+        <Card className="border-2 border-blue-100 dark:border-blue-900">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Continue with Wallet</CardTitle>
-            <CardDescription>Use your Freighter wallet to sign in instantly</CardDescription>
+            <CardTitle className="text-base">Connect Wallet</CardTitle>
+            <CardDescription>Sign in instantly with Freighter or LOBSTR — no password needed</CardDescription>
           </CardHeader>
           <CardContent>
             <WalletButton onConnected={() => router.push('/dashboard')} />

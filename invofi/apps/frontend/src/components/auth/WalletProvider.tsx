@@ -86,6 +86,8 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
             isInstalled: true,
             networkMismatch: networkMismatchFor(net),
           });
+          // Ensure a Supabase session exists for the restored wallet connection.
+          signInWithWallet(key).catch(() => {});
           setIsCheckingWallet(false);
           return;
         }

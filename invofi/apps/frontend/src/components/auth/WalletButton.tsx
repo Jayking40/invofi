@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Loader2, Wallet, LogOut, Copy, Check, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useWallet } from './WalletProvider';
 import { WalletSelectDialog } from './WalletSelectDialog';
 import { formatAddress } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
+import { getXlmBalance } from '@/lib/horizon';
 
 interface WalletButtonProps {
   onConnected?: (publicKey: string) => void;
@@ -22,6 +23,14 @@ export function WalletButton({ onConnected }: WalletButtonProps) {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [xlmBalance, setXlmBalance] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isConnected || !publicKey) { setXlmBalance(null); return; }
+    getXlmBalance(publicKey)
+      .then(b => setXlmBalance(parseFloat(b).toFixed(2)))
+      .catch(() => setXlmBalance(null));
+  }, [isConnected, publicKey]);
 
   const handleSelectWallet = async (walletId: string) => {
     try {
@@ -68,6 +77,11 @@ export function WalletButton({ onConnected }: WalletButtonProps) {
             <span className="font-mono text-green-800 dark:text-green-200">
               {formatAddress(publicKey)}
             </span>
+            {xlmBalance !== null && (
+              <span className="text-xs text-green-700 dark:text-green-300 font-medium border-l border-green-200 dark:border-green-800 pl-2 ml-0.5">
+                {xlmBalance} XLM
+              </span>
+            )}
             {copied
               ? <Check className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
               : <Copy className="h-3.5 w-3.5 text-green-500 opacity-60" />

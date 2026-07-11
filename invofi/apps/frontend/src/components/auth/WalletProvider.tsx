@@ -7,16 +7,18 @@ import {
   getFreighterNetwork,
   connectFreighter,
 } from '@/lib/freighter';
+import { signOut as supabaseSignOut } from '@/lib/supabase';
 import {
   StellarWalletsKit,
   initWalletKit,
   isLobstrInstalled,
   WALLET_IDS,
 } from '@/lib/walletkit';
+import { signInWithWallet } from '@/lib/supabase';
 import type { WalletState } from '@/types';
 
 interface WalletContextValue extends WalletState {
-  connect: (walletId: string) => Promise<void>;
+  connect: (walletId: string) => Promise<string>;
   disconnect: () => void;
   isCheckingWallet: boolean;
 }
@@ -93,14 +95,16 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     })();
   }, []);
 
-  const connect = useCallback(async (walletId: string) => {
+  const connect = useCallback(async (walletId: string): Promise<string> => {
     setState(s => ({ ...s, isConnecting: true }));
     try {
+      let address: string;
+
       if (walletId === WALLET_IDS.freighter) {
-        const key = await connectFreighter();
+        address = await connectFreighter();
         const net = await getFreighterNetwork();
         setState({
-          publicKey: key,
+          publicKey: address,
           walletId,
           isConnected: true,
           isConnecting: false,
@@ -110,7 +114,8 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       } else {
         // Lobstr and other kit-managed wallets
         StellarWalletsKit.setWallet(walletId);
-        const { address } = await StellarWalletsKit.fetchAddress();
+        const result = await StellarWalletsKit.fetchAddress();
+        address = result.address;
         setState({
           publicKey: address,
           walletId,
@@ -120,6 +125,12 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
           networkMismatch: false,
         });
       }
+
+      // Create / resume a Supabase session so AuthGuard and DB queries work.
+      // This is fire-and-forget — wallet connection is the primary auth.
+      signInWithWallet(address).catch(() => {});
+
+      return address;
     } catch (err) {
       setState(s => ({ ...s, isConnecting: false }));
       throw err;
@@ -135,6 +146,8 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       isConnecting: false,
       networkMismatch: false,
     }));
+    // Sign out of Supabase so protected routes redirect to login.
+    supabaseSignOut().catch(() => {});
   }, []);
 
   return (

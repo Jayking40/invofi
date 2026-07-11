@@ -25,9 +25,9 @@ export function WalletButton({ onConnected }: WalletButtonProps) {
 
   const handleSelectWallet = async (walletId: string) => {
     try {
-      await connect(walletId);
+      const connectedAddress = await connect(walletId);
       setDialogOpen(false);
-      if (onConnected && publicKey) onConnected(publicKey);
+      if (onConnected) onConnected(connectedAddress);
     } catch (err: unknown) {
       toast({
         title: 'Wallet connection failed',

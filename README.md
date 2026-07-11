@@ -86,7 +86,7 @@ npm install && npm run dev
 - **Trustless** — all terms, state transitions, and repayments enforced by Soroban smart contracts
 - **Transparent** — every action is a public transaction on Stellar, auditable by anyone
 - **Permissionless** — anyone with a Stellar wallet can participate
-- **Dual auth** — email/password (Supabase) and Stellar wallet (Freighter)
+- **Dual auth** — email/password (Supabase) and Stellar wallet (Freighter or Lobstr)
 - **Multi-currency** — invoices denominated in XLM or USDC
 - **Partial repayment** — businesses can repay incrementally; offer stays Financed until fully cleared
 - **Free to deploy** — Vercel (free) + Supabase (free) + Stellar testnet
@@ -101,7 +101,7 @@ npm install && npm run dev
 │   Next.js 14 App Router — deployed on Vercel                   │
 │                                                                  │
 │   ┌──────────────────┐      ┌──────────────────────────────┐   │
-│   │  Email / Password │      │   Freighter Wallet            │   │
+│   │  Email / Password │      │   Freighter / Lobstr Wallet   │   │
 │   │  auth via Supabase│      │   signs Soroban transactions  │   │
 │   └────────┬──────────┘      └──────────────┬───────────────┘   │
 └────────────┼────────────────────────────────┼───────────────────┘
@@ -154,7 +154,8 @@ invofi/
 │           │   ├── profile/          User profile + display name
 │           │   └── settings/         Account settings
 │           ├── components/
-│           │   ├── auth/             AuthGuard, WalletButton, WalletProvider
+│           │   ├── auth/             AuthGuard, WalletButton, WalletProvider,
+│           │   │                     WalletSelectDialog (Freighter + Lobstr picker)
 │           │   ├── common/           ConfirmDialog, StatsCard, StatsGrid,
 │           │   │                     StatusBadge, PageHeader, EmptyState
 │           │   ├── invoices/         InvoiceCard, InvoiceForm, InvoiceTable,
@@ -167,6 +168,7 @@ invofi/
 │           └── lib/
 │               ├── contract.ts       Soroban contract call helpers
 │               ├── freighter.ts      Freighter v6 wallet helpers
+│               ├── walletkit.ts      @creit.tech/stellar-wallets-kit init + Lobstr
 │               ├── horizon.ts        Stellar Horizon API helpers
 │               ├── supabase.ts       Auth + database helpers
 │               ├── formatters.ts     Amount, date, address formatters
@@ -270,7 +272,7 @@ register_invoice()
 | Frontend | Next.js 14 (App Router) + TypeScript 5.5 | Free Vercel deployment, SSR |
 | Styling | Tailwind CSS + shadcn/ui | Fast, accessible, composable |
 | Auth | Supabase | Free tier, row-level security |
-| Wallet | Freighter v6 extension | Standard Stellar wallet |
+| Wallet | Freighter v6 + Lobstr via `@creit.tech/stellar-wallets-kit` | Multi-wallet — users choose at connect time |
 | Data Fetching | TanStack Query v5 | Caching, background refetch |
 | Forms | React Hook Form + Zod | Type-safe validation |
 | Icons | Lucide React | Consistent icon set |

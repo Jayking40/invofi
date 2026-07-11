@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2, Wallet, LogOut, Copy, Check, AlertTriangle, ExternalLink } from 'lucide-react';
+import { Loader2, Wallet, LogOut, Copy, Check, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useWallet } from './WalletProvider';
+import { WalletSelectDialog } from './WalletSelectDialog';
 import { formatAddress } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -20,20 +21,18 @@ export function WalletButton({ onConnected }: WalletButtonProps) {
   } = useWallet();
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
-  const handleConnect = async () => {
-    if (!isInstalled) {
-      window.open('https://freighter.app', '_blank', 'noreferrer noopener');
-      return;
-    }
+  const handleSelectWallet = async (walletId: string) => {
     try {
-      await connect();
+      await connect(walletId);
+      setDialogOpen(false);
       if (onConnected && publicKey) onConnected(publicKey);
     } catch (err: unknown) {
       toast({
         title: 'Wallet connection failed',
         description:
-          err instanceof Error ? err.message : 'Make sure the Freighter extension is installed.',
+          err instanceof Error ? err.message : 'Could not connect the selected wallet.',
         variant: 'destructive',
       });
     }
@@ -46,18 +45,17 @@ export function WalletButton({ onConnected }: WalletButtonProps) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // clipboard not available (e.g. HTTP context)
+      // clipboard not available
     }
   };
 
-  // Connected state
   if (isConnected && publicKey) {
     return (
       <div className="flex flex-col items-end gap-1">
         {networkMismatch && (
           <div className="flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-md px-2.5 py-1">
             <AlertTriangle className="h-3 w-3 shrink-0" />
-            Switch Freighter to {process.env.NEXT_PUBLIC_STELLAR_NETWORK ?? 'testnet'}
+            Switch wallet to {process.env.NEXT_PUBLIC_STELLAR_NETWORK ?? 'testnet'}
           </div>
         )}
         <div className="flex items-center gap-2">
@@ -72,7 +70,7 @@ export function WalletButton({ onConnected }: WalletButtonProps) {
             </span>
             {copied
               ? <Check className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
-              : <Copy className="h-3.5 w-3.5 text-green-500 dark:text-green-500 opacity-60" />
+              : <Copy className="h-3.5 w-3.5 text-green-500 opacity-60" />
             }
           </button>
 
@@ -90,7 +88,6 @@ export function WalletButton({ onConnected }: WalletButtonProps) {
     );
   }
 
-  // Still detecting whether Freighter is installed
   if (isCheckingWallet) {
     return (
       <Button variant="outline" disabled className="gap-2 opacity-60">
@@ -100,29 +97,28 @@ export function WalletButton({ onConnected }: WalletButtonProps) {
     );
   }
 
-  // Freighter not installed
-  if (!isInstalled) {
-    return (
-      <Button
-        onClick={handleConnect}
-        variant="outline"
-        className="gap-2 border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-amber-950"
-      >
-        <ExternalLink className="h-4 w-4" />
-        Get Freighter
-      </Button>
-    );
-  }
-
-  // Freighter installed, not yet connected
   return (
-    <Button onClick={handleConnect} disabled={isConnecting} variant="outline" className="gap-2">
-      {isConnecting ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      ) : (
-        <Wallet className="h-4 w-4" />
-      )}
-      {isConnecting ? 'Connecting...' : 'Connect Freighter'}
-    </Button>
+    <>
+      <Button
+        onClick={() => setDialogOpen(true)}
+        disabled={isConnecting}
+        variant="outline"
+        className="gap-2"
+      >
+        {isConnecting ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Wallet className="h-4 w-4" />
+        )}
+        {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+      </Button>
+
+      <WalletSelectDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        onSelect={handleSelectWallet}
+        connecting={isConnecting}
+      />
+    </>
   );
 }

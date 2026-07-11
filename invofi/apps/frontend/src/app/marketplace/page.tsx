@@ -1,27 +1,28 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Loader2, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { MarketplaceCard } from '@/components/marketplace/MarketplaceCard';
+import { CardSkeleton } from '@/components/common/LoadingSkeleton';
 import { supabase } from '@/lib/supabase';
-import type { Currency, Invoice } from '@/types';
+import type { Currency, Invoice, InvoiceStatus } from '@/types';
 
-type Filters = { currency: Currency | 'ALL'; minAmount: string; maxAmount: string };
+type Filters = { currency: Currency | 'ALL'; status: InvoiceStatus | 'ALL' };
 
 export default function MarketplacePage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [filters, setFilters] = useState<Filters>({ currency: 'ALL', minAmount: '', maxAmount: '' });
+  const [filters, setFilters] = useState<Filters>({ currency: 'ALL', status: 'ALL' });
 
   useEffect(() => {
     setLoading(true);
     supabase
       .from('invoices')
       .select('*')
-      .eq('status', 'Pending')
+      .in('status', ['Pending', 'Financed', 'Overdue'])
       .order('created_at', { ascending: false })
       .then(({ data }) => {
         setInvoices((data as unknown as Invoice[]) ?? []);
@@ -31,7 +32,11 @@ export default function MarketplacePage() {
 
   const filtered = invoices.filter(inv => {
     if (filters.currency !== 'ALL' && inv.currency !== filters.currency) return false;
-    if (search && !inv.id.toLowerCase().includes(search.toLowerCase())) return false;
+    if (filters.status !== 'ALL' && inv.status !== filters.status) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      if (!inv.id.toLowerCase().includes(q) && !inv.originator.toLowerCase().includes(q)) return false;
+    }
     return true;
   });
 
@@ -39,8 +44,8 @@ export default function MarketplacePage() {
     <AuthGuard>
       <div className="max-w-5xl mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Invoice Marketplace</h1>
-          <p className="text-gray-500 text-sm mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Invoice Marketplace</h1>
+          <p className="text-muted-foreground text-sm mt-1">
             Browse invoices available for financing and submit offers to earn yield.
           </p>
         </div>
@@ -48,16 +53,26 @@ export default function MarketplacePage() {
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-3 mb-6">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by invoice ID…"
+              placeholder="Search by invoice ID or originator…"
               className="pl-9"
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
           </div>
           <select
-            className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+            className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
+            value={filters.status}
+            onChange={e => setFilters(f => ({ ...f, status: e.target.value as InvoiceStatus | 'ALL' }))}
+          >
+            <option value="ALL">All statuses</option>
+            <option value="Pending">Pending</option>
+            <option value="Financed">Financed</option>
+            <option value="Overdue">Overdue</option>
+          </select>
+          <select
+            className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
             value={filters.currency}
             onChange={e => setFilters(f => ({ ...f, currency: e.target.value as Currency | 'ALL' }))}
           >
@@ -68,23 +83,25 @@ export default function MarketplacePage() {
         </div>
 
         {loading && (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3, 4, 5, 6].map(i => <CardSkeleton key={i} />)}
           </div>
         )}
 
         {!loading && filtered.length === 0 && (
-          <div className="text-center py-20 text-gray-400">
-            <p className="text-lg font-medium">No invoices available right now</p>
-            <p className="text-sm mt-1">Check back soon — businesses are adding new invoices.</p>
+          <div className="text-center py-20 text-muted-foreground">
+            <p className="text-lg font-medium">No invoices match your filters</p>
+            <p className="text-sm mt-1">Try adjusting the search or filters.</p>
           </div>
         )}
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map(inv => (
-            <MarketplaceCard key={inv.id} invoice={inv} />
-          ))}
-        </div>
+        {!loading && (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filtered.map(inv => (
+              <MarketplaceCard key={inv.id} invoice={inv} />
+            ))}
+          </div>
+        )}
       </div>
     </AuthGuard>
   );

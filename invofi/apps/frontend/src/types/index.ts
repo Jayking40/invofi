@@ -35,6 +35,7 @@ export interface UserProfile {
 
 export interface WalletState {
   publicKey: string | null;
+  walletId: string | null;
   isConnected: boolean;
   isConnecting: boolean;
   isInstalled: boolean;

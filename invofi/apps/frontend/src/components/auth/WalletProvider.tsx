@@ -31,7 +31,7 @@ const WalletContext = createContext<WalletContextValue>({
   isInstalled: false,
   networkMismatch: false,
   isCheckingWallet: true,
-  connect: async () => {},
+  connect: async () => '',
   disconnect: () => {},
 });
 

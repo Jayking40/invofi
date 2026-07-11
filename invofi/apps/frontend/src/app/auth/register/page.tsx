@@ -10,10 +10,11 @@ import { Loader2, Building2, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { signUpWithEmail } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
+import { WalletButton } from '@/components/auth/WalletButton';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import type { UserRole } from '@/types';
 
 const schema = z.object({
@@ -85,6 +86,26 @@ function RegisterForm() {
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-50">Create your account</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">Join InvoFi and start financing invoices on-chain</p>
+        </div>
+
+        {/* Wallet register/sign-in — works without filling a form */}
+        <Card className="border-2 border-blue-100 dark:border-blue-900">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Continue with Wallet</CardTitle>
+            <CardDescription>Use Freighter or LOBSTR to sign up instantly — no password needed</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <WalletButton onConnected={() => router.push('/dashboard')} />
+          </CardContent>
+        </Card>
+
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-200 dark:border-gray-700" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-gray-50 dark:bg-gray-950 px-2 text-gray-400 dark:text-gray-500">or create account with email</span>
+          </div>
         </div>
 
         {/* Role picker */}

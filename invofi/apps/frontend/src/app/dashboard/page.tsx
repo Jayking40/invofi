@@ -33,7 +33,12 @@ export default function DashboardPage() {
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user) { router.push('/auth/login'); return; }
+      if (!user) {
+        // No Supabase session — AuthGuard already ensured a wallet is connected.
+        // Show an empty dashboard; the user can create invoices once on-chain.
+        setLoading(false);
+        return;
+      }
       const p = await getUserProfile(user.id);
       setProfile(p);
 
@@ -52,7 +57,8 @@ export default function DashboardPage() {
     getXlmBalance(publicKey).then(setXlmBalance).catch(() => setXlmBalance(null));
   }, [publicKey]);
 
-  const isBusiness = profile?.role === 'business';
+  // Default to business dashboard for wallet-only users who have no profile yet.
+  const isBusiness = !profile || profile.role === 'business';
 
   const exportInvoicesCsv = () => {
     const rows = invoices.map(inv => ({

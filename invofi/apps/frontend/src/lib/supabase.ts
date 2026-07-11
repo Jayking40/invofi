@@ -105,16 +105,17 @@ export async function linkWalletAddress(userId: string, walletAddress: string) {
 
 /**
  * Sign in (or resume) using a Stellar wallet address as the identity.
- * - If there is already a Supabase session (email or prior wallet), we just
- *   ensure the wallet address is linked to the profile and return.
- * - Otherwise we create an anonymous Supabase session so the rest of the app
- *   (AuthGuard, DB queries) has a valid user_id to work with.
+ * Tries three paths in order:
+ *  1. Already have a session → just link the wallet address to the profile.
+ *  2. Anonymous sign-in (if enabled on the Supabase project).
+ *  3. Password-based account keyed to the wallet address, with a device-local
+ *     random password stored in localStorage so the account persists across
+ *     page refreshes without requiring a real email address.
  */
 export async function signInWithWallet(walletAddress: string): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (user) {
-    // Already have a session — link the wallet and return.
     await supabase
       .from('user_profiles')
       .update({ wallet_address: walletAddress })
@@ -122,20 +123,54 @@ export async function signInWithWallet(walletAddress: string): Promise<void> {
     return;
   }
 
-  // No session yet — sign in anonymously so AuthGuard / DB queries work.
+  // Path 2: anonymous sign-in
   const { data: anonData, error: anonError } = await supabase.auth.signInAnonymously();
-  if (anonError || !anonData.user) {
-    // Anonymous auth may be disabled on this project — fail silently.
-    // AuthGuard will fall back to accepting the wallet-connected state.
-    console.warn('Anonymous sign-in failed:', anonError?.message);
+  if (!anonError && anonData.user) {
+    await supabase.from('user_profiles').upsert({
+      id: anonData.user.id,
+      email: null,
+      role: 'business' as const,
+      display_name: null,
+      wallet_address: walletAddress,
+    });
     return;
   }
 
-  await supabase.from('user_profiles').upsert({
-    id: anonData.user.id,
-    email: null,
-    role: 'business' as const,
-    display_name: null,
-    wallet_address: walletAddress,
-  });
+  // Path 3: password-based fallback — anonymous auth is disabled on this project.
+  // We derive a stable "email" from the wallet address and store a random password
+  // in localStorage so the same account is recovered on page reload.
+  if (typeof window === 'undefined') return;
+
+  const walletEmail = `${walletAddress.slice(0, 32).toLowerCase()}@stellar.wallet`;
+  const pwKey = `invofi_wlt_${walletAddress}`;
+  let devicePw = localStorage.getItem(pwKey);
+
+  if (!devicePw) {
+    devicePw = Array.from(crypto.getRandomValues(new Uint8Array(24)))
+      .map(b => b.toString(16).padStart(2, '0')).join('');
+
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      email: walletEmail,
+      password: devicePw,
+      options: { data: { wallet_address: walletAddress, role: 'business' } },
+    });
+
+    if (!signUpError && signUpData.user && signUpData.session) {
+      localStorage.setItem(pwKey, devicePw);
+      await supabase.from('user_profiles').upsert({
+        id: signUpData.user.id,
+        email: walletEmail,
+        role: 'business' as const,
+        display_name: null,
+        wallet_address: walletAddress,
+      });
+      return;
+    }
+    // Sign-up failed (e.g., email already taken from another device) — don't
+    // store the password; fall through to the sign-in attempt.
+  }
+
+  if (devicePw) {
+    await supabase.auth.signInWithPassword({ email: walletEmail, password: devicePw });
+  }
 }

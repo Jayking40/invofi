@@ -17,8 +17,12 @@ import { useEffect, useState } from 'react';
 
 import { cn } from '@/lib/utils';
 import { WalletButton } from '@/components/auth/WalletButton';
+import { useWallet } from '@/components/auth/WalletProvider';
 import { supabase } from '@/lib/supabase';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
+
+const NETWORK = (process.env.NEXT_PUBLIC_STELLAR_NETWORK ?? 'testnet').toLowerCase();
+const IS_MAINNET = NETWORK === 'mainnet' || NETWORK === 'public';
 
 const NAV_LINKS = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -29,6 +33,7 @@ const NAV_LINKS = [
 export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { networkMismatch } = useWallet();
 
   const [mounted, setMounted] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -66,10 +71,20 @@ export function Navbar() {
     <>
       <header className="sticky top-0 z-40 w-full border-b border-border bg-background/80 backdrop-blur">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-          {/* Logo */}
+          {/* Logo + network badge */}
           <Link href="/" className="flex items-center gap-2 font-bold text-lg">
             <span className="text-blue-600">Invo</span>
             <span className="text-foreground">Fi</span>
+            <span className={cn(
+              'hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wide',
+              networkMismatch
+                ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400'
+                : IS_MAINNET
+                  ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
+                  : 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400',
+            )}>
+              {networkMismatch ? 'wrong network' : NETWORK}
+            </span>
           </Link>
 
           {/* Desktop nav */}

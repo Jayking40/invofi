@@ -87,7 +87,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
             networkMismatch: networkMismatchFor(net),
           });
           // Ensure a Supabase session exists for the restored wallet connection.
-          signInWithWallet(key).catch(() => {});
+          await signInWithWallet(key).catch(() => {});
           setIsCheckingWallet(false);
           return;
         }
@@ -128,9 +128,9 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         });
       }
 
-      // Create / resume a Supabase session so AuthGuard and DB queries work.
-      // This is fire-and-forget — wallet connection is the primary auth.
-      signInWithWallet(address).catch(() => {});
+      // Block until the Supabase session is created so the dashboard's own
+      // auth check finds a user immediately after router.push('/dashboard').
+      await signInWithWallet(address).catch(() => {});
 
       return address;
     } catch (err) {

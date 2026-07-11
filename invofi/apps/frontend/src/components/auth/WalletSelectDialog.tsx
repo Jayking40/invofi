@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { isFreighterInstalled } from '@/lib/freighter';
-import { isLobstrInstalled, WALLET_IDS } from '@/lib/walletkit';
+import { checkLobstrAvailable, WALLET_IDS } from '@/lib/walletkit';
 
 interface WalletSelectDialogProps {
   open: boolean;
@@ -68,16 +68,20 @@ export function WalletSelectDialog({
 
   useEffect(() => {
     if (!open) return;
+
+    // Check Freighter
     isFreighterInstalled().then(installed => {
       setWallets(prev =>
         prev.map(w => (w.id === WALLET_IDS.freighter ? { ...w, installed } : w)),
       );
     });
-    setWallets(prev =>
-      prev.map(w =>
-        w.id === WALLET_IDS.lobstr ? { ...w, installed: isLobstrInstalled() } : w,
-      ),
-    );
+
+    // Check Lobstr via async postMessage API
+    checkLobstrAvailable().then(installed => {
+      setWallets(prev =>
+        prev.map(w => (w.id === WALLET_IDS.lobstr ? { ...w, installed } : w)),
+      );
+    });
   }, [open]);
 
   return (
@@ -142,7 +146,7 @@ export function WalletSelectDialog({
         </div>
 
         <p className="text-xs text-muted-foreground text-center pt-1">
-          Both wallets work via their browser extensions.
+          Both wallets connect via their browser extensions.
         </p>
       </DialogContent>
     </Dialog>

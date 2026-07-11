@@ -3,6 +3,7 @@
 import { StellarWalletsKit } from '@creit.tech/stellar-wallets-kit';
 import { FreighterModule, FREIGHTER_ID } from '@creit.tech/stellar-wallets-kit/modules/freighter';
 import { LobstrModule, LOBSTR_ID } from '@creit.tech/stellar-wallets-kit/modules/lobstr';
+import { isConnected as isLobstrConnected } from '@lobstrco/signer-extension-api';
 
 export { FREIGHTER_ID, LOBSTR_ID };
 export const WALLET_IDS = { freighter: FREIGHTER_ID, lobstr: LOBSTR_ID } as const;
@@ -25,6 +26,18 @@ export function initWalletKit(): void {
 
 export { StellarWalletsKit, NETWORK_PASSPHRASE };
 
+/** Synchronous quick-check — Lobstr extension injects window.lobstrSignerExtension */
 export function isLobstrInstalled(): boolean {
-  return typeof window !== 'undefined' && !!(window as unknown as Record<string, unknown>).lobstr;
+  if (typeof window === 'undefined') return false;
+  return !!(window as unknown as Record<string, unknown>).lobstrSignerExtension;
+}
+
+/** Async check — sends a postMessage to the extension for reliable detection */
+export async function checkLobstrAvailable(): Promise<boolean> {
+  if (typeof window === 'undefined') return false;
+  try {
+    return await isLobstrConnected();
+  } catch {
+    return false;
+  }
 }

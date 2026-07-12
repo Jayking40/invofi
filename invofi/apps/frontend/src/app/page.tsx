@@ -93,7 +93,11 @@ const STELLAR_PROPS = [
 const FAQS = [
   {
     q: 'Do I need a bank account?',
-    a: 'No. All you need is a Stellar wallet (we recommend Freighter). There is no KYC, no bank account, and no credit check required to use InvoFi.',
+    a: 'No. All you need is a Stellar wallet — InvoFi supports both Freighter and LOBSTR. There is no KYC, no bank account, and no credit check required to use InvoFi.',
+  },
+  {
+    q: 'Which wallets are supported?',
+    a: 'InvoFi supports Freighter (browser extension — freighter.app) and LOBSTR (mobile + browser extension — lobstr.co). When you click "Connect Wallet" you can choose either. More wallets may be added as the Stellar ecosystem grows.',
   },
   {
     q: 'How does the lender get their money back?',
@@ -113,7 +117,7 @@ const FAQS = [
   },
   {
     q: 'How do I start as a lender?',
-    a: 'Create an account, choose the Lender role, connect your Freighter wallet, and go to the Marketplace. Browse open invoices and submit a financing offer with your desired rate and duration.',
+    a: 'Create an account, choose the Lender role, connect your Stellar wallet (Freighter or LOBSTR), and go to the Marketplace. Browse open invoices and submit a financing offer with your desired rate and duration.',
   },
 ];
 

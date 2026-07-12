@@ -55,7 +55,7 @@ Merged PRs in the component repos are periodically pulled into this monorepo (vi
 ## Live Demo
 
 > **Frontend:** [invofi-five.vercel.app](https://invofi-five.vercel.app)
-> **Contract on Stellar Testnet:** [`CDJS6AFE6VRPAPWOPWOPZLSLQ7NCISA7YHOMAE7HJWOD7G6CQDCVT4L2`](https://lab.stellar.org/r/testnet/contract/CDJS6AFE6VRPAPWOPWOPZLSLQ7NCISA7YHOMAE7HJWOD7G6CQDCVT4L2)
+> **Contract on Stellar Testnet:** deploy via the [Deploy Contract workflow](.github/workflows/deploy-contract.yml) and set `NEXT_PUBLIC_CONTRACT_ID` in Vercel. Until a contract is deployed the app runs in alpha mode (off-chain only).
 
 ```bash
 git clone https://github.com/Stellar-VaultLink/invofi.git
@@ -237,6 +237,18 @@ Contract: `invofi-invoice-registry` · `invofi/apps/contracts/lib.rs`
 | `transfer_admin(admin, new_admin)` | Admin | Rotate the admin address |
 | `get_admin()` | Anyone | Read the admin address |
 | `get_token()` | Anyone | Read the configured SEP-41 token address |
+| `raise_dispute(invoice_id, originator)` | Originator | Mark a Financed invoice as Disputed |
+| `resolve_dispute(admin, invoice_id, target_status)` | Admin | Resolve a Disputed invoice to a new status |
+| `get_lender_stats(lender)` | Anyone | Return aggregated stats for a lender address |
+| `get_invoices_count()` | Anyone | Total number of registered invoices |
+| `get_offers_count()` | Anyone | Total number of financing offers |
+| `get_offers_by_status(status)` | Anyone | Return all offers matching a given status |
+| `get_invoices_by_currency(currency)` | Anyone | Return invoices denominated in a specific asset |
+| `get_invoices_due_before(timestamp)` | Anyone | Return invoices due before a Unix timestamp |
+| `get_invoices_paginated(offset, limit)` | Anyone | Page through all invoices |
+| `get_offers_paginated(offset, limit)` | Anyone | Page through all offers |
+| `batch_get_invoices(ids)` | Anyone | Fetch multiple invoices by ID in one call |
+| `version()` | Anyone | Return the contract semver string |
 
 ### Invoice Lifecycle
 
@@ -253,13 +265,20 @@ register_invoice()
       │
       ├── repay_invoice() (balance cleared) ──────► [Repaid]
       │
-      └── mark_overdue() ────────────────────────► [Overdue]
+      ├── mark_overdue() ────────────────────────► [Overdue]
+      │                                                │
+      │                                           reclaim_invoice()
+      │                                           (after 7-day grace)
+      │                                                │
+      │                                                ▼
+      │                                           offer → [Defaulted]
+      │
+      └── raise_dispute() (originator) ──────────► [Disputed]
                                                        │
-                                                   reclaim_invoice()
-                                                   (after 7-day grace)
+                                                   resolve_dispute() (admin)
                                                        │
-                                                       ▼
-                                                  offer → [Defaulted]
+                                                       ├──► [Financed]   (dispute withdrawn)
+                                                       └──► [Cancelled]  (dispute upheld)
 ```
 
 ---
@@ -286,7 +305,7 @@ register_invoice()
 
 - [Node.js 20+](https://nodejs.org)
 - [Rust 1.70+](https://rustup.rs) with `wasm32-unknown-unknown` target (`rustup target add wasm32-unknown-unknown`)
-- [Freighter wallet](https://freighter.app) browser extension
+- A Stellar wallet: [Freighter](https://freighter.app) (browser extension) **or** [LOBSTR](https://lobstr.co) (mobile / browser extension)
 - A free [Supabase](https://supabase.com) account
 
 ### 1. Clone
@@ -342,7 +361,7 @@ stellar contract invoke \
   -- initialize --admin <ADMIN_ADDRESS> --token <SEP41_TOKEN>
 ```
 
-Live testnet contract: `CDJS6AFE6VRPAPWOPWOPZLSLQ7NCISA7YHOMAE7HJWOD7G6CQDCVT4L2`
+After deploying, copy the printed contract ID into `NEXT_PUBLIC_CONTRACT_ID` in your `.env.local` or Vercel dashboard. You can also run the **Deploy Contract** GitHub Actions workflow (`.github/workflows/deploy-contract.yml`) for a one-click Testnet deploy.
 
 ---
 
@@ -424,12 +443,16 @@ create policy "Own profile" on user_profiles for all using (id = auth.uid());
 
 - [x] Core invoice registry contract (register, offer, accept, reject, repay, overdue, reclaim)
 - [x] Partial repayment — `amount_repaid` tracking, offer stays Financed until balance cleared
-- [x] Query helper — `get_invoices_by_status(status)` for server-side filtering
-- [x] Input validation — `amount > 0`, `due_date > now`, `interest_rate > 0`
-- [x] Next.js 14 frontend with Freighter v6 wallet
-- [x] Supabase auth (email + wallet), dark mode, accessibility
+- [x] Query helpers — `get_invoices_by_status`, `get_invoices_by_currency`, `get_invoices_due_before`, pagination, batch queries
+- [x] Dispute lifecycle — `raise_dispute` / `resolve_dispute` with admin resolution
+- [x] Lender stats — `get_lender_stats` tracking total offered, accepted, pending, repaid
+- [x] Input validation — `amount >= MIN_INVOICE_AMOUNT`, `due_date > now`, `interest_rate > 0`, `duration <= MAX_OFFER_DURATION_SECS`
+- [x] Next.js 14 frontend with multi-wallet support (Freighter + LOBSTR via `@creit.tech/stellar-wallets-kit`)
+- [x] Alpha / demo mode — app runs fully off-chain when no contract is deployed; shows info banner
+- [x] Supabase auth (email + wallet), dark mode, accessibility, SEO metadata
 - [x] Marketplace and portfolio views, sortable InvoiceTable, StatsCard KPIs
 - [x] Profile page, ConfirmDialog, EmptyState, LoadingSkeleton components
+- [x] One-click Testnet deploy via GitHub Actions workflow
 - [ ] Mainnet deployment
 - [ ] Oracle-based invoice verification and risk scoring
 - [ ] Multi-signature treasury and escrow

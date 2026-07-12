@@ -103,7 +103,7 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
 
       // Always mirror to Supabase for indexing / display
       const { data: { user } } = await supabase.auth.getUser();
-      await supabase.from('invoices').insert({
+      const { error: insertError } = await supabase.from('invoices').insert({
         id: invoiceId,
         originator: publicKey,
         originator_id: user?.id ?? null,
@@ -112,6 +112,13 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
         due_date: new Date(values.dueDate).toISOString(),
         status: 'Pending',
       });
+      if (insertError) {
+        throw new Error(
+          CONTRACT_OK
+            ? `Invoice registered on-chain, but saving to the database failed: ${insertError.message}. It won't appear in lists until this is resolved.`
+            : `Saving the invoice failed: ${insertError.message}`,
+        );
+      }
 
       toast({
         title: CONTRACT_OK ? 'Invoice registered!' : 'Invoice saved!',

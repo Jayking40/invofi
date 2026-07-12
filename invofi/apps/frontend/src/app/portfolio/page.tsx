@@ -54,7 +54,11 @@ export default function PortfolioPage() {
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user) return;
+      if (!user) {
+        // Wallet-only user — no offers to show yet; stop the spinner.
+        setLoading(false);
+        return;
+      }
       const { data } = await supabase
         .from('financing_offers')
         .select('*, invoice:invoices(*)')

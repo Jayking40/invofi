@@ -40,11 +40,13 @@ jobs:
         env:
           DEPLOYER_SECRET_KEY: ${{ secrets.STELLAR_DEPLOYER_SECRET_KEY }}
         run: |
+          stellar --version
           if [ -z "$DEPLOYER_SECRET_KEY" ]; then
             echo "::notice::STELLAR_DEPLOYER_SECRET_KEY not set — generating a fresh keypair for this run."
-            stellar keys generate --no-password invofi-deployer --network ${{ inputs.network }}
+            stellar keys generate invofi-deployer --network ${{ inputs.network }}
           else
-            stellar keys add --no-password --secret-key "$DEPLOYER_SECRET_KEY" invofi-deployer
+            # --secret-key is an interactive prompt flag; CI must pass the key via env var
+            SOROBAN_SECRET_KEY="$DEPLOYER_SECRET_KEY" stellar keys add invofi-deployer
           fi
 
       - name: Fund deployer via Friendbot

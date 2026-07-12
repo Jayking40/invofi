@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertTriangle, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,6 +12,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useWallet } from '@/components/auth/WalletProvider';
 import { registerInvoice } from '@/lib/contract';
 import { supabase } from '@/lib/supabase';
+import { accountExists, fundAccountViaFriendbot } from '@/lib/horizon';
 import { amountToStroops, generateInvoiceId } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
 import type { Currency } from '@/types';
@@ -28,21 +29,55 @@ interface InvoiceFormProps {
   onSuccess: (invoiceId: string) => void;
 }
 
+const IS_TESTNET =
+  (process.env.NEXT_PUBLIC_STELLAR_NETWORK ?? 'testnet') !== 'mainnet' &&
+  (process.env.NEXT_PUBLIC_STELLAR_NETWORK ?? 'testnet') !== 'public';
+
 export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
   const { publicKey, isConnected } = useWallet();
   const { toast } = useToast();
   const [submitting, setSubmitting] = useState(false);
+  const [funding, setFunding] = useState(false);
+  const [accountFunded, setAccountFunded] = useState<boolean | null>(null);
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { currency: 'USDC' },
   });
 
+  // Check if the connected wallet exists on-chain
+  useEffect(() => {
+    if (!publicKey) { setAccountFunded(null); return; }
+    setAccountFunded(null);
+    accountExists(publicKey).then(setAccountFunded);
+  }, [publicKey]);
+
+  const handleFundAccount = async () => {
+    if (!publicKey) return;
+    setFunding(true);
+    try {
+      await fundAccountViaFriendbot(publicKey);
+      setAccountFunded(true);
+      toast({
+        title: 'Account funded!',
+        description: 'Your testnet wallet now has XLM. You can register invoices.',
+      });
+    } catch (err: unknown) {
+      toast({
+        title: 'Funding failed',
+        description: err instanceof Error ? err.message : 'Could not fund account',
+        variant: 'destructive',
+      });
+    } finally {
+      setFunding(false);
+    }
+  };
+
   const onSubmit = async (values: FormValues) => {
     if (!isConnected || !publicKey) {
       toast({
         title: 'Wallet not connected',
-        description: 'Connect your Freighter wallet to create an invoice.',
+        description: 'Connect your Freighter or LOBSTR wallet first.',
         variant: 'destructive',
       });
       return;
@@ -55,25 +90,26 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
       const dueDateUnix = Math.floor(new Date(values.dueDate).getTime() / 1000);
       const stroops = amountToStroops(values.amount);
 
-      // Register on-chain
+      // Register on-chain (auto-funds via Friendbot if needed on testnet)
       await registerInvoice(
         { id: invoiceId, amount: stroops, currency: values.currency as Currency, dueDate: dueDateUnix },
         publicKey,
       );
 
+      // Update funded state after first successful transaction
+      setAccountFunded(true);
+
       // Mirror to Supabase for indexing / display
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await supabase.from('invoices').insert({
-          id: invoiceId,
-          originator: publicKey,
-          originator_id: user.id,
-          amount: values.amount,
-          currency: values.currency,
-          due_date: new Date(values.dueDate).toISOString(),
-          status: 'Pending',
-        });
-      }
+      await supabase.from('invoices').insert({
+        id: invoiceId,
+        originator: publicKey,
+        originator_id: user?.id ?? null,
+        amount: values.amount,
+        currency: values.currency,
+        due_date: new Date(values.dueDate).toISOString(),
+        status: 'Pending',
+      });
 
       toast({ title: 'Invoice registered!', description: 'Your invoice is now on-chain.' });
       onSuccess(invoiceId);
@@ -126,11 +162,43 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
 
           {!isConnected && (
             <p className="text-sm text-yellow-600 bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2">
-              Connect your Freighter wallet before submitting.
+              Connect your Freighter or LOBSTR wallet before submitting.
             </p>
           )}
 
-          <Button type="submit" className="w-full" disabled={submitting || !isConnected}>
+          {/* Unfunded testnet account banner */}
+          {isConnected && IS_TESTNET && accountFunded === false && (
+            <div className="flex items-start gap-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 px-4 py-3">
+              <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                  Wallet not funded on testnet
+                </p>
+                <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                  Your Stellar testnet account needs XLM before it can transact.
+                  Click below to get free testnet XLM via Friendbot.
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="mt-2 bg-amber-600 hover:bg-amber-700 text-white"
+                  onClick={handleFundAccount}
+                  disabled={funding}
+                >
+                  {funding
+                    ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Funding…</>
+                    : <><Zap className="mr-1.5 h-3.5 w-3.5" /> Fund with Friendbot</>
+                  }
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={submitting || !isConnected || (IS_TESTNET && accountFunded === false)}
+          >
             {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {submitting ? 'Registering on-chain…' : 'Register Invoice'}
           </Button>

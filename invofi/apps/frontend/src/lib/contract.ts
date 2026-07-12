@@ -9,6 +9,7 @@ import {
   xdr,
 } from '@stellar/stellar-sdk';
 import { signTxWithFreighter } from './freighter';
+import { fundAccountViaFriendbot } from './horizon';
 import type { Currency, FinancingOffer, Invoice } from '@/types';
 
 const CONTRACT_ID = process.env.NEXT_PUBLIC_CONTRACT_ID!;
@@ -47,7 +48,28 @@ async function invokeContract(
   sourceAddress: string,
 ): Promise<xdr.ScVal> {
   const rpc = server();
-  const account = await rpc.getAccount(sourceAddress);
+
+  // If the account doesn't exist on testnet, fund it via Friendbot and retry once.
+  let account: Awaited<ReturnType<typeof rpc.getAccount>>;
+  try {
+    account = await rpc.getAccount(sourceAddress);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes('Account not found') || msg.includes('account not found') || msg.includes('404')) {
+      const network = process.env.NEXT_PUBLIC_STELLAR_NETWORK ?? 'testnet';
+      if (network !== 'mainnet' && network !== 'public') {
+        await fundAccountViaFriendbot(sourceAddress);
+        account = await rpc.getAccount(sourceAddress);
+      } else {
+        throw new Error(
+          'Your wallet has no XLM. Fund your Stellar mainnet account with at least 1 XLM and try again.',
+        );
+      }
+    } else {
+      throw err;
+    }
+  }
+
   const contract = new Contract(CONTRACT_ID);
 
   let tx = new TransactionBuilder(account, {

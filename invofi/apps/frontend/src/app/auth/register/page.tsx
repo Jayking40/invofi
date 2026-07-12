@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
@@ -15,6 +15,7 @@ import { signUpWithEmail } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { WalletButton } from '@/components/auth/WalletButton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { useWallet } from '@/components/auth/WalletProvider';
 import type { UserRole } from '@/types';
 
 const schema = z.object({
@@ -50,6 +51,14 @@ function RegisterForm() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [role, setRole] = useState<UserRole>((params.get('role') as UserRole) ?? 'business');
+  const { isConnected, isCheckingWallet } = useWallet();
+
+  // Redirect if wallet is already connected.
+  useEffect(() => {
+    if (!isCheckingWallet && isConnected) {
+      router.replace('/dashboard');
+    }
+  }, [isCheckingWallet, isConnected, router]);
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),

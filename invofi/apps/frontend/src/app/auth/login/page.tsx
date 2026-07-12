@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
@@ -14,6 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { WalletButton } from '@/components/auth/WalletButton';
 import { signInWithEmail } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
+import { useWallet } from '@/components/auth/WalletProvider';
 
 const schema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -26,6 +27,15 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const { isConnected, isCheckingWallet } = useWallet();
+
+  // If a wallet is already connected (e.g. Freighter session restored on page
+  // load), skip the login page entirely and go straight to the dashboard.
+  useEffect(() => {
+    if (!isCheckingWallet && isConnected) {
+      router.replace('/dashboard');
+    }
+  }, [isCheckingWallet, isConnected, router]);
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),

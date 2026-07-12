@@ -12,11 +12,22 @@ import { signTxWithFreighter } from './freighter';
 import { fundAccountViaFriendbot } from './horizon';
 import type { Currency, FinancingOffer, Invoice } from '@/types';
 
-const CONTRACT_ID = process.env.NEXT_PUBLIC_CONTRACT_ID!;
+const CONTRACT_ID = process.env.NEXT_PUBLIC_CONTRACT_ID ?? '';
 const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL ?? 'https://soroban-testnet.stellar.org';
 const NETWORK = (process.env.NEXT_PUBLIC_STELLAR_NETWORK ?? 'testnet') as 'testnet' | 'mainnet';
 const NETWORK_PASSPHRASE = NETWORK === 'mainnet' ? Networks.PUBLIC : Networks.TESTNET;
 const BASE_FEE = '100';
+
+/** Returns true when NEXT_PUBLIC_CONTRACT_ID is set and passes StrKey validation. */
+export function isContractConfigured(): boolean {
+  if (!CONTRACT_ID) return false;
+  try {
+    new Contract(CONTRACT_ID);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 function server() {
   return new SorobanRpc.Server(RPC_URL, { allowHttp: false });

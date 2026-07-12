@@ -4,13 +4,13 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2, AlertTriangle, Zap } from 'lucide-react';
+import { Loader2, AlertTriangle, Zap, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { useWallet } from '@/components/auth/WalletProvider';
-import { registerInvoice } from '@/lib/contract';
+import { registerInvoice, isContractConfigured } from '@/lib/contract';
 import { supabase } from '@/lib/supabase';
 import { accountExists, fundAccountViaFriendbot } from '@/lib/horizon';
 import { amountToStroops, generateInvoiceId } from '@/lib/utils';
@@ -33,6 +33,8 @@ const IS_TESTNET =
   (process.env.NEXT_PUBLIC_STELLAR_NETWORK ?? 'testnet') !== 'mainnet' &&
   (process.env.NEXT_PUBLIC_STELLAR_NETWORK ?? 'testnet') !== 'public';
 
+const CONTRACT_OK = isContractConfigured();
+
 export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
   const { publicKey, isConnected } = useWallet();
   const { toast } = useToast();
@@ -45,9 +47,9 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
     defaultValues: { currency: 'USDC' },
   });
 
-  // Check if the connected wallet exists on-chain
+  // Check if the connected wallet exists on-chain (only matters when contract is live)
   useEffect(() => {
-    if (!publicKey) { setAccountFunded(null); return; }
+    if (!publicKey || !CONTRACT_OK) { setAccountFunded(true); return; }
     setAccountFunded(null);
     accountExists(publicKey).then(setAccountFunded);
   }, [publicKey]);
@@ -90,16 +92,16 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
       const dueDateUnix = Math.floor(new Date(values.dueDate).getTime() / 1000);
       const stroops = amountToStroops(values.amount);
 
-      // Register on-chain (auto-funds via Friendbot if needed on testnet)
-      await registerInvoice(
-        { id: invoiceId, amount: stroops, currency: values.currency as Currency, dueDate: dueDateUnix },
-        publicKey,
-      );
+      if (CONTRACT_OK) {
+        // On-chain registration — auto-funds via Friendbot if needed on testnet
+        await registerInvoice(
+          { id: invoiceId, amount: stroops, currency: values.currency as Currency, dueDate: dueDateUnix },
+          publicKey,
+        );
+        setAccountFunded(true);
+      }
 
-      // Update funded state after first successful transaction
-      setAccountFunded(true);
-
-      // Mirror to Supabase for indexing / display
+      // Always mirror to Supabase for indexing / display
       const { data: { user } } = await supabase.auth.getUser();
       await supabase.from('invoices').insert({
         id: invoiceId,
@@ -111,7 +113,12 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
         status: 'Pending',
       });
 
-      toast({ title: 'Invoice registered!', description: 'Your invoice is now on-chain.' });
+      toast({
+        title: CONTRACT_OK ? 'Invoice registered!' : 'Invoice saved!',
+        description: CONTRACT_OK
+          ? 'Your invoice is now on-chain.'
+          : 'Saved off-chain — on-chain registration will happen once the contract is deployed.',
+      });
       onSuccess(invoiceId);
     } catch (err: unknown) {
       toast({
@@ -166,8 +173,24 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
             </p>
           )}
 
-          {/* Unfunded testnet account banner */}
-          {isConnected && IS_TESTNET && accountFunded === false && (
+          {/* Alpha mode banner — shown when contract isn't deployed yet */}
+          {!CONTRACT_OK && (
+            <div className="flex items-start gap-3 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 px-4 py-3">
+              <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                  Alpha mode — off-chain storage
+                </p>
+                <p className="text-xs text-blue-700 dark:text-blue-400 mt-0.5">
+                  The on-chain contract is being deployed. Invoices are saved to the database
+                  and will be registered on Stellar once the contract is live.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Unfunded testnet account banner — only shown when contract is live */}
+          {CONTRACT_OK && isConnected && IS_TESTNET && accountFunded === false && (
             <div className="flex items-start gap-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 px-4 py-3">
               <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
               <div className="flex-1 min-w-0">
@@ -197,10 +220,12 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
           <Button
             type="submit"
             className="w-full"
-            disabled={submitting || !isConnected || (IS_TESTNET && accountFunded === false)}
+            disabled={submitting || !isConnected || (CONTRACT_OK && IS_TESTNET && accountFunded === false)}
           >
             {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {submitting ? 'Registering on-chain…' : 'Register Invoice'}
+            {submitting
+              ? (CONTRACT_OK ? 'Registering on-chain…' : 'Saving invoice…')
+              : (CONTRACT_OK ? 'Register Invoice' : 'Save Invoice')}
           </Button>
         </form>
       </CardContent>

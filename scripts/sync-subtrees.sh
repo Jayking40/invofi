@@ -85,7 +85,13 @@ case "$DIRECTION" in
     BRANCH_NAME="sync/$(date +%Y%m%d%H%M%S)"
 
     git clone --branch "$BRANCH" --single-branch --depth 50 "$REMOTE_URL" "$WORKDIR"
-    (cd "$WORKDIR" && git checkout -b "$BRANCH_NAME")
+    # Carry the monorepo's git identity into the temp clone so commits don't fail
+    GIT_AUTHOR_NAME=$(git config user.name 2>/dev/null || echo "Samuel Ojetunde")
+    GIT_AUTHOR_EMAIL=$(git config user.email 2>/dev/null || echo "samuelojetunde898@gmail.com")
+    (cd "$WORKDIR" && \
+      git config user.name "$GIT_AUTHOR_NAME" && \
+      git config user.email "$GIT_AUTHOR_EMAIL" && \
+      git checkout -b "$BRANCH_NAME")
 
     # Save the split repo's own lockfile/manifest before anything touches the
     # tree — these drift independently (own Dependabot) and must survive both

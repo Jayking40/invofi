@@ -10,12 +10,22 @@ import { supabase } from '@/lib/supabase';
 import type { Currency, Invoice, InvoiceStatus } from '@/types';
 
 type Filters = { currency: Currency | 'ALL'; status: InvoiceStatus | 'ALL' };
+type SortKey = 'newest' | 'oldest' | 'amount_desc' | 'amount_asc' | 'due_soonest';
+
+const SORT_OPTIONS: { value: SortKey; label: string }[] = [
+  { value: 'newest', label: 'Newest first' },
+  { value: 'oldest', label: 'Oldest first' },
+  { value: 'amount_desc', label: 'Amount: high to low' },
+  { value: 'amount_asc', label: 'Amount: low to high' },
+  { value: 'due_soonest', label: 'Due date: soonest' },
+];
 
 export default function MarketplacePage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<Filters>({ currency: 'ALL', status: 'ALL' });
+  const [sort, setSort] = useState<SortKey>('newest');
 
   useEffect(() => {
     setLoading(true);
@@ -38,6 +48,22 @@ export default function MarketplacePage() {
       if (!inv.id.toLowerCase().includes(q) && !inv.originator.toLowerCase().includes(q)) return false;
     }
     return true;
+  });
+
+  const sorted = [...filtered].sort((a, b) => {
+    switch (sort) {
+      case 'oldest':
+        return new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime();
+      case 'amount_desc':
+        return Number(b.amount) - Number(a.amount);
+      case 'amount_asc':
+        return Number(a.amount) - Number(b.amount);
+      case 'due_soonest':
+        return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+      case 'newest':
+      default:
+        return new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime();
+    }
   });
 
   return (
@@ -80,6 +106,16 @@ export default function MarketplacePage() {
             <option value="XLM">XLM</option>
             <option value="USDC">USDC</option>
           </select>
+          <select
+            className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
+            value={sort}
+            onChange={e => setSort(e.target.value as SortKey)}
+            aria-label="Sort invoices"
+          >
+            {SORT_OPTIONS.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
         </div>
 
         {loading && (
@@ -88,7 +124,7 @@ export default function MarketplacePage() {
           </div>
         )}
 
-        {!loading && filtered.length === 0 && (
+        {!loading && sorted.length === 0 && (
           <div className="text-center py-20 text-muted-foreground">
             <p className="text-lg font-medium">No invoices match your filters</p>
             <p className="text-sm mt-1">Try adjusting the search or filters.</p>
@@ -97,7 +133,7 @@ export default function MarketplacePage() {
 
         {!loading && (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filtered.map(inv => (
+            {sorted.map(inv => (
               <MarketplaceCard key={inv.id} invoice={inv} />
             ))}
           </div>

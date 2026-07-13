@@ -10,6 +10,8 @@ export interface Invoice {
   currency: Currency;
   due_date: number;
   status: InvoiceStatus;
+  /** ISO timestamp from the Supabase mirror; absent on pure on-chain reads */
+  created_at?: string;
 }
 
 export interface FinancingOffer {

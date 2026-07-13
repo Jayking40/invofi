@@ -250,6 +250,26 @@ Contract: `invofi-invoice-registry` · `invofi/apps/contracts/lib.rs`
 | `batch_get_invoices(ids)` | Anyone | Fetch multiple invoices by ID in one call |
 | `version()` | Anyone | Return the contract semver string |
 
+### Protocol Events
+
+Every state-mutating function publishes a Soroban contract event, so indexers
+and UIs can track protocol activity without polling. Topics are
+`(event_name, subject_id)` — filter by invoice/offer id without decoding payloads.
+
+| Event | Emitted by | Data |
+|---|---|---|
+| `inv_reg` | `register_invoice` | `(originator, amount, due_date)` |
+| `off_new` | `create_offer` | `(invoice_id, lender, amount, interest_rate)` |
+| `off_acc` | `accept_offer` | `(invoice_id, lender, amount)` |
+| `off_rej` | `reject_offer` | `invoice_id` |
+| `off_wdr` | `withdraw_offer` | `lender` |
+| `off_def` | `reclaim_invoice` | `(invoice_id, lender)` |
+| `inv_rep` | `repay_invoice` | `(offer_id, amount, fully_repaid)` |
+| `inv_ovd` | `mark_overdue` | `due_date` |
+| `inv_cxl` | `cancel_invoice` | `originator` |
+| `inv_dsp` | `raise_dispute` | `originator` |
+| `inv_rsl` | `resolve_dispute` | `new_status` |
+
 ### Invoice Lifecycle
 
 ```text
@@ -453,6 +473,8 @@ create policy "Own profile" on user_profiles for all using (id = auth.uid());
 - [x] Marketplace and portfolio views, sortable InvoiceTable, StatsCard KPIs
 - [x] Profile page, ConfirmDialog, EmptyState, LoadingSkeleton components
 - [x] One-click Testnet deploy via GitHub Actions workflow
+- [x] Protocol events (v0.3) — every state transition published on-chain for indexers and activity feeds
+- [x] Marketplace sorting (newest, amount, due date) and Stellar Expert explorer links
 - [ ] Mainnet deployment
 - [ ] Oracle-based invoice verification and risk scoring
 - [ ] Multi-signature treasury and escrow

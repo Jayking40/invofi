@@ -4,6 +4,16 @@ export const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL ?? 'https://soroban-testn
 export const HORIZON_URL = process.env.NEXT_PUBLIC_HORIZON_URL ?? 'https://horizon-testnet.stellar.org';
 export const CONTRACT_ID = process.env.NEXT_PUBLIC_CONTRACT_ID ?? '';
 
+// Stellar Expert explorer — network-aware deep links for contracts, txs, accounts
+export const EXPLORER_BASE =
+  STELLAR_NETWORK === 'mainnet'
+    ? 'https://stellar.expert/explorer/public'
+    : 'https://stellar.expert/explorer/testnet';
+
+export const explorerContractUrl = (contractId: string) => `${EXPLORER_BASE}/contract/${contractId}`;
+export const explorerTxUrl = (hash: string) => `${EXPLORER_BASE}/tx/${hash}`;
+export const explorerAccountUrl = (address: string) => `${EXPLORER_BASE}/account/${address}`;
+
 export const USDC_ISSUER_TESTNET = 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5';
 export const XLM_DECIMALS = 7;
 export const STROOPS_PER_XLM = 10_000_000;

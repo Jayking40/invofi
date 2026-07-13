@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { CONTRACT_ID, STELLAR_NETWORK, explorerContractUrl } from '@/lib/constants';
 
 const LINKS = [
   { label: 'GitHub', href: 'https://github.com/Stellar-VaultLink/invofi' },
@@ -11,25 +12,42 @@ const LINKS = [
 export function Footer() {
   return (
     <footer className="border-t border-border bg-background py-8 px-4">
-      <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-        <p>
-          <span className="font-semibold text-foreground">InvoFi</span>
-          {' '}— Decentralized Invoice Financing on Stellar Soroban
-        </p>
+      <div className="max-w-5xl mx-auto flex flex-col gap-4 text-sm text-muted-foreground">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p>
+            <span className="font-semibold text-foreground">InvoFi</span>
+            {' '}— Decentralized Invoice Financing on Stellar Soroban
+          </p>
 
-        <nav className="flex gap-5">
-          {LINKS.map((l) => (
-            <Link
-              key={l.label}
-              href={l.href}
+          <nav className="flex gap-5">
+            {LINKS.map((l) => (
+              <Link
+                key={l.label}
+                href={l.href}
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-foreground transition-colors"
+              >
+                {l.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
+
+        {CONTRACT_ID && (
+          <p className="text-xs text-center sm:text-left">
+            Contract on Stellar {STELLAR_NETWORK}:{' '}
+            <a
+              href={explorerContractUrl(CONTRACT_ID)}
               target="_blank"
               rel="noreferrer"
-              className="hover:text-foreground transition-colors"
+              className="font-mono underline decoration-dotted underline-offset-2 hover:text-foreground transition-colors"
+              title="View the InvoFi contract on Stellar Expert"
             >
-              {l.label}
-            </Link>
-          ))}
-        </nav>
+              {CONTRACT_ID.slice(0, 8)}…{CONTRACT_ID.slice(-8)}
+            </a>
+          </p>
+        )}
       </div>
     </footer>
   );

@@ -55,7 +55,9 @@ Merged PRs in the component repos are periodically pulled into this monorepo (vi
 ## Live Demo
 
 > **Frontend:** [invofi-five.vercel.app](https://invofi-five.vercel.app)
-> **Contract on Stellar Testnet:** deploy via the [Deploy Contract workflow](.github/workflows/deploy-contract.yml) and set `NEXT_PUBLIC_CONTRACT_ID` in Vercel. Until a contract is deployed the app runs in alpha mode (off-chain only).
+> **Contract on Stellar Testnet (v0.3):** [`CDS3WO5K6GUBGCLMRUR4IQYLDT5SNDOMUMZFDXOMXYP6EELLTM5MMALH`](https://stellar.expert/explorer/testnet/contract/CDS3WO5K6GUBGCLMRUR4IQYLDT5SNDOMUMZFDXOMXYP6EELLTM5MMALH)
+>
+> Deploy your own via the [Deploy Contract workflow](.github/workflows/deploy-contract.yml) and set `NEXT_PUBLIC_CONTRACT_ID` in Vercel. Without a contract configured the app runs in alpha mode (off-chain only).
 
 ```bash
 git clone https://github.com/Stellar-VaultLink/invofi.git

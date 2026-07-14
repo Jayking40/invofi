@@ -1,0 +1,59 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="hexStroke" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3B82F6"/>
+      <stop offset="1" stop-color="#22D3EE"/>
+    </linearGradient>
+    <linearGradient id="totalBar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#3B82F6"/>
+      <stop offset="1" stop-color="#22D3EE"/>
+    </linearGradient>
+    <linearGradient id="bgGlow" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0B1226"/>
+      <stop offset="1" stop-color="#0A0F1E"/>
+    </linearGradient>
+  </defs>
+
+  <!-- background -->
+  <rect width="512" height="512" rx="104" fill="url(#bgGlow)"/>
+
+  <!-- faint outer hexagon echo (network motif from the banner) -->
+  <polygon points="256,64 422,160 422,352 256,448 90,352 90,160"
+           fill="none" stroke="#1B2A4A" stroke-width="2" opacity="0.55"/>
+
+  <!-- main hexagon -->
+  <polygon points="256,96 394,176 394,336 256,416 118,336 118,176"
+           fill="#0E1B33" stroke="url(#hexStroke)" stroke-width="18" stroke-linejoin="round"/>
+
+  <!-- node accents at hexagon vertices -->
+  <circle cx="394" cy="176" r="10" fill="#22D3EE"/>
+  <circle cx="118" cy="336" r="10" fill="#3B82F6"/>
+
+  <!-- invoice document -->
+  <g>
+    <!-- body with folded corner -->
+    <path d="M196 166
+             h86
+             l34 34
+             v146
+             a12 12 0 0 1 -12 12
+             h-108
+             a12 12 0 0 1 -12 -12
+             v-168
+             a12 12 0 0 1 12 -12 z"
+          fill="#F4F7FC"/>
+    <path d="M282 166 l34 34 h-26 a8 8 0 0 1 -8 -8 z" fill="#C7D4E8"/>
+
+    <!-- text lines -->
+    <rect x="210" y="216" width="92" height="10" rx="5" fill="#0E1B33"/>
+    <rect x="210" y="238" width="64" height="8" rx="4" fill="#5B6B85"/>
+    <rect x="210" y="256" width="74" height="8" rx="4" fill="#5B6B85"/>
+
+    <!-- divider -->
+    <rect x="210" y="286" width="92" height="2" rx="1" fill="#C7D4E8"/>
+
+    <!-- TOTAL bar -->
+    <rect x="210" y="304" width="34" height="8" rx="4" fill="#8A99B3"/>
+    <rect x="210" y="322" width="72" height="14" rx="7" fill="url(#totalBar)"/>
+  </g>
+</svg>

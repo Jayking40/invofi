@@ -14,7 +14,7 @@
     "next": "14.2.35",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "@supabase/supabase-js": "^2.110.7",
+    "@supabase/supabase-js": "^2.111.0",
     "@supabase/ssr": "^0.12.0",
     "@stellar/freighter-api": "^6.0.1",
     "@creit.tech/stellar-wallets-kit": "^2.5.0",

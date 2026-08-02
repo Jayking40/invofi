@@ -70,7 +70,14 @@ export default function PortfolioPage() {
         .select('*, invoice:invoices(*)')
         .eq('lender_id', user.id)
         .order('created_at', { ascending: false });
-      setOffers((data as unknown as FinancingOffer[]) ?? []);
+      const rows = (data as unknown as FinancingOffer[]) ?? [];
+      // Normalize mirror strings (and contract i128s) to bigint stroops so
+      // amount/amount_repaid math and display are consistent.
+      setOffers(rows.map(o => ({
+        ...o,
+        amount: toStroopsBigInt(o.amount),
+        amount_repaid: toStroopsBigInt(o.amount_repaid),
+      })));
       setLoading(false);
     });
   }, []);

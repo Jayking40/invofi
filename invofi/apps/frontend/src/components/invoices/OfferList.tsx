@@ -397,5 +397,6 @@ function totalDue(offer: FinancingOffer): bigint {
 
 /** Outstanding balance in stroops: total due minus what has been repaid so far. */
 function remainingBalance(offer: FinancingOffer): bigint {
-  return totalDue(offer) - toStroopsBigInt(offer.amount_repaid);
+  const remaining = totalDue(offer) - toStroopsBigInt(offer.amount_repaid);
+  return remaining < 0n ? 0n : remaining;
 }

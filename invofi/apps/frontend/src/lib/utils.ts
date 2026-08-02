@@ -22,9 +22,11 @@ export function amountToStroops(amount: string, decimals = 7): bigint {
 
 /**
  * Coerce an amount to stroops as a bigint, tolerating both sources:
- * - contract reads return i128 (bigint) already in stroops
- * - the Supabase mirror stores strings — integer strings are stroops, decimal
- *   strings (e.g. "10000.00") are human units and get converted
+ * - contract reads return i128 (bigint) already in stroops — passed through
+ * - the Supabase mirror stores human-unit strings (raw form input for `amount`,
+ *   `formatAmount()` output for `amount_repaid`) — all valid numeric strings are
+ *   converted as human units, whether or not they contain a decimal point
+ *   ("10000" and "10000.00" both mean 10⁷ stroops)
  */
 export function toStroopsBigInt(value: bigint | number | string | null | undefined): bigint {
   if (typeof value === 'bigint') return value;
@@ -32,8 +34,7 @@ export function toStroopsBigInt(value: bigint | number | string | null | undefin
   if (typeof value === 'string') {
     const s = value.trim();
     if (s === '') return 0n;
-    if (/^\d+$/.test(s)) return BigInt(s);
-    if (/^\d+\.\d+$/.test(s)) return amountToStroops(s);
+    if (/^\d+(\.\d{1,7})?$/.test(s)) return amountToStroops(s);
     return BigInt(s || '0');
   }
   return 0n;

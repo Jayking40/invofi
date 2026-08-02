@@ -1,0 +1,16 @@
+# Normalize all text files to LF for cross-platform consistency.
+# Git stores LF; working copies on Windows check out LF as well.
+# Binary formats are excluded explicitly so git never touches their bytes.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.wasm binary
+*.woff binary
+*.woff2 binary
+*.eot binary
+*.ttf binary

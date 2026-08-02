@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { useWallet } from '@/components/auth/WalletProvider';
 import { OfferList } from '@/components/invoices/OfferList';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { getInvoice, cancelInvoice } from '@/lib/contract';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
@@ -23,6 +24,7 @@ export default function InvoiceDetailPage() {
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleCancel = async () => {
@@ -92,7 +94,7 @@ export default function InvoiceDetailPage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={handleCancel}
+                      onClick={() => setConfirmCancel(true)}
                       disabled={cancelling}
                       className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
                     >
@@ -119,6 +121,19 @@ export default function InvoiceDetailPage() {
             <OfferList invoiceId={id} invoice={invoice} onUpdate={setInvoice} />
           </div>
         )}
+
+        <ConfirmDialog
+          open={confirmCancel}
+          onOpenChange={open => { if (!open) setConfirmCancel(false); }}
+          title="Cancel this invoice?"
+          description="The invoice will be cancelled on-chain and can no longer receive financing offers. This cannot be undone."
+          confirmLabel="Cancel Invoice"
+          variant="destructive"
+          onConfirm={() => {
+            setConfirmCancel(false);
+            handleCancel();
+          }}
+        />
       </div>
     </AuthGuard>
   );

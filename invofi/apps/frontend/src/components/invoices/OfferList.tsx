@@ -145,11 +145,21 @@ export function OfferList({ invoiceId, invoice, onUpdate }: OfferListProps) {
         return;
       }
       const updatedInvoice = await repayInvoice(invoiceId, offer.id, publicKey, amountStroops);
-      setOffers(prev => prev.map(o => o.id === offer.id ? { ...o, status: 'Financed' } : o));
-      await supabase.from('financing_offers').update({ status: 'Financed' }).eq('id', offer.id);
-      await supabase.from('invoices').update({ status: 'Financed' }).eq('id', invoiceId);
+      // A repayment that clears the full balance flips the invoice to Repaid;
+      // anything less keeps it Financed (offer → Financed for the remainder).
+      const fullyRepaid = updatedInvoice.status === 'Repaid';
+      const nextOfferStatus: FinancingOffer['status'] = fullyRepaid ? 'Repaid' : 'Financed';
+      const nextInvoiceStatus: Invoice['status'] = fullyRepaid ? 'Repaid' : 'Financed';
+      setOffers(prev => prev.map(o => o.id === offer.id ? { ...o, status: nextOfferStatus } : o));
+      await supabase.from('financing_offers').update({ status: nextOfferStatus }).eq('id', offer.id);
+      await supabase.from('invoices').update({ status: nextInvoiceStatus }).eq('id', invoiceId);
       onUpdate(updatedInvoice);
-      toast({ title: 'Repayment sent', description: 'Partial repayment recorded on-chain. Continue repaying until the balance clears.' });
+      toast({
+        title: fullyRepaid ? 'Invoice fully repaid' : 'Repayment sent',
+        description: fullyRepaid
+          ? 'Principal + yield transferred to the lender. The invoice is now Repaid.'
+          : 'Partial repayment recorded on-chain. Continue repaying until the balance clears.',
+      });
     } catch (err: unknown) {
       toast({ title: 'Failed to repay', description: err instanceof Error ? err.message : 'Error', variant: 'destructive' });
     } finally {
@@ -299,7 +309,8 @@ export function OfferList({ invoiceId, invoice, onUpdate }: OfferListProps) {
                 <div className="flex items-center gap-1.5">
                   <Input
                     className="h-8 w-28 text-xs"
-                    placeholder="Amount"
+                    placeholder={formatAmount(totalDue(offer))}
+                    title={`Total due (principal + yield): ${formatAmount(totalDue(offer))} ${offer.currency}`}
                     value={repayAmounts[offer.id] ?? ''}
                     onChange={e => setRepayAmounts(prev => ({ ...prev, [offer.id]: e.target.value }))}
                   />
@@ -355,4 +366,9 @@ export function OfferList({ invoiceId, invoice, onUpdate }: OfferListProps) {
 function formatAddress(address: string): string {
   if (!address || address.length < 10) return address;
   return `${address.slice(0, 6)}…${address.slice(-4)}`;
+}
+
+/** Total repayment due in stroops: principal + simple yield (matches the contract's calculate_total_due). */
+function totalDue(offer: FinancingOffer): bigint {
+  return offer.amount + (offer.amount * BigInt(offer.interest_rate)) / 10_000n;
 }

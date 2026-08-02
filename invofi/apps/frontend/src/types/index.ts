@@ -22,6 +22,8 @@ export interface FinancingOffer {
   currency: Currency;
   interest_rate: number;
   duration: number;
+  /** Running total of stroops repaid so far (mirrors the contract's FinancingOffer.amount_repaid). */
+  amount_repaid: bigint;
   status: OfferStatus;
   funded_at: number;
 }

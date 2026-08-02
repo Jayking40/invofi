@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { TableSkeleton } from '@/components/common/LoadingSkeleton';
 import { supabase } from '@/lib/supabase';
-import { formatAmount, formatDate, interestRateLabel, durationLabel, OFFER_STATUS_COLORS } from '@/lib/utils';
+import { formatAmount, formatDate, interestRateLabel, durationLabel, toStroopsBigInt, OFFER_STATUS_COLORS } from '@/lib/utils';
 import { STROOPS_PER_XLM } from '@/lib/constants';
 import { toCsv, downloadCsv } from '@/lib/csv';
 import type { FinancingOffer } from '@/types';
@@ -24,6 +24,11 @@ const STATUS_ICONS = {
   Repaid:    CheckCircle2,
   Defaulted: AlertCircle,
 } as const;
+
+/** Total repayment due in stroops: principal + simple yield (matches the contract). */
+function offerTotalDue(offer: FinancingOffer): bigint {
+  return toStroopsBigInt(offer.amount) + (toStroopsBigInt(offer.amount) * BigInt(offer.interest_rate)) / 10_000n;
+}
 
 function CopyId({ id }: { id: string }) {
   const [copied, setCopied] = useState(false);
@@ -204,6 +209,13 @@ export default function PortfolioPage() {
                         {interestRateLabel(offer.interest_rate)} · {durationLabel(offer.duration)}
                         {offer.funded_at > 0 && ` · Funded ${formatDate(offer.funded_at)}`}
                       </p>
+                      {(offer.status === 'Accepted' || offer.status === 'Financed') &&
+                        toStroopsBigInt(offer.amount_repaid) > 0n && (
+                        <p className="text-xs mt-1 text-green-600">
+                          {formatAmount(toStroopsBigInt(offer.amount_repaid))} repaid ·{' '}
+                          {formatAmount(offerTotalDue(offer) - toStroopsBigInt(offer.amount_repaid))} remaining
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="text-right flex items-center gap-3">

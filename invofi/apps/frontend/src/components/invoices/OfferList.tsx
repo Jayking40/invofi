@@ -14,7 +14,7 @@ import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { useWallet } from '@/components/auth/WalletProvider';
 import { createOffer, acceptOffer, rejectOffer, repayInvoice, markOverdue, reclaimInvoice } from '@/lib/contract';
 import { supabase } from '@/lib/supabase';
-import { formatAmount, interestRateLabel, durationLabel, generateOfferId, amountToStroops, OFFER_STATUS_COLORS } from '@/lib/utils';
+import { formatAmount, interestRateLabel, durationLabel, generateOfferId, amountToStroops, toStroopsBigInt, OFFER_STATUS_COLORS } from '@/lib/utils';
 import { GRACE_PERIOD_SECS } from '@/lib/constants';
 import { useToast } from '@/components/ui/use-toast';
 import type { Currency, FinancingOffer, Invoice } from '@/types';
@@ -57,7 +57,16 @@ export function OfferList({ invoiceId, invoice, onUpdate }: OfferListProps) {
       .select('*')
       .eq('invoice_id', invoiceId)
       .order('created_at', { ascending: false })
-      .then(({ data }) => setOffers((data as unknown as FinancingOffer[]) ?? []));
+      .then(({ data }) => {
+        const rows = (data as unknown as FinancingOffer[]) ?? [];
+        // Normalize mirror strings (and contract i128s) to bigint stroops so
+        // amount/amount_repaid math is consistent regardless of source.
+        setOffers(rows.map(o => ({
+          ...o,
+          amount: toStroopsBigInt(o.amount),
+          amount_repaid: toStroopsBigInt(o.amount_repaid),
+        })));
+      });
   }, [invoiceId]);
 
   const submitOffer = async (values: OfferFormValues) => {
@@ -150,8 +159,10 @@ export function OfferList({ invoiceId, invoice, onUpdate }: OfferListProps) {
       const fullyRepaid = updatedInvoice.status === 'Repaid';
       const nextOfferStatus: FinancingOffer['status'] = fullyRepaid ? 'Repaid' : 'Financed';
       const nextInvoiceStatus: Invoice['status'] = fullyRepaid ? 'Repaid' : 'Financed';
-      setOffers(prev => prev.map(o => o.id === offer.id ? { ...o, status: nextOfferStatus } : o));
-      await supabase.from('financing_offers').update({ status: nextOfferStatus }).eq('id', offer.id);
+      const newRepaid = toStroopsBigInt(offer.amount_repaid) + amountStroops;
+      setOffers(prev => prev.map(o => o.id === offer.id ? { ...o, status: nextOfferStatus, amount_repaid: newRepaid } : o));
+      // Mirror stores human-decimal strings (same format as its amount column).
+      await supabase.from('financing_offers').update({ status: nextOfferStatus, amount_repaid: formatAmount(newRepaid) }).eq('id', offer.id);
       await supabase.from('invoices').update({ status: nextInvoiceStatus }).eq('id', invoiceId);
       onUpdate(updatedInvoice);
       toast({
@@ -274,7 +285,10 @@ export function OfferList({ invoiceId, invoice, onUpdate }: OfferListProps) {
           <p className="text-sm text-gray-400 text-center py-6">No offers yet.</p>
         )}
 
-        {offers.map(offer => (
+        {offers.map(offer => {
+          const repaid = toStroopsBigInt(offer.amount_repaid);
+          const remaining = totalDue(offer) - repaid;
+          return (
           <div key={offer.id} className="flex items-center justify-between border rounded-lg p-3">
             <div>
               <p className="text-sm font-mono text-gray-600">{formatAddress(offer.lender)}</p>
@@ -282,6 +296,13 @@ export function OfferList({ invoiceId, invoice, onUpdate }: OfferListProps) {
                 {formatAmount(offer.amount)} {offer.currency} ·{' '}
                 {interestRateLabel(offer.interest_rate)} · {durationLabel(offer.duration)}
               </p>
+              {(offer.status === 'Accepted' || offer.status === 'Financed') && repaid > 0n && (
+                <p className="text-xs mt-1">
+                  <span className="text-green-600">{formatAmount(repaid)} repaid</span>
+                  {' · '}
+                  <span className="text-gray-500">{formatAmount(remaining)} remaining</span>
+                </p>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <Badge className={OFFER_STATUS_COLORS[offer.status]}>{offer.status}</Badge>
@@ -309,8 +330,8 @@ export function OfferList({ invoiceId, invoice, onUpdate }: OfferListProps) {
                 <div className="flex items-center gap-1.5">
                   <Input
                     className="h-8 w-28 text-xs"
-                    placeholder={formatAmount(totalDue(offer))}
-                    title={`Total due (principal + yield): ${formatAmount(totalDue(offer))} ${offer.currency}`}
+                    placeholder={formatAmount(remainingBalance(offer))}
+                    title={`Remaining balance: ${formatAmount(remainingBalance(offer))} ${offer.currency} (total due ${formatAmount(totalDue(offer))} minus ${formatAmount(repaid)})`}
                     value={repayAmounts[offer.id] ?? ''}
                     onChange={e => setRepayAmounts(prev => ({ ...prev, [offer.id]: e.target.value }))}
                   />
@@ -337,7 +358,8 @@ export function OfferList({ invoiceId, invoice, onUpdate }: OfferListProps) {
               )}
             </div>
           </div>
-        ))}
+          );
+        })}
       </CardContent>
 
       <ConfirmDialog
@@ -371,4 +393,9 @@ function formatAddress(address: string): string {
 /** Total repayment due in stroops: principal + simple yield (matches the contract's calculate_total_due). */
 function totalDue(offer: FinancingOffer): bigint {
   return offer.amount + (offer.amount * BigInt(offer.interest_rate)) / 10_000n;
+}
+
+/** Outstanding balance in stroops: total due minus what has been repaid so far. */
+function remainingBalance(offer: FinancingOffer): bigint {
+  return totalDue(offer) - toStroopsBigInt(offer.amount_repaid);
 }

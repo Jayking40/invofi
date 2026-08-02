@@ -20,6 +20,25 @@ export function amountToStroops(amount: string, decimals = 7): bigint {
   return BigInt(whole) * BigInt(10 ** decimals) + BigInt(paddedFraction);
 }
 
+/**
+ * Coerce an amount to stroops as a bigint, tolerating both sources:
+ * - contract reads return i128 (bigint) already in stroops
+ * - the Supabase mirror stores strings — integer strings are stroops, decimal
+ *   strings (e.g. "10000.00") are human units and get converted
+ */
+export function toStroopsBigInt(value: bigint | number | string | null | undefined): bigint {
+  if (typeof value === 'bigint') return value;
+  if (typeof value === 'number') return BigInt(Math.trunc(value));
+  if (typeof value === 'string') {
+    const s = value.trim();
+    if (s === '') return 0n;
+    if (/^\d+$/.test(s)) return BigInt(s);
+    if (/^\d+\.\d+$/.test(s)) return amountToStroops(s);
+    return BigInt(s || '0');
+  }
+  return 0n;
+}
+
 export function formatDate(timestamp: number): string {
   return format(new Date(timestamp * 1000), 'MMM d, yyyy');
 }

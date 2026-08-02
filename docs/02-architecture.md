@@ -38,7 +38,7 @@ InvoFi is a three-layer system with no traditional backend server. Each layer ha
 
 ## Layer 1 — Smart Contract (Source of Truth)
 
-The Soroban contract (`invofi/apps/contracts/lib.rs`) is the authoritative record for all invoices and financing offers. Nothing in Supabase or the frontend overrides what the contract says.
+The Soroban contract (in the dedicated [invofi-contracts](https://github.com/Stellar-VaultLink/invofi-contracts) repo) is the authoritative record for all invoices and financing offers. Nothing in Supabase or the frontend overrides what the contract says.
 
 **Responsibilities:**
 - Store invoice and offer state on the Stellar ledger

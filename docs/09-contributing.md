@@ -21,8 +21,9 @@ cp .env.local.example .env.local
 npm install
 npm run dev
 
-# 4. Test the contracts
-cd ../contracts
+# 4. Test the contracts (in the dedicated invofi-contracts repo)
+git clone https://github.com/Stellar-VaultLink/invofi-contracts.git
+cd invofi-contracts
 cargo test
 ```
 
@@ -38,7 +39,9 @@ git fetch upstream && git checkout main && git merge upstream/main
 git checkout -b feat/your-feature
 
 # Make changes, then:
-cd invofi/apps/contracts && cargo test && cargo clippy -- -D warnings
+# Contracts (in the invofi-contracts repo):
+cd invofi-contracts && cargo test && cargo clippy -- -D warnings
+# Frontend (in this repo):
 cd invofi/apps/frontend && npm run type-check && npm run lint
 
 # Commit using Conventional Commits

@@ -18,8 +18,8 @@ export const USDC_ISSUER_TESTNET = 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT
 export const XLM_DECIMALS = 7;
 export const STROOPS_PER_XLM = 10_000_000;
 
-export const INVOICE_STATUSES = ['Pending', 'Financed', 'Repaid', 'Overdue', 'Cancelled'] as const;
-export const OFFER_STATUSES = ['Pending', 'Accepted', 'Repaid', 'Rejected', 'Defaulted'] as const;
+export const INVOICE_STATUSES = ['Pending', 'Financed', 'Repaid', 'Overdue', 'Cancelled', 'Disputed'] as const;
+export const OFFER_STATUSES = ['Pending', 'Accepted', 'Financed', 'Rejected', 'Repaid', 'Defaulted'] as const;
 export const CURRENCIES = ['XLM', 'USDC'] as const;
 export const USER_ROLES = ['business', 'lender'] as const;
 

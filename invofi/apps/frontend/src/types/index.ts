@@ -1,5 +1,5 @@
-export type InvoiceStatus = 'Pending' | 'Financed' | 'Repaid' | 'Overdue' | 'Cancelled';
-export type OfferStatus = 'Pending' | 'Accepted' | 'Rejected' | 'Repaid' | 'Defaulted';
+export type InvoiceStatus = 'Pending' | 'Financed' | 'Repaid' | 'Overdue' | 'Cancelled' | 'Disputed';
+export type OfferStatus = 'Pending' | 'Accepted' | 'Financed' | 'Rejected' | 'Repaid' | 'Defaulted';
 export type UserRole = 'business' | 'lender';
 export type Currency = 'XLM' | 'USDC';
 

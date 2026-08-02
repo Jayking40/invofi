@@ -246,6 +246,7 @@ export async function repayInvoice(
   invoiceId: string,
   offerId: string,
   repayerAddress: string,
+  amount: bigint,
 ): Promise<Invoice> {
   const val = await invokeContract(
     'repay_invoice',
@@ -253,8 +254,23 @@ export async function repayInvoice(
       encodeSymbol(invoiceId),
       encodeSymbol(offerId),
       encodeAddress(repayerAddress),
+      encodeI128(amount),
     ],
     repayerAddress,
+  );
+  return parseInvoice(val);
+}
+
+// Cancels a Pending invoice on-chain. Originator-only; the invoice must still
+// be Pending (no offers accepted). Emits the inv_cxl protocol event.
+export async function cancelInvoice(
+  invoiceId: string,
+  originatorAddress: string,
+): Promise<Invoice> {
+  const val = await invokeContract(
+    'cancel_invoice',
+    [encodeSymbol(invoiceId), encodeAddress(originatorAddress)],
+    originatorAddress,
   );
   return parseInvoice(val);
 }

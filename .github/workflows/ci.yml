@@ -36,7 +36,8 @@ jobs:
       # a real Supabase project or contract. Real secrets live in Vercel.
       NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: placeholder-anon-key
-      NEXT_PUBLIC_CONTRACT_ID: CDJS6AFE6VRPAPWOPWOPZLSLQ7NCISA7YHOMAE7HJWOD7G6CQDCVT4L2
+      # Live v0.3 contract on Stellar testnet — matches README's Live Demo section.
+      NEXT_PUBLIC_CONTRACT_ID: CDS3WO5K6GUBGCLMRUR4IQYLDT5SNDOMUMZFDXOMXYP6EELLTM5MMALH
       NEXT_PUBLIC_STELLAR_NETWORK: testnet
       NEXT_PUBLIC_RPC_URL: https://soroban-testnet.stellar.org
       NEXT_PUBLIC_HORIZON_URL: https://horizon-testnet.stellar.org

@@ -70,9 +70,12 @@ npm run dev
 
 ### Contract setup
 
+Contracts live in the dedicated [invofi-contracts](https://github.com/Stellar-VaultLink/invofi-contracts) repo:
+
 ```bash
-cd invofi/apps/contracts
-cargo test         # run all 9 tests
+git clone https://github.com/Stellar-VaultLink/invofi-contracts.git
+cd invofi-contracts
+cargo test
 cargo build --release --target wasm32-unknown-unknown
 ```
 
@@ -84,8 +87,8 @@ See [README.md — Project Structure](./README.md#project-structure) for the ful
 
 The two main areas of the codebase are:
 
-- `invofi/apps/contracts/` — Soroban Rust smart contract (the source of truth)
 - `invofi/apps/frontend/` — Next.js 14 web application
+- [invofi-contracts](https://github.com/Stellar-VaultLink/invofi-contracts) — Soroban Rust smart contracts (the source of truth, in their own repo)
 
 ---
 
@@ -168,7 +171,7 @@ test(contract): add edge case for duplicate invoice ID
 - Run `cargo test` and `cargo clippy` before pushing.
 
 ```bash
-cd invofi/apps/contracts
+cd invofi-contracts
 cargo test
 cargo clippy -- -D warnings
 ```
@@ -197,11 +200,11 @@ npm run lint
 ### Contract tests
 
 ```bash
-cd invofi/apps/contracts
+cd invofi-contracts
 cargo test -- --nocapture
 ```
 
-All 9 existing tests must pass. Add new tests for any new contract functions.
+All existing tests must pass. Add new tests for any new contract functions.
 
 ### Frontend type checking
 

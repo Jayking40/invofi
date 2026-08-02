@@ -44,6 +44,7 @@ export function OfferList({ invoiceId, invoice, onUpdate }: OfferListProps) {
   const [confirmTarget, setConfirmTarget] = useState<
     { offer: FinancingOffer; kind: 'reject' | 'reclaim' } | null
   >(null);
+  const [repayAmounts, setRepayAmounts] = useState<Record<string, string>>({});
 
   const { register, handleSubmit, formState: { errors }, reset } = useForm<OfferFormValues>({
     resolver: zodResolver(offerSchema),
@@ -133,12 +134,22 @@ export function OfferList({ invoiceId, invoice, onUpdate }: OfferListProps) {
     if (!publicKey) return;
     setActionId(offer.id);
     try {
-      const updatedInvoice = await repayInvoice(invoiceId, offer.id, publicKey);
-      setOffers(prev => prev.map(o => o.id === offer.id ? { ...o, status: 'Repaid' } : o));
-      await supabase.from('financing_offers').update({ status: 'Repaid' }).eq('id', offer.id);
-      await supabase.from('invoices').update({ status: 'Repaid' }).eq('id', invoiceId);
+      const raw = (repayAmounts[offer.id] ?? '').trim();
+      if (!/^\d+(\.\d{1,7})?$/.test(raw)) {
+        toast({ title: 'Enter a valid amount', variant: 'destructive' });
+        return;
+      }
+      const amountStroops = amountToStroops(raw);
+      if (amountStroops <= 0n) {
+        toast({ title: 'Amount must be greater than zero', variant: 'destructive' });
+        return;
+      }
+      const updatedInvoice = await repayInvoice(invoiceId, offer.id, publicKey, amountStroops);
+      setOffers(prev => prev.map(o => o.id === offer.id ? { ...o, status: 'Financed' } : o));
+      await supabase.from('financing_offers').update({ status: 'Financed' }).eq('id', offer.id);
+      await supabase.from('invoices').update({ status: 'Financed' }).eq('id', invoiceId);
       onUpdate(updatedInvoice);
-      toast({ title: 'Repayment sent', description: 'Principal + yield transferred to the lender.' });
+      toast({ title: 'Repayment sent', description: 'Partial repayment recorded on-chain. Continue repaying until the balance clears.' });
     } catch (err: unknown) {
       toast({ title: 'Failed to repay', description: err instanceof Error ? err.message : 'Error', variant: 'destructive' });
     } finally {
@@ -181,7 +192,7 @@ export function OfferList({ invoiceId, invoice, onUpdate }: OfferListProps) {
   const nowSecs = Math.floor(Date.now() / 1000);
   const canMarkOverdue = invoice.status === 'Financed' && publicKey && nowSecs > invoice.due_date;
   const canReclaim = (offer: FinancingOffer) =>
-    invoice.status === 'Overdue' && offer.status === 'Accepted' && publicKey === offer.lender &&
+    invoice.status === 'Overdue' && (offer.status === 'Accepted' || offer.status === 'Financed') && publicKey === offer.lender &&
     nowSecs >= invoice.due_date + GRACE_PERIOD_SECS;
 
   return (
@@ -284,15 +295,23 @@ export function OfferList({ invoiceId, invoice, onUpdate }: OfferListProps) {
                   </Button>
                 </>
               )}
-              {isOriginator && offer.status === 'Accepted' && invoice.status === 'Financed' && (
-                <Button
-                  size="sm"
-                  onClick={() => handleRepay(offer)}
-                  disabled={actionId === offer.id}
-                >
-                  {actionId === offer.id && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
-                  Repay
-                </Button>
+              {isOriginator && (offer.status === 'Accepted' || offer.status === 'Financed') && invoice.status === 'Financed' && (
+                <div className="flex items-center gap-1.5">
+                  <Input
+                    className="h-8 w-28 text-xs"
+                    placeholder="Amount"
+                    value={repayAmounts[offer.id] ?? ''}
+                    onChange={e => setRepayAmounts(prev => ({ ...prev, [offer.id]: e.target.value }))}
+                  />
+                  <Button
+                    size="sm"
+                    onClick={() => handleRepay(offer)}
+                    disabled={actionId === offer.id}
+                  >
+                    {actionId === offer.id && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
+                    Repay
+                  </Button>
+                </div>
               )}
               {canReclaim(offer) && (
                 <Button

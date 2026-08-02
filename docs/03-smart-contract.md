@@ -1,6 +1,6 @@
 # Smart Contract Reference
 
-The InvoFi smart contract (`invofi/apps/contracts/lib.rs`) is a single Soroban contract called `invofi-invoice-registry`. It manages the complete lifecycle of invoices and financing offers on the Stellar ledger.
+The InvoFi smart contract (in the dedicated [invofi-contracts](https://github.com/Stellar-VaultLink/invofi-contracts) repo) is a single Soroban contract called `invofi-invoice-registry`. It manages the complete lifecycle of invoices and financing offers on the Stellar ledger.
 
 ---
 
@@ -265,7 +265,9 @@ The frontend utility function `formatAmount(stroops: bigint): string` handles di
 ## Building and Testing
 
 ```bash
-cd invofi/apps/contracts
+# Contracts live in their own repo
+git clone https://github.com/Stellar-VaultLink/invofi-contracts.git
+cd invofi-contracts
 
 # Run all tests
 cargo test -- --nocapture

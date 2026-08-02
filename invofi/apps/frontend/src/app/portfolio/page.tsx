@@ -19,6 +19,7 @@ const NETWORK = process.env.NEXT_PUBLIC_STELLAR_NETWORK === 'mainnet' ? 'mainnet
 const STATUS_ICONS = {
   Pending:   Clock,
   Accepted:  TrendingUp,
+  Financed:  TrendingUp,
   Rejected:  AlertCircle,
   Repaid:    CheckCircle2,
   Defaulted: AlertCircle,
@@ -69,7 +70,10 @@ export default function PortfolioPage() {
     });
   }, []);
 
-  const active = offers.filter(o => o.status === 'Accepted');
+  // An offer is active while it is financing an invoice: from acceptance until
+  // it is fully repaid. Partial repayments flip offers to Financed on-chain,
+  // so both statuses count as deployed capital.
+  const active = offers.filter(o => o.status === 'Accepted' || o.status === 'Financed');
   const repaid = offers.filter(o => o.status === 'Repaid');
   const pending = offers.filter(o => o.status === 'Pending');
 

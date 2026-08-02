@@ -59,7 +59,9 @@ This uses Stellar's Friendbot to add 10,000 XLM to your testnet account.
 ### 2c. Build the contract
 
 ```bash
-cd invofi/apps/contracts
+# Contracts live in their own repo
+git clone https://github.com/Stellar-VaultLink/invofi-contracts.git
+cd invofi-contracts
 stellar contract build
 ```
 
@@ -81,7 +83,7 @@ stellar contract deploy \
 The output is a **contract ID** — a 56-character string starting with `C`. Example (the live InvoFi testnet contract):
 
 ```text
-CDJS6AFE6VRPAPWOPWOPZLSLQ7NCISA7YHOMAE7HJWOD7G6CQDCVT4L2
+CDS3WO5K6GUBGCLMRUR4IQYLDT5SNDOMUMZFDXOMXYP6EELLTM5MMALH
 ```
 
 **Copy this.** You need it in the next step.

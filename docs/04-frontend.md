@@ -162,7 +162,7 @@ createOffer(params, lenderAddress)          → Promise<FinancingOffer>
 getOffer(id)                                → Promise<FinancingOffer>
 acceptOffer(offerId, originatorAddress)     → Promise<FinancingOffer>
 rejectOffer(offerId, originatorAddress)     → Promise<FinancingOffer>
-repayInvoice(invoiceId, offerId, repayer)   → Promise<Invoice>
+repayInvoice(invoiceId, offerId, repayer, amountStroops)   → Promise<Invoice>  // supports partial repayment
 ```
 
 ### `lib/freighter.ts`

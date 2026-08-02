@@ -8,17 +8,41 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AuthGuard } from '@/components/auth/AuthGuard';
+import { useWallet } from '@/components/auth/WalletProvider';
 import { OfferList } from '@/components/invoices/OfferList';
-import { getInvoice } from '@/lib/contract';
-import { explorerUrl } from '@/lib/horizon';
+import { getInvoice, cancelInvoice } from '@/lib/contract';
+import { supabase } from '@/lib/supabase';
+import { useToast } from '@/components/ui/use-toast';
 import { formatAmount, formatDate, formatAddress, INVOICE_STATUS_COLORS } from '@/lib/utils';
 import type { Invoice } from '@/types';
 
 export default function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { publicKey } = useWallet();
+  const { toast } = useToast();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
+  const [cancelling, setCancelling] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const handleCancel = async () => {
+    if (!invoice || !publicKey) return;
+    setCancelling(true);
+    try {
+      const updated = await cancelInvoice(invoice.id, publicKey);
+      await supabase.from('invoices').update({ status: 'Cancelled' }).eq('id', invoice.id);
+      setInvoice(updated);
+      toast({ title: 'Invoice cancelled', description: 'The invoice is now cancelled on-chain.' });
+    } catch (err: unknown) {
+      toast({
+        title: 'Failed to cancel invoice',
+        description: err instanceof Error ? err.message : 'Error',
+        variant: 'destructive',
+      });
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -60,9 +84,23 @@ export default function InvoiceDetailPage() {
                   <p className="text-xs font-mono text-gray-400 mb-1">{invoice.id}</p>
                   <CardTitle className="text-xl">Invoice</CardTitle>
                 </div>
-                <Badge className={INVOICE_STATUS_COLORS[invoice.status]}>
-                  {invoice.status}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge className={INVOICE_STATUS_COLORS[invoice.status]}>
+                    {invoice.status}
+                  </Badge>
+                  {invoice.status === 'Pending' && publicKey === invoice.originator && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleCancel}
+                      disabled={cancelling}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                    >
+                      {cancelling && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
+                      Cancel
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent className="grid grid-cols-2 gap-4 text-sm">
                 <Field label="Amount" value={`${formatAmount(invoice.amount)} ${invoice.currency}`} mono />

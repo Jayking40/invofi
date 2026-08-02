@@ -475,6 +475,26 @@ create policy "Own profile" on user_profiles for all using (id = auth.uid());
 Thanks to everyone who has contributed to InvoFi — the list below is generated automatically from the GitHub API whenever code lands on `main`. No action needed on your part after a merged PR.
 
 <!-- readme: contributors -start -->
+<table>
+	<tbody>
+		<tr>
+            <td align="center">
+                <a href="https://github.com/samjay8">
+                    <img src="https://avatars.githubusercontent.com/u/197444055?v=4" width="100;" alt="samjay8"/>
+                    <br />
+                    <sub><b>Samuel Ojetunde</b></sub>
+                </a>
+            </td>
+            <td align="center">
+                <a href="https://github.com/Damieee">
+                    <img src="https://avatars.githubusercontent.com/u/115638760?v=4" width="100;" alt="Damieee"/>
+                    <br />
+                    <sub><b>Oluwadamilare E</b></sub>
+                </a>
+            </td>
+		</tr>
+	<tbody>
+</table>
 <!-- readme: contributors -end -->
 
 ## Contributing

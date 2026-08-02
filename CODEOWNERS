@@ -1,0 +1,14 @@
+# InvoFi CODEOWNERS — module owners for code review routing.
+# The `@samjay8` wildcard is a starting point; add reviewers as the team grows.
+* @samjay8
+
+# App layer
+/apps/frontend/** @samjay8
+
+# SDK (planned) and tooling
+/apps/sdk/** @samjay8
+/scripts/** @samjay8
+/docs/** @samjay8
+
+# CI / repo configuration
+/.github/** @samjay8

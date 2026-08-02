@@ -38,7 +38,7 @@ Business registers invoice  →  Lenders compete with offers  →  Business acce
 
 ---
 
-## Repositories
+## Project Map
 
 InvoFi lives across **two repositories**, split so the fast-moving app layer and the slow-moving, audit-bound contract layer stay decoupled:
 
@@ -465,6 +465,14 @@ create policy "Own profile" on user_profiles for all using (id = auth.uid());
 - [ ] Contract upgradeability with timelock governance
 
 ---
+
+## Maintainers
+
+- [@samjay8](https://github.com/samjay8) — project maintainer and protocol owner
+
+## Contributors
+
+Thanks to everyone who has contributed to InvoFi. The contributor list is maintained automatically by the [all-contributors bot](https://github.com/all-contributors/all-contributors-bot) — after your first merged PR, comment `@all-contributors please add @<your-username> for code` on it and you'll be added.
 
 ## Contributing
 

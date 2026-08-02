@@ -15,16 +15,9 @@ updates:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
 
-  - package-ecosystem: "cargo"
-    directory: "/invofi/apps/contracts"
-    schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: "chore(contracts)"
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
+  # Cargo dependency updates moved to Stellar-VaultLink/invofi-contracts
+  # (the contracts repo owns its own dependabot config) as part of the
+  # two-repo topology migration.
 
   - package-ecosystem: "github-actions"
     directory: "/"

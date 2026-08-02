@@ -40,15 +40,14 @@ Business registers invoice  →  Lenders compete with offers  →  Business acce
 
 ## Repositories
 
-InvoFi's code lives across three repos with distinct jobs:
+InvoFi lives across **two repositories**, split so the fast-moving app layer and the slow-moving, audit-bound contract layer stay decoupled:
 
-| Repo | Role |
-|---|---|
-| **[invofi](https://github.com/Stellar-VaultLink/invofi)** (this repo) | Integration monorepo. Vercel deploys the frontend straight out of `invofi/apps/frontend`. Full history, issue backlog, and roadmap live here. |
-| **[invofi-frontend](https://github.com/Stellar-VaultLink/invofi-frontend)** | Where frontend contributions happen — UI, hooks, client-side work. Scoped CI, its own issue queue. |
-| **[invofi-contracts](https://github.com/Stellar-VaultLink/invofi-contracts)** | Where contract contributions happen — Soroban/Rust. Scoped CI, its own issue queue. |
+| Repo | Contains | Why separate |
+|---|---|---|
+| **[invofi](https://github.com/Stellar-VaultLink/invofi)** (this repo) | Next.js frontend (`invofi/apps/frontend`), docs, scripts, roadmap | App-layer changes constantly; Node/npm CI; no audit dependency |
+| **[invofi-contracts](https://github.com/Stellar-VaultLink/invofi-contracts)** | All Soroban Rust contracts — registry, financing, repayment, insurance, reputation, common | Stable, auditable, slow-moving history; Rust-only CI; the repo that goes through the SCF Audit Bank |
 
-Merged PRs in the component repos are periodically pulled into this monorepo (via `scripts/sync-subtrees.sh`) and deployed from here.
+**Smart contracts now live in a dedicated repo: [invofi-contracts](https://github.com/Stellar-VaultLink/invofi-contracts).**
 
 ---
 
@@ -137,13 +136,6 @@ No backend server. No database to manage. 100% free hosting.
 ```text
 invofi/
 ├── invofi/apps/
-│   ├── contracts/                    Soroban Rust smart contract
-│   │   ├── lib.rs                    Core protocol — all 17 contract functions
-│   │   ├── test.rs                   21+ contract tests
-│   │   ├── Cargo.toml
-│   │   └── scripts/
-│   │       ├── deploy.sh             Build + deploy to testnet/mainnet
-│   │       └── fund-and-deploy.sh    Generate + fund deployer key, then deploy
 │   └── frontend/                     Next.js 14 web application
 │       └── src/
 │           ├── app/
@@ -177,7 +169,6 @@ invofi/
 │               ├── csv.ts            CSV export helpers
 │               └── constants.ts      Network config, risk tiers, enums
 ├── scripts/
-│   ├── sync-subtrees.sh              Pull/push invofi-frontend + invofi-contracts
 │   └── close-issues.sh              Bulk GitHub issue close
 ├── docs/
 ├── CONTRIBUTING.md
@@ -190,7 +181,7 @@ invofi/
 
 ## Smart Contract Reference
 
-Contract: `invofi-invoice-registry` · `invofi/apps/contracts/lib.rs`
+Contract: `invofi-invoice-registry` · lives in [invofi-contracts](https://github.com/Stellar-VaultLink/invofi-contracts)
 
 ### Invoice Fields
 
@@ -360,30 +351,20 @@ npm install && npm run dev
 
 ### 5. Build and test contracts
 
+Contracts live in the dedicated **[invofi-contracts](https://github.com/Stellar-VaultLink/invofi-contracts)** repo:
+
 ```bash
-cd ../contracts
-cargo test          # 21+ tests
+git clone https://github.com/Stellar-VaultLink/invofi-contracts.git
+cd invofi-contracts
+cargo test          # 75+ tests
 stellar contract build
 ```
 
 ### 6. Deploy contract to testnet
 
-```bash
-cargo install --locked stellar-cli
-stellar keys generate --global invofi-deployer --network testnet
-stellar keys fund invofi-deployer --network testnet
-stellar contract build
-stellar contract deploy \
-  --wasm target/wasm32v1-none/release/invofi_invoice_registry.wasm \
-  --source invofi-deployer \
-  --network testnet
-# Copy CONTRACT_ID into .env.local, then call initialize() once
-stellar contract invoke \
-  --id <CONTRACT_ID> --source invofi-deployer --network testnet \
-  -- initialize --admin <ADMIN_ADDRESS> --token <SEP41_TOKEN>
-```
+Use the one-click **Deploy Contract** GitHub Actions workflow in `invofi-contracts` (`.github/workflows/deploy-contract.yml`), or follow the deploy steps in its README.
 
-After deploying, copy the printed contract ID into `NEXT_PUBLIC_CONTRACT_ID` in your `.env.local` or Vercel dashboard. You can also run the **Deploy Contract** GitHub Actions workflow (`.github/workflows/deploy-contract.yml`) for a one-click Testnet deploy.
+After deploying, copy the printed contract ID into `NEXT_PUBLIC_CONTRACT_ID` in your `.env.local` or Vercel dashboard, then call `initialize()` once.
 
 ---
 

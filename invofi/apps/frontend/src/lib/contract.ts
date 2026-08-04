@@ -8,25 +8,39 @@ import {
   scValToNative,
   xdr,
 } from '@stellar/stellar-sdk';
-import { signTxWithFreighter } from './freighter';
+import { signTransactionWithActiveWallet } from './walletkit';
 import { fundAccountViaFriendbot } from './horizon';
 import type { Currency, FinancingOffer, Invoice } from '@/types';
 
-const CONTRACT_ID = process.env.NEXT_PUBLIC_CONTRACT_ID ?? '';
+// ── Contract IDs (Task 6: 3-contract deployment) ─────────────────────────────
+// The protocol now runs across three Soroban contracts:
+//   registry   — invoice CRUD, admin, pause, rates, blacklist, disputes
+//   financing  — offer CRUD, accept/reject, currency registry, lender stats
+//   repayment  — repay, mark overdue, reclaim
+// Each function below routes to the contract that owns it. For backwards
+// compatibility, if the new variables are unset we fall back to the legacy
+// single NEXT_PUBLIC_CONTRACT_ID (all calls route to that one contract).
+const LEGACY_CONTRACT_ID = process.env.NEXT_PUBLIC_CONTRACT_ID ?? '';
+const REGISTRY_ID = process.env.NEXT_PUBLIC_REGISTRY_CONTRACT_ID ?? LEGACY_CONTRACT_ID;
+const FINANCING_ID = process.env.NEXT_PUBLIC_FINANCING_CONTRACT_ID ?? LEGACY_CONTRACT_ID;
+const REPAYMENT_ID = process.env.NEXT_PUBLIC_REPAYMENT_CONTRACT_ID ?? LEGACY_CONTRACT_ID;
+
 const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL ?? 'https://soroban-testnet.stellar.org';
 const NETWORK = (process.env.NEXT_PUBLIC_STELLAR_NETWORK ?? 'testnet') as 'testnet' | 'mainnet';
 const NETWORK_PASSPHRASE = NETWORK === 'mainnet' ? Networks.PUBLIC : Networks.TESTNET;
 const BASE_FEE = '100';
 
-/** Returns true when NEXT_PUBLIC_CONTRACT_ID is set and passes StrKey validation. */
+/** Returns true when all three contracts are configured and StrKey-valid. */
 export function isContractConfigured(): boolean {
-  if (!CONTRACT_ID) return false;
-  try {
-    new Contract(CONTRACT_ID);
-    return true;
-  } catch {
-    return false;
-  }
+  return [REGISTRY_ID, FINANCING_ID, REPAYMENT_ID].every(id => {
+    if (!id) return false;
+    try {
+      new Contract(id);
+      return true;
+    } catch {
+      return false;
+    }
+  });
 }
 
 function server() {
@@ -54,6 +68,7 @@ function encodeU64(value: bigint): xdr.ScVal {
 }
 
 async function invokeContract(
+  contractId: string,
   method: string,
   args: xdr.ScVal[],
   sourceAddress: string,
@@ -81,7 +96,7 @@ async function invokeContract(
     }
   }
 
-  const contract = new Contract(CONTRACT_ID);
+  const contract = new Contract(contractId);
 
   let tx = new TransactionBuilder(account, {
     fee: BASE_FEE,
@@ -97,7 +112,7 @@ async function invokeContract(
   }
 
   tx = SorobanRpc.assembleTransaction(tx, simResult).build();
-  const signedXdr = await signTxWithFreighter(tx.toXDR(), NETWORK_PASSPHRASE);
+  const signedXdr = await signTransactionWithActiveWallet(tx.toXDR(), NETWORK_PASSPHRASE);
   const signedTx = new Transaction(signedXdr, NETWORK_PASSPHRASE);
 
   const sendResult = await rpc.sendTransaction(signedTx);
@@ -128,9 +143,9 @@ function parseOffer(val: xdr.ScVal): FinancingOffer {
 
 // ── Read-only calls (use simulateTransaction, no signing needed) ──────────────
 
-async function readContract(method: string, args: xdr.ScVal[]): Promise<xdr.ScVal> {
+async function readContract(contractId: string, method: string, args: xdr.ScVal[]): Promise<xdr.ScVal> {
   const rpc = server();
-  const contract = new Contract(CONTRACT_ID);
+  const contract = new Contract(contractId);
 
   // Use a throw-away account for reads (any valid account works)
   const dummyKeypair = { publicKey: () => 'GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN' };
@@ -156,7 +171,7 @@ async function readContract(method: string, args: xdr.ScVal[]): Promise<xdr.ScVa
   return sim.result.retval;
 }
 
-// ── Public contract API ───────────────────────────────────────────────────────
+// ── Registry contract ─────────────────────────────────────────────────────────
 
 export async function registerInvoice(
   params: {
@@ -168,6 +183,7 @@ export async function registerInvoice(
   originatorAddress: string,
 ): Promise<Invoice> {
   const val = await invokeContract(
+    REGISTRY_ID,
     'register_invoice',
     [
       encodeSymbol(params.id),
@@ -182,9 +198,26 @@ export async function registerInvoice(
 }
 
 export async function getInvoice(id: string): Promise<Invoice> {
-  const val = await readContract('get_invoice', [encodeSymbol(id)]);
+  const val = await readContract(REGISTRY_ID, 'get_invoice', [encodeSymbol(id)]);
   return parseInvoice(val);
 }
+
+// Cancels a Pending invoice on-chain. Originator-only; the invoice must still
+// be Pending (no offers accepted). Emits the inv_cxl protocol event.
+export async function cancelInvoice(
+  invoiceId: string,
+  originatorAddress: string,
+): Promise<Invoice> {
+  const val = await invokeContract(
+    REGISTRY_ID,
+    'cancel_invoice',
+    [encodeSymbol(invoiceId), encodeAddress(originatorAddress)],
+    originatorAddress,
+  );
+  return parseInvoice(val);
+}
+
+// ── Financing contract ────────────────────────────────────────────────────────
 
 export async function createOffer(
   params: {
@@ -198,6 +231,7 @@ export async function createOffer(
   lenderAddress: string,
 ): Promise<FinancingOffer> {
   const val = await invokeContract(
+    FINANCING_ID,
     'create_offer',
     [
       encodeSymbol(params.offerId),
@@ -214,7 +248,7 @@ export async function createOffer(
 }
 
 export async function getOffer(id: string): Promise<FinancingOffer> {
-  const val = await readContract('get_offer', [encodeSymbol(id)]);
+  const val = await readContract(FINANCING_ID, 'get_offer', [encodeSymbol(id)]);
   return parseOffer(val);
 }
 
@@ -223,6 +257,7 @@ export async function acceptOffer(
   originatorAddress: string,
 ): Promise<FinancingOffer> {
   const val = await invokeContract(
+    FINANCING_ID,
     'accept_offer',
     [encodeSymbol(offerId), encodeAddress(originatorAddress)],
     originatorAddress,
@@ -235,12 +270,15 @@ export async function rejectOffer(
   originatorAddress: string,
 ): Promise<FinancingOffer> {
   const val = await invokeContract(
+    FINANCING_ID,
     'reject_offer',
     [encodeSymbol(offerId), encodeAddress(originatorAddress)],
     originatorAddress,
   );
   return parseOffer(val);
 }
+
+// ── Repayment contract ────────────────────────────────────────────────────────
 
 export async function repayInvoice(
   invoiceId: string,
@@ -249,6 +287,7 @@ export async function repayInvoice(
   amount: bigint,
 ): Promise<Invoice> {
   const val = await invokeContract(
+    REPAYMENT_ID,
     'repay_invoice',
     [
       encodeSymbol(invoiceId),
@@ -261,20 +300,6 @@ export async function repayInvoice(
   return parseInvoice(val);
 }
 
-// Cancels a Pending invoice on-chain. Originator-only; the invoice must still
-// be Pending (no offers accepted). Emits the inv_cxl protocol event.
-export async function cancelInvoice(
-  invoiceId: string,
-  originatorAddress: string,
-): Promise<Invoice> {
-  const val = await invokeContract(
-    'cancel_invoice',
-    [encodeSymbol(invoiceId), encodeAddress(originatorAddress)],
-    originatorAddress,
-  );
-  return parseInvoice(val);
-}
-
 // Marks a Financed invoice Overdue once its due_date has passed. Callable
 // by anyone — no auth required on-chain, so any signed-in wallet can submit it.
 export async function markOverdue(
@@ -282,6 +307,7 @@ export async function markOverdue(
   callerAddress: string,
 ): Promise<Invoice> {
   const val = await invokeContract(
+    REPAYMENT_ID,
     'mark_overdue',
     [encodeSymbol(invoiceId)],
     callerAddress,
@@ -299,6 +325,7 @@ export async function reclaimInvoice(
   lenderAddress: string,
 ): Promise<FinancingOffer> {
   const val = await invokeContract(
+    REPAYMENT_ID,
     'reclaim_invoice',
     [encodeSymbol(invoiceId), encodeSymbol(offerId), encodeAddress(lenderAddress)],
     lenderAddress,

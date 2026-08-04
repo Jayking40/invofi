@@ -10,8 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { isFreighterInstalled } from '@/lib/freighter';
-import { checkLobstrAvailable, WALLET_IDS } from '@/lib/walletkit';
+import { APPROVED_WALLETS, WALLET_IDS } from '@/lib/approved-wallets';
 
 interface WalletSelectDialogProps {
   open: boolean;
@@ -41,47 +40,39 @@ const LobstrLogo = () => (
   </div>
 );
 
+const LOGOS: Record<string, React.ReactNode> = {
+  [WALLET_IDS.freighter]: <FreighterLogo />,
+  [WALLET_IDS.lobstr]: <LobstrLogo />,
+};
+
 export function WalletSelectDialog({
   open,
   onClose,
   onSelect,
   connecting,
 }: WalletSelectDialogProps) {
-  const [wallets, setWallets] = useState<WalletOption[]>([
-    {
-      id: WALLET_IDS.freighter,
-      name: 'Freighter',
-      description: 'Official Stellar browser wallet by SDF',
-      installUrl: 'https://freighter.app',
+  // The list is driven entirely by the approved-wallets allowlist, so a newly
+  // approved wallet appears here automatically.
+  const [wallets, setWallets] = useState<WalletOption[]>(() =>
+    APPROVED_WALLETS.map(w => ({
+      id: w.id,
+      name: w.name,
+      description: w.description,
+      installUrl: w.installUrl,
       installed: null,
-      logo: <FreighterLogo />,
-    },
-    {
-      id: WALLET_IDS.lobstr,
-      name: 'LOBSTR',
-      description: 'Popular Stellar wallet with extension support',
-      installUrl: 'https://lobstr.co/extension',
-      installed: null,
-      logo: <LobstrLogo />,
-    },
-  ]);
+      logo: LOGOS[w.id] ?? null,
+    })),
+  );
 
   useEffect(() => {
     if (!open) return;
-
-    // Check Freighter
-    isFreighterInstalled().then(installed => {
-      setWallets(prev =>
-        prev.map(w => (w.id === WALLET_IDS.freighter ? { ...w, installed } : w)),
-      );
-    });
-
-    // Check Lobstr via async postMessage API
-    checkLobstrAvailable().then(installed => {
-      setWallets(prev =>
-        prev.map(w => (w.id === WALLET_IDS.lobstr ? { ...w, installed } : w)),
-      );
-    });
+    APPROVED_WALLETS.forEach(w =>
+      w.isInstalled().then(installed => {
+        setWallets(prev =>
+          prev.map(o => (o.id === w.id ? { ...o, installed } : o)),
+        );
+      }),
+    );
   }, [open]);
 
   return (
@@ -146,7 +137,7 @@ export function WalletSelectDialog({
         </div>
 
         <p className="text-xs text-muted-foreground text-center pt-1">
-          Both wallets connect via their browser extensions.
+          Approved wallets connect via their browser extensions.
         </p>
       </DialogContent>
     </Dialog>

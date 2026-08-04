@@ -10,11 +10,17 @@ All environment variables for the InvoFi frontend are prefixed with `NEXT_PUBLIC
 | --- | --- | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | Yes | `https://xxxx.supabase.co` | Your Supabase project URL, from Settings → API |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | `eyJhbGci...` | Supabase anon/public key, from Settings → API |
-| `NEXT_PUBLIC_CONTRACT_ID` | Yes | `CACJR3SZ...` | Deployed Soroban contract address (56 characters, starts with C) |
+| `NEXT_PUBLIC_REGISTRY_CONTRACT_ID` | Yes* | `CD4PT7V5...` | Registry contract (invoices, admin, pause) — 56 chars, starts with C |
+| `NEXT_PUBLIC_FINANCING_CONTRACT_ID` | Yes* | `CCJUYGGM...` | Financing contract (offers, accept/reject) |
+| `NEXT_PUBLIC_REPAYMENT_CONTRACT_ID` | Yes* | `CASENBBH...` | Repayment contract (repay, overdue, reclaim) |
 | `NEXT_PUBLIC_STELLAR_NETWORK` | Yes | `testnet` | `testnet` for development, `mainnet` for production |
 | `NEXT_PUBLIC_RPC_URL` | Yes | See below | Soroban RPC endpoint (differs by network) |
 | `NEXT_PUBLIC_HORIZON_URL` | Yes | See below | Stellar Horizon REST API (differs by network) |
 | `NEXT_PUBLIC_USDC_ISSUER` | No | `GBBD47IF...` | USDC issuer address. Required to display USDC balances. |
+
+\* Legacy fallback: if the three `*_CONTRACT_ID` variables are unset, the app
+uses the single `NEXT_PUBLIC_CONTRACT_ID` and routes every call to that one
+contract (pre-3-contract deployments keep working).
 
 ---
 
@@ -66,8 +72,10 @@ To use different values for Preview and Production deployments, set the environm
 | Variable | Used in |
 | --- | --- |
 | `SUPABASE_URL` + `SUPABASE_ANON_KEY` | `lib/supabase.ts` — creates the Supabase client |
-| `CONTRACT_ID` | `lib/contract.ts` — addresses the Soroban contract |
-| `STELLAR_NETWORK` | `lib/contract.ts`, `lib/freighter.ts` — selects network passphrase and Freighter network |
-| `RPC_URL` | `lib/contract.ts` — connects to the Soroban RPC for simulating and sending transactions |
+| `REGISTRY_CONTRACT_ID` | `lib/contract.ts` — invoice CRUD calls on the registry contract |
+| `FINANCING_CONTRACT_ID` | `lib/contract.ts` — offer/accept calls on the financing contract |
+| `REPAYMENT_CONTRACT_ID` | `lib/contract.ts` — repay/reclaim calls on the repayment contract |
+| `STELLAR_NETWORK` | `lib/contract.ts`, `lib/walletkit.ts` — network passphrase + wallet network |
+| `RPC_URL` | `lib/contract.ts` — Soroban RPC for simulating and sending transactions |
 | `HORIZON_URL` | `lib/horizon.ts` — reads account balances and transaction history |
 | `USDC_ISSUER` | `lib/horizon.ts` — identifies the USDC asset when reading balances |

@@ -4,6 +4,15 @@ export const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL ?? 'https://soroban-testn
 export const HORIZON_URL = process.env.NEXT_PUBLIC_HORIZON_URL ?? 'https://horizon-testnet.stellar.org';
 export const CONTRACT_ID = process.env.NEXT_PUBLIC_CONTRACT_ID ?? '';
 
+// 3-contract deployment (Task 6). Falls back to the legacy CONTRACT_ID so a
+// deployment that only sets NEXT_PUBLIC_CONTRACT_ID keeps working.
+export const REGISTRY_CONTRACT_ID =
+  process.env.NEXT_PUBLIC_REGISTRY_CONTRACT_ID ?? CONTRACT_ID;
+export const FINANCING_CONTRACT_ID =
+  process.env.NEXT_PUBLIC_FINANCING_CONTRACT_ID ?? CONTRACT_ID;
+export const REPAYMENT_CONTRACT_ID =
+  process.env.NEXT_PUBLIC_REPAYMENT_CONTRACT_ID ?? CONTRACT_ID;
+
 // Stellar Expert explorer — network-aware deep links for contracts, txs, accounts
 export const EXPLORER_BASE =
   STELLAR_NETWORK === 'mainnet'
@@ -23,9 +32,9 @@ export const OFFER_STATUSES = ['Pending', 'Accepted', 'Financed', 'Rejected', 'R
 export const CURRENCIES = ['XLM', 'USDC'] as const;
 export const USER_ROLES = ['business', 'lender'] as const;
 
-// Must match GRACE_PERIOD_SECS in invofi/apps/contracts/lib.rs — how long
-// after due_date a Financed offer stays reclaimable-pending before a lender
-// can mark it Defaulted.
+// Must match GRACE_PERIOD_SECS in invofi-contracts (common/src/lib.rs) — how
+// long after due_date a Financed offer stays reclaimable-pending before a
+// lender can mark it Defaulted.
 export const GRACE_PERIOD_SECS = 604_800; // 7 days
 
 export const RISK_TIERS = {

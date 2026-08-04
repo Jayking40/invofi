@@ -1,20 +1,14 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import {
-  isFreighterInstalled,
-  getFreighterPublicKey,
-  getFreighterNetwork,
-  connectFreighter,
-} from '@/lib/freighter';
-import { signOut as supabaseSignOut } from '@/lib/supabase';
+import { signOut as supabaseSignOut, signInWithWallet } from '@/lib/supabase';
 import {
   StellarWalletsKit,
   initWalletKit,
-  isLobstrInstalled,
-  WALLET_IDS,
+  setActiveWallet,
+  probeWalletNetwork,
 } from '@/lib/walletkit';
-import { signInWithWallet } from '@/lib/supabase';
+import { APPROVED_WALLETS } from '@/lib/approved-wallets';
 import type { WalletState } from '@/types';
 
 interface WalletContextValue extends WalletState {
@@ -39,10 +33,9 @@ const EXPECTED_NETWORK = (
   process.env.NEXT_PUBLIC_STELLAR_NETWORK ?? 'testnet'
 ).toLowerCase();
 
-function networkMismatchFor(freighterNet: string | null): boolean {
-  if (!freighterNet) return false;
-  const n =
-    freighterNet.toLowerCase() === 'public' ? 'mainnet' : freighterNet.toLowerCase();
+function networkMismatchFor(walletNet: string | null): boolean {
+  if (!walletNet) return false;
+  const n = walletNet.toLowerCase() === 'public' ? 'mainnet' : walletNet.toLowerCase();
   return n !== EXPECTED_NETWORK;
 }
 
@@ -61,9 +54,13 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     initWalletKit();
 
     (async () => {
-      const freighterOk = await isFreighterInstalled();
-      const lobstrOk = isLobstrInstalled();
-      const anyInstalled = freighterOk || lobstrOk;
+      let anyInstalled = false;
+      for (const w of APPROVED_WALLETS) {
+        if (await w.isInstalled()) {
+          anyInstalled = true;
+          break;
+        }
+      }
 
       if (!anyInstalled) {
         setState(s => ({ ...s, isInstalled: false }));
@@ -73,23 +70,30 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
       setState(s => ({ ...s, isInstalled: true }));
 
-      // Try to restore a prior Freighter session
-      if (freighterOk) {
-        const key = await getFreighterPublicKey();
-        if (key) {
-          const net = await getFreighterNetwork();
+      // Restore any previously-granted wallet session (Freighter returns the
+      // address without prompting when already allowed; others may too).
+      for (const w of APPROVED_WALLETS) {
+        try {
+          if (!(await w.isInstalled())) continue;
+          StellarWalletsKit.setWallet(w.id);
+          const { address } = await StellarWalletsKit.fetchAddress();
+          if (!address) continue;
+          const net = await probeWalletNetwork(w.id);
+          setActiveWallet(w.id);
           setState({
-            publicKey: key,
-            walletId: WALLET_IDS.freighter,
+            publicKey: address,
+            walletId: w.id,
             isConnected: true,
             isConnecting: false,
             isInstalled: true,
             networkMismatch: networkMismatchFor(net),
           });
           // Ensure a Supabase session exists for the restored wallet connection.
-          await signInWithWallet(key).catch(() => {});
+          await signInWithWallet(address).catch(() => {});
           setIsCheckingWallet(false);
           return;
+        } catch {
+          // Wallet not granted yet — try the next approved wallet.
         }
       }
 
@@ -100,33 +104,19 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const connect = useCallback(async (walletId: string): Promise<string> => {
     setState(s => ({ ...s, isConnecting: true }));
     try {
-      let address: string;
-
-      if (walletId === WALLET_IDS.freighter) {
-        address = await connectFreighter();
-        const net = await getFreighterNetwork();
-        setState({
-          publicKey: address,
-          walletId,
-          isConnected: true,
-          isConnecting: false,
-          isInstalled: true,
-          networkMismatch: networkMismatchFor(net),
-        });
-      } else {
-        // Lobstr and other kit-managed wallets
-        StellarWalletsKit.setWallet(walletId);
-        const result = await StellarWalletsKit.fetchAddress();
-        address = result.address;
-        setState({
-          publicKey: address,
-          walletId,
-          isConnected: true,
-          isConnecting: false,
-          isInstalled: true,
-          networkMismatch: false,
-        });
-      }
+      StellarWalletsKit.setWallet(walletId);
+      const result = await StellarWalletsKit.fetchAddress();
+      const address = result.address;
+      const net = await probeWalletNetwork(walletId);
+      setActiveWallet(walletId);
+      setState({
+        publicKey: address,
+        walletId,
+        isConnected: true,
+        isConnecting: false,
+        isInstalled: true,
+        networkMismatch: networkMismatchFor(net),
+      });
 
       // Block until the Supabase session is created so the dashboard's own
       // auth check finds a user immediately after router.push('/dashboard').
@@ -140,6 +130,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const disconnect = useCallback(() => {
+    setActiveWallet(null);
     setState(s => ({
       ...s,
       publicKey: null,

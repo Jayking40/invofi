@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { CONTRACT_ID, STELLAR_NETWORK, explorerContractUrl } from '@/lib/constants';
+import { REGISTRY_CONTRACT_ID, STELLAR_NETWORK, explorerContractUrl } from '@/lib/constants';
 
 const LINKS = [
   { label: 'GitHub', href: 'https://github.com/Stellar-VaultLink/invofi' },
@@ -34,17 +34,17 @@ export function Footer() {
           </nav>
         </div>
 
-        {CONTRACT_ID && (
+        {REGISTRY_CONTRACT_ID && (
           <p className="text-xs text-center sm:text-left">
             Contract on Stellar {STELLAR_NETWORK}:{' '}
             <a
-              href={explorerContractUrl(CONTRACT_ID)}
+              href={explorerContractUrl(REGISTRY_CONTRACT_ID)}
               target="_blank"
               rel="noreferrer"
               className="font-mono underline decoration-dotted underline-offset-2 hover:text-foreground transition-colors"
               title="View the InvoFi contract on Stellar Expert"
             >
-              {CONTRACT_ID.slice(0, 8)}…{CONTRACT_ID.slice(-8)}
+              {REGISTRY_CONTRACT_ID.slice(0, 8)}…{REGISTRY_CONTRACT_ID.slice(-8)}
             </a>
           </p>
         )}

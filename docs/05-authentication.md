@@ -38,11 +38,11 @@ For users who prefer to authenticate with their Stellar wallet rather than creat
 
 ### Connect flow
 
-1. User clicks "Connect Freighter" on the login page or in the Navbar
-2. `connectFreighter()` from `lib/freighter.ts` calls `requestAccess()` on the Freighter extension
-3. The Freighter extension popup appears asking the user to approve
-4. On approval, `getPublicKey()` returns the user's Stellar address
-5. The `WalletProvider` context stores the public key in React state
+1. User clicks "Connect Wallet" on the login page or in the Navbar
+2. The `WalletSelectDialog` lists the approved wallets from `lib/approved-wallets.ts`
+3. The chosen wallet's extension popup appears asking the user to approve
+4. On approval, `@creit.tech/stellar-wallets-kit` returns the user's Stellar address
+5. The `WalletProvider` context stores the public key in React state and marks it active for signing
 6. If the user has a Supabase account with this wallet address linked, they are treated as signed in
 
 ### Wallet linking

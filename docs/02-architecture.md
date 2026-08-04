@@ -90,9 +90,9 @@ lib/contract.ts: buildAndSimulateTransaction('register_invoice', args)
 Stellar Soroban RPC: simulateTransaction
       │
       ▼
-lib/freighter.ts: signTxWithFreighter(txXdr)
+lib/walletkit.ts: signTransactionWithActiveWallet(txXdr, networkPassphrase)
       │
-Freighter wallet prompts user for approval
+Connected wallet (Freighter / LOBSTR) prompts for approval
       │
       ▼
 Stellar Soroban RPC: sendTransaction → confirmed on ledger

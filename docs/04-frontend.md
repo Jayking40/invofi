@@ -165,16 +165,25 @@ rejectOffer(offerId, originatorAddress)     → Promise<FinancingOffer>
 repayInvoice(invoiceId, offerId, repayer, amountStroops)   → Promise<Invoice>  // supports partial repayment
 ```
 
-### `lib/freighter.ts`
+### `lib/approved-wallets.ts`
 
-Thin wrappers around `@stellar/freighter-api`:
+The **approved-wallet allowlist** — the single extension point for wallet
+support (see `docs/adr/0001-approved-wallet-allowlist.md`). Approving a third
+wallet is one new entry here, nothing else:
 
 ```typescript
-isFreighterInstalled()   → Promise<boolean>
-isFreighterAllowed()     → Promise<boolean>
-connectFreighter()       → Promise<string>  // returns public key
-getFreighterPublicKey()  → Promise<string | null>
-signTxWithFreighter(xdr) → Promise<string>  // returns signed XDR
+APPROVED_WALLETS: [{ id, name, description, installUrl, module, isInstalled }]
+// currently: Freighter, LOBSTR
+```
+
+### `lib/walletkit.ts`
+
+`@creit.tech/stellar-wallets-kit` wiring, driven entirely by the allowlist:
+
+```typescript
+initWalletKit()                                // registers approved wallet modules
+signTransactionWithActiveWallet(xdr, passphrase) → Promise<string>  // signs with connected wallet
+probeWalletNetwork(walletId)                   → Promise<string | null>  // Freighter only
 ```
 
 ### `lib/supabase.ts`

@@ -54,9 +54,12 @@ InvoFi lives across **two repositories**, split so the fast-moving app layer and
 ## Live Demo
 
 > **Frontend:** [invofi-five.vercel.app](https://invofi-five.vercel.app)
-> **Contract on Stellar Testnet (v0.3):** [`CDS3WO5K6GUBGCLMRUR4IQYLDT5SNDOMUMZFDXOMXYP6EELLTM5MMALH`](https://stellar.expert/explorer/testnet/contract/CDS3WO5K6GUBGCLMRUR4IQYLDT5SNDOMUMZFDXOMXYP6EELLTM5MMALH)
+> **Contracts on Stellar Testnet (3-contract deployment):**
+> - registry: [`CD4PT7V5U6TMF44IGWXWDRHERCW6VB5OJM4AHTFCQK3X75WJIJP4IYOB`](https://stellar.expert/explorer/testnet/contract/CD4PT7V5U6TMF44IGWXWDRHERCW6VB5OJM4AHTFCQK3X75WJIJP4IYOB)
+> - financing: [`CCJUYGGMF664FZOLKQEZKAVL3CWCWAVQBE75GVJN5CH5C3ZY55YEEL4P`](https://stellar.expert/explorer/testnet/contract/CCJUYGGMF664FZOLKQEZKAVL3CWCWAVQBE75GVJN5CH5C3ZY55YEEL4P)
+> - repayment: [`CASENBBH7KEHOGGBTYSVOM46I7GJ5EC5RF7YVCCDGKMN3EOXVW56X5XU`](https://stellar.expert/explorer/testnet/contract/CASENBBH7KEHOGGBTYSVOM46I7GJ5EC5RF7YVCCDGKMN3EOXVW56X5XU)
 >
-> Deploy your own via the [Deploy Contract workflow](.github/workflows/deploy-contract.yml) and set `NEXT_PUBLIC_CONTRACT_ID` in Vercel. Without a contract configured the app runs in alpha mode (off-chain only).
+> Deploy your own via the **Deploy Contracts to Testnet** workflow in [invofi-contracts](https://github.com/Stellar-VaultLink/invofi-contracts) and set the three `NEXT_PUBLIC_*_CONTRACT_ID` variables in Vercel. Without a contract configured the app runs in alpha mode (off-chain only).
 
 ```bash
 git clone https://github.com/Stellar-VaultLink/invofi.git
@@ -160,9 +163,9 @@ invofi/
 │           ├── hooks/                useInvoices, useOffers, useMarketplace,
 │           │                         useLocalStorage, useDebounce, useMediaQuery
 │           └── lib/
-│               ├── contract.ts       Soroban contract call helpers
-│               ├── freighter.ts      Freighter v6 wallet helpers
-│               ├── walletkit.ts      @creit.tech/stellar-wallets-kit init + Lobstr
+│               ├── contract.ts       Soroban contract call helpers (3 contracts)
+│               ├── approved-wallets.ts  Approved-wallet allowlist (extension point)
+│               ├── walletkit.ts      stellar-wallets-kit init + active-wallet signing
 │               ├── horizon.ts        Stellar Horizon API helpers
 │               ├── supabase.ts       Auth + database helpers
 │               ├── formatters.ts     Amount, date, address formatters
@@ -181,7 +184,7 @@ invofi/
 
 ## Smart Contract Reference
 
-Contract: `invofi-invoice-registry` · lives in [invofi-contracts](https://github.com/Stellar-VaultLink/invofi-contracts)
+Contracts: `invofi-registry`, `invofi-financing`, `invofi-repayment` · live in [invofi-contracts](https://github.com/Stellar-VaultLink/invofi-contracts)
 
 ### Invoice Fields
 
@@ -304,7 +307,7 @@ register_invoice()
 | Frontend | Next.js 14 (App Router) + TypeScript 5.5 | Free Vercel deployment, SSR |
 | Styling | Tailwind CSS + shadcn/ui | Fast, accessible, composable |
 | Auth | Supabase | Free tier, row-level security |
-| Wallet | Freighter v6 + Lobstr via `@creit.tech/stellar-wallets-kit` | Multi-wallet — users choose at connect time |
+| Wallet | Freighter + LOBSTR (approved allowlist) via `@creit.tech/stellar-wallets-kit` | Approving a 3rd wallet = one entry in `approved-wallets.ts` |
 | Data Fetching | TanStack Query v5 | Caching, background refetch |
 | Forms | React Hook Form + Zod | Type-safe validation |
 | Icons | Lucide React | Consistent icon set |
@@ -339,7 +342,7 @@ cd invofi
 ```bash
 cd invofi/apps/frontend
 cp .env.local.example .env.local
-# Fill in NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, NEXT_PUBLIC_CONTRACT_ID
+# Fill in NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, NEXT_PUBLIC_*_CONTRACT_ID
 ```
 
 ### 4. Run the frontend
@@ -364,7 +367,7 @@ stellar contract build
 
 Use the one-click **Deploy Contract** GitHub Actions workflow in `invofi-contracts` (`.github/workflows/deploy-contract.yml`), or follow the deploy steps in its README.
 
-After deploying, copy the printed contract ID into `NEXT_PUBLIC_CONTRACT_ID` in your `.env.local` or Vercel dashboard, then call `initialize()` once.
+After deploying, copy the three printed contract IDs into `NEXT_PUBLIC_REGISTRY_CONTRACT_ID`, `NEXT_PUBLIC_FINANCING_CONTRACT_ID`, and `NEXT_PUBLIC_REPAYMENT_CONTRACT_ID` in your `.env.local` or Vercel dashboard, then call `initialize()` on each contract once (the workflow does this automatically).
 
 ---
 
@@ -435,7 +438,9 @@ create policy "Own profile" on user_profiles for all using (id = auth.uid());
 |---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Your Supabase anon key |
-| `NEXT_PUBLIC_CONTRACT_ID` | Output from `stellar contract deploy` |
+| `NEXT_PUBLIC_REGISTRY_CONTRACT_ID` | Output from `stellar contract deploy` (registry) |
+| `NEXT_PUBLIC_FINANCING_CONTRACT_ID` | Output from `stellar contract deploy` (financing) |
+| `NEXT_PUBLIC_REPAYMENT_CONTRACT_ID` | Output from `stellar contract deploy` (repayment) |
 | `NEXT_PUBLIC_STELLAR_NETWORK` | `testnet` |
 | `NEXT_PUBLIC_RPC_URL` | `https://soroban-testnet.stellar.org` |
 | `NEXT_PUBLIC_HORIZON_URL` | `https://horizon-testnet.stellar.org` |
@@ -468,7 +473,21 @@ create policy "Own profile" on user_profiles for all using (id = auth.uid());
 
 ## Maintainers
 
-- [@samjay8](https://github.com/samjay8) — project maintainer and protocol owner
+<table>
+  <tbody>
+    <tr>
+      <td align="center" valign="top">
+        <a href="https://github.com/samjay8">
+          <img src="https://github.com/samjay8.png?s=100" width="100" height="100" style="border-radius:50%" alt="@samjay8" />
+          <br />
+          <b>@samjay8</b>
+        </a>
+        <br />
+        <sub>Project maintainer & protocol owner</sub>
+      </td>
+    </tr>
+  </tbody>
+</table>
 
 ## Contributors
 

@@ -5,19 +5,31 @@
 // to APPROVED_WALLETS — no other code changes.
 import { FreighterModule, FREIGHTER_ID } from '@creit.tech/stellar-wallets-kit/modules/freighter';
 import { LobstrModule, LOBSTR_ID } from '@creit.tech/stellar-wallets-kit/modules/lobstr';
+import { isConnected as isLobstrConnected } from '@lobstrco/signer-extension-api';
+import { isConnected as isFreighterConnected } from '@stellar/freighter-api';
 
 const hasWindow = (): boolean => typeof window !== 'undefined';
 
-/** Freighter injects window.freighterApi; presence ⇒ extension installed. */
+// Detection mirrors the kit modules' own availability checks (see
+// stellar-wallets-kit modules/freighter + modules/lobstr): the official signer
+// APIs handle postMessage handshakes, which raw window-global checks miss.
 async function hasFreighterExtension(): Promise<boolean> {
   if (!hasWindow()) return false;
-  return !!(window as unknown as Record<string, unknown>).freighterApi;
+  try {
+    const result = await isFreighterConnected();
+    return !!result?.isConnected;
+  } catch {
+    return false;
+  }
 }
 
-/** Lobstr injects window.lobstrSignerExtension; presence ⇒ extension installed. */
 async function hasLobstrExtension(): Promise<boolean> {
   if (!hasWindow()) return false;
-  return !!(window as unknown as Record<string, unknown>).lobstrSignerExtension;
+  try {
+    return await isLobstrConnected();
+  } catch {
+    return false;
+  }
 }
 
 export const APPROVED_WALLETS = [

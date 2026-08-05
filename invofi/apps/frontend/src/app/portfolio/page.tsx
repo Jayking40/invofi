@@ -1,14 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { TrendingUp, Clock, CheckCircle2, AlertCircle, Download, Copy, Check } from 'lucide-react';
+import { TrendingUp, Clock, CheckCircle2, AlertCircle, Download, Copy, Check, Send, RefreshCw } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AuthGuard } from '@/components/auth/AuthGuard';
+import { useWallet } from '@/components/auth/WalletProvider';
 import { TableSkeleton } from '@/components/common/LoadingSkeleton';
 import { supabase } from '@/lib/supabase';
+import { useToast } from '@/components/ui/use-toast';
+import { addPositionTrustline, getPositionTokenId, getTokenBalance, getTokenDecimals, hasPositionTrustline, transferPositionToken } from '@/lib/contract';
 import { formatAmount, formatDate, interestRateLabel, durationLabel, toStroopsBigInt, OFFER_STATUS_COLORS } from '@/lib/utils';
 import { STROOPS_PER_XLM } from '@/lib/constants';
 import { toCsv, downloadCsv } from '@/lib/csv';
@@ -28,6 +31,198 @@ const STATUS_ICONS = {
 /** Total repayment due in stroops: principal + simple yield (matches the contract). */
 function offerTotalDue(offer: FinancingOffer): bigint {
   return toStroopsBigInt(offer.amount) + (toStroopsBigInt(offer.amount) * BigInt(offer.interest_rate)) / 10_000n;
+}
+
+/** Parse a decimal string (e.g. "12.5") into base units for `decimals` places. */
+function toBaseUnits(amount: string, decimals: number): bigint | null {
+  if (!/^\d+(\.\d+)?$/.test(amount)) return null;
+  const [whole, frac = ''] = amount.split('.');
+  if (frac.length > decimals) return null;
+  const padded = frac.padEnd(decimals, '0');
+  try {
+    return BigInt(whole + padded);
+  } catch {
+    return null;
+  }
+}
+
+function isStellarAddress(addr: string): boolean {
+  return /^G[A-Z2-7]{55}$/.test(addr);
+}
+
+/**
+ * Task 8: transfer a financed-invoice position token to another wallet.
+ * The token is a standard SEP-41 Stellar asset contract minted to the lender
+ * on offer acceptance (1 token = 1 base unit of principal — ADR-0002).
+ */
+function TransferPositionCard() {
+  const { publicKey } = useWallet();
+  const { toast } = useToast();
+  const [tokenId, setTokenId] = useState<string | null>(null);
+  const [decimals, setDecimals] = useState(7);
+  const [balance, setBalance] = useState<bigint | null>(null);
+  const [hasTrustline, setHasTrustline] = useState<boolean | null>(null);
+  const [addingTrustline, setAddingTrustline] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [recipient, setRecipient] = useState('');
+  const [amount, setAmount] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const refresh = useCallback(async () => {
+    if (!publicKey) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      const id = await getPositionTokenId();
+      setTokenId(id);
+      if (id) {
+        setDecimals(await getTokenDecimals(id));
+        setBalance(await getTokenBalance(id, publicKey));
+        setHasTrustline(await hasPositionTrustline(publicKey));
+      } else {
+        setBalance(null);
+        setHasTrustline(null);
+      }
+    } catch {
+      // RPC/horizon hiccup — keep the previous state; the user can refresh.
+    } finally {
+      setLoading(false);
+    }
+  }, [publicKey]);
+
+  const setupTrustline = async () => {
+    if (!publicKey) return;
+    setAddingTrustline(true);
+    try {
+      await addPositionTrustline(publicKey);
+      toast({ title: 'Trustline added', description: 'Your wallet can now hold POS position tokens.' });
+      await refresh();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Trustline setup failed';
+      toast({ title: 'Trustline failed', description: msg, variant: 'destructive' });
+    } finally {
+      setAddingTrustline(false);
+    }
+  };
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  const submit = async () => {
+    if (!tokenId || !publicKey) return;
+    const to = recipient.trim();
+    if (!isStellarAddress(to)) {
+      toast({ title: 'Invalid address', description: 'Enter a valid Stellar address (G…).', variant: 'destructive' });
+      return;
+    }
+    const units = toBaseUnits(amount, decimals);
+    if (units === null || units <= 0n) {
+      toast({ title: 'Invalid amount', description: `Enter an amount with at most ${decimals} decimal places.`, variant: 'destructive' });
+      return;
+    }
+    if (balance !== null && units > balance) {
+      toast({ title: 'Insufficient balance', description: 'You do not hold enough position tokens for this transfer.', variant: 'destructive' });
+      return;
+    }
+    setBusy(true);
+    try {
+      // POS is a Stellar asset: the recipient must hold a trustline before a
+      // transfer can credit them. Pre-check so the failure is friendly.
+      if (!(await hasPositionTrustline(to))) {
+        toast({
+          title: 'Recipient needs a trustline',
+          description:
+            'The recipient wallet has no POS trustline yet. Ask them to add one (any wallet or this app) before transferring.',
+          variant: 'destructive',
+        });
+        setBusy(false);
+        return;
+      }
+      await transferPositionToken(tokenId, publicKey, to, units);
+      toast({ title: 'Position transferred', description: `Sent ${amount} position tokens to ${to.slice(0, 6)}…${to.slice(-4)}.` });
+      setRecipient('');
+      setAmount('');
+      await refresh();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Transaction failed';
+      toast({ title: 'Transfer failed', description: msg, variant: 'destructive' });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const balanceLabel =
+    balance === null ? '—' : (Number(balance) / 10 ** decimals).toFixed(decimals > 7 ? 7 : decimals);
+
+  return (
+    <Card className="mt-8">
+      <CardContent className="pt-5">
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center gap-2">
+            <Send className="h-4 w-4 text-blue-500" />
+            <h2 className="text-lg font-semibold text-foreground">Transfer Position</h2>
+          </div>
+          <Button size="sm" variant="ghost" onClick={refresh} disabled={loading} aria-label="Refresh balance">
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground mb-4">
+          Position tokens represent your claim on financed invoices (1 token = 1 base unit of
+          principal). Send them to another Stellar wallet to transfer the position.
+        </p>
+
+        {!publicKey ? (
+          <p className="text-sm text-muted-foreground">Connect a wallet to view and transfer positions.</p>
+        ) : tokenId === null && !loading ? (
+          <p className="text-sm text-muted-foreground">
+            Position tokens are not configured on this deployment yet.
+          </p>
+        ) : hasTrustline === false ? (
+          <div className="p-4 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 flex flex-col sm:flex-row sm:items-center gap-3">
+            <p className="text-sm text-amber-800 dark:text-amber-300 flex-1">
+              Position tokens are Stellar assets — add a POS trustline once to
+              receive and transfer them.
+            </p>
+            <Button size="sm" onClick={setupTrustline} disabled={addingTrustline}>
+              {addingTrustline ? 'Adding…' : 'Add POS trustline'}
+            </Button>
+          </div>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-[1fr_auto] items-end">
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Recipient address</label>
+                <input
+                  value={recipient}
+                  onChange={e => setRecipient(e.target.value)}
+                  placeholder="G…"
+                  className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                  Amount <span className="text-muted-foreground/70">(available: {balanceLabel})</span>
+                </label>
+                <input
+                  value={amount}
+                  onChange={e => setAmount(e.target.value)}
+                  placeholder="0.0"
+                  inputMode="decimal"
+                  className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                />
+              </div>
+            </div>
+            <Button onClick={submit} disabled={busy || loading || balance === null || hasTrustline !== true}>
+              {busy ? 'Transferring…' : 'Transfer'}
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
 }
 
 function CopyId({ id }: { id: string }) {
@@ -238,6 +433,8 @@ export default function PortfolioPage() {
             );
           })}
         </div>
+
+        <TransferPositionCard />
       </div>
     </AuthGuard>
   );

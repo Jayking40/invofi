@@ -1,6 +1,9 @@
 import {
+  Asset,
   Contract,
+  Horizon,
   Networks,
+  Operation,
   rpc as SorobanRpc,
   Transaction,
   TransactionBuilder,
@@ -10,6 +13,7 @@ import {
 } from '@stellar/stellar-sdk';
 import { signTransactionWithActiveWallet } from './walletkit';
 import { fundAccountViaFriendbot } from './horizon';
+import { POSITION_TOKEN_ASSET } from './constants';
 import type { Currency, FinancingOffer, Invoice } from '@/types';
 
 // ── Contract IDs (Task 6: 3-contract deployment) ─────────────────────────────
@@ -26,6 +30,7 @@ const FINANCING_ID = process.env.NEXT_PUBLIC_FINANCING_CONTRACT_ID ?? LEGACY_CON
 const REPAYMENT_ID = process.env.NEXT_PUBLIC_REPAYMENT_CONTRACT_ID ?? LEGACY_CONTRACT_ID;
 
 const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL ?? 'https://soroban-testnet.stellar.org';
+const HORIZON_URL = process.env.NEXT_PUBLIC_HORIZON_URL ?? 'https://horizon-testnet.stellar.org';
 const NETWORK = (process.env.NEXT_PUBLIC_STELLAR_NETWORK ?? 'testnet') as 'testnet' | 'mainnet';
 const NETWORK_PASSPHRASE = NETWORK === 'mainnet' ? Networks.PUBLIC : Networks.TESTNET;
 const BASE_FEE = '100';
@@ -331,4 +336,98 @@ export async function reclaimInvoice(
     lenderAddress,
   );
   return parseOffer(val);
+}
+
+// ── Position tokens (Task 7/8: SEP-41 claim tokens) ─────────────────────────
+// When an offer is accepted, the financing contract mints a SEP-41 position
+// token to the lender (1 token = 1 base unit of financed principal — ADR-0002
+// in invofi-contracts). The token is a standard Stellar asset contract, so
+// balance reads and transfers are plain token-contract calls.
+
+/**
+ * Reads the configured position-token contract from the financing contract
+ * (single source of truth — no separate env var needed). Returns null when
+ * the deployment has not configured position tokens yet.
+ */
+export async function getPositionTokenId(): Promise<string | null> {
+  const val = await readContract(FINANCING_ID, 'get_position_token', []);
+  return (scValToNative(val) as string | null) ?? null;
+}
+
+/** Reads a token's balance for an address (u128 → BigInt base units). */
+export async function getTokenBalance(tokenId: string, address: string): Promise<bigint> {
+  const val = await readContract(tokenId, 'balance', [encodeAddress(address)]);
+  return scValToNative(val) as bigint;
+}
+
+/** Reads a token's decimal places (for human-readable display). */
+export async function getTokenDecimals(tokenId: string): Promise<number> {
+  const val = await readContract(tokenId, 'decimals', []);
+  return scValToNative(val) as number;
+}
+
+/**
+ * Transfers position tokens from the connected wallet to another address
+ * via the token contract's standard SEP-41 transfer (from = signer).
+ */
+export async function transferPositionToken(
+  tokenId: string,
+  fromAddress: string,
+  toAddress: string,
+  amount: bigint,
+): Promise<void> {
+  await invokeContract(
+    tokenId,
+    'transfer',
+    [encodeAddress(fromAddress), encodeAddress(toAddress), encodeI128(amount)],
+    fromAddress,
+  );
+}
+
+// ── Position-token trustline support ─────────────────────────────────────────
+// The POS token is a Stellar asset, so a holder must establish a trustline
+// before the financing contract can mint to them (accept_offer) or a transfer
+// can credit them. These helpers let the UI check and establish it in one
+// click with the connected wallet.
+
+function positionAssetParts(): { code: string; issuer: string } {
+  const [code, issuer] = POSITION_TOKEN_ASSET.split(':');
+  if (!code || !issuer) {
+    throw new Error(`Invalid POSITION_TOKEN_ASSET: ${POSITION_TOKEN_ASSET}`);
+  }
+  return { code, issuer };
+}
+
+/** True when the address already holds a trustline to the POS asset. */
+export async function hasPositionTrustline(address: string): Promise<boolean> {
+  const { code, issuer } = positionAssetParts();
+  const horizon = new Horizon.Server(HORIZON_URL);
+  const account = await horizon.loadAccount(address);
+  return account.balances.some(
+    b =>
+      (b as { asset_code?: string; asset_issuer?: string }).asset_code === code &&
+      (b as { asset_code?: string; asset_issuer?: string }).asset_issuer === issuer,
+  );
+}
+
+/** Establishes a POS trustline via a changeTrust op signed by the wallet. */
+export async function addPositionTrustline(address: string): Promise<void> {
+  const { code, issuer } = positionAssetParts();
+  const horizon = new Horizon.Server(HORIZON_URL);
+  const account = await horizon.loadAccount(address);
+  const tx = new TransactionBuilder(account, {
+    fee: BASE_FEE,
+    networkPassphrase: NETWORK_PASSPHRASE,
+  })
+    .addOperation(
+      Operation.changeTrust({
+        asset: new Asset(code, issuer),
+        limit: '922337203685.4775807',
+      }),
+    )
+    .setTimeout(60)
+    .build();
+  const signedXdr = await signTransactionWithActiveWallet(tx.toXDR(), NETWORK_PASSPHRASE);
+  const signedTx = new Transaction(signedXdr, NETWORK_PASSPHRASE);
+  await horizon.submitTransaction(signedTx);
 }

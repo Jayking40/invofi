@@ -84,6 +84,22 @@ The MVP records invoice financing as on-chain state but does not move real token
 
 ---
 
+## Completed — Wave 8 sprint
+
+| Task | Status |
+|---|---|
+| 1–3. SEP-41 token movement in accept/repay + failure-path tests | ✅ |
+| 1A. CI gates: clippy `-D warnings` + Soroban Scout | ✅ |
+| 4. Monolith split into registry / financing / common | ✅ |
+| 4A. Emergency pause (circuit breaker) | ✅ |
+| 5. Repayment as its own crate | ✅ |
+| 6 / 6A. 3-contract frontend wiring + approved-wallet allowlist (Freighter + LOBSTR) | ✅ |
+| 7. **Position token minting on accept_offer** (SEP-41, 1:1, ADR-0002) | ✅ |
+| 8. **Position token transfer + portfolio "Transfer Position" UI** | ✅ |
+| 9. **Insurance pool contract — stake/unstake with flat pool accounting** | ✅ |
+
+---
+
 ## Future Ideas
 
 These are not committed to a version yet but are worth exploring:

@@ -55,9 +55,11 @@ InvoFi lives across **two repositories**, split so the fast-moving app layer and
 
 > **Frontend:** [invofi-five.vercel.app](https://invofi-five.vercel.app)
 > **Contracts on Stellar Testnet (3-contract deployment):**
-> - registry: [`CD4PT7V5U6TMF44IGWXWDRHERCW6VB5OJM4AHTFCQK3X75WJIJP4IYOB`](https://stellar.expert/explorer/testnet/contract/CD4PT7V5U6TMF44IGWXWDRHERCW6VB5OJM4AHTFCQK3X75WJIJP4IYOB)
-> - financing: [`CCJUYGGMF664FZOLKQEZKAVL3CWCWAVQBE75GVJN5CH5C3ZY55YEEL4P`](https://stellar.expert/explorer/testnet/contract/CCJUYGGMF664FZOLKQEZKAVL3CWCWAVQBE75GVJN5CH5C3ZY55YEEL4P)
-> - repayment: [`CASENBBH7KEHOGGBTYSVOM46I7GJ5EC5RF7YVCCDGKMN3EOXVW56X5XU`](https://stellar.expert/explorer/testnet/contract/CASENBBH7KEHOGGBTYSVOM46I7GJ5EC5RF7YVCCDGKMN3EOXVW56X5XU)
+> - registry: [`CAS4GMVJOQ6M2X3ZZMEVXQ5BKVWVLGHBH5BEPC223H7XJCD2MLASBCXL`](https://stellar.expert/explorer/testnet/contract/CAS4GMVJOQ6M2X3ZZMEVXQ5BKVWVLGHBH5BEPC223H7XJCD2MLASBCXL)
+> - financing: [`CCI5EHSA3IDEBCBQOZISN2W2VURYQLKYHJQ4YTVQYMHTRXV7CREOSQ2K`](https://stellar.expert/explorer/testnet/contract/CCI5EHSA3IDEBCBQOZISN2W2VURYQLKYHJQ4YTVQYMHTRXV7CREOSQ2K)
+> - repayment: [`CCKXJ627TH43SXFO2K4M5BL3TBJ7X5I6VZC34P3BAMMTWIXVTMNAYVMS`](https://stellar.expert/explorer/testnet/contract/CCKXJ627TH43SXFO2K4M5BL3TBJ7X5I6VZC34P3BAMMTWIXVTMNAYVMS)
+> - insurance: [`CCEQAID3A3MHTIV633J6QVTFD4SUYNW2MREOBRISYIZLC2ID6UNJ2IXT`](https://stellar.expert/explorer/testnet/contract/CCEQAID3A3MHTIV633J6QVTFD4SUYNW2MREOBRISYIZLC2ID6UNJ2IXT)
+> - position token: `POS` minted to lenders on acceptance ([`CD54YPP7V5ZL6MJJ4TPA3U23MC54E4SLOGTC3P5PSZCC4J3TF5C3Q3B4`](https://stellar.expert/explorer/testnet/contract/CD54YPP7V5ZL6MJJ4TPA3U23MC54E4SLOGTC3P5PSZCC4J3TF5C3Q3B4))
 >
 > Deploy your own via the **Deploy Contracts to Testnet** workflow in [invofi-contracts](https://github.com/Stellar-VaultLink/invofi-contracts) and set the three `NEXT_PUBLIC_*_CONTRACT_ID` variables in Vercel. Without a contract configured the app runs in alpha mode (off-chain only).
 
@@ -85,6 +87,9 @@ npm install && npm run dev
 - Submit financing offers with custom interest rates and duration
 - Track active investments and yields in a live portfolio
 - Transparent partial repayment history on the Stellar blockchain
+- Receive a **SEP-41 position token** (POS) for every accepted offer and
+  **transfer your position** to another wallet from your portfolio (Task 8)
+- Stake into the **insurance coverage pool** to back the protocol (Task 9)
 
 ### Protocol Properties
 - **Trustless** — all terms, state transitions, and repayments enforced by Soroban smart contracts

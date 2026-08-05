@@ -91,6 +91,11 @@ Lender's investment tracker.
 
 - Summary stats: active investments, pending offers, completed, total deployed amount
 - List of all the lender's financing offers with status, amount, interest rate, duration, and funded date
+- **Transfer Position** card (Task 8): shows the lender's `POS` position-token
+  balance and lets them transfer it to any Stellar wallet in one signed
+  transaction. Since POS is a Stellar asset, a missing trustline is detected
+  and added with a one-click "Add POS trustline" button (changeTrust signed by
+  the connected wallet)
 
 ---
 

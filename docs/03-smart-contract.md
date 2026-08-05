@@ -1,6 +1,15 @@
 # Smart Contract Reference
 
-The InvoFi smart contract (in the dedicated [invofi-contracts](https://github.com/Stellar-VaultLink/invofi-contracts) repo) is a single Soroban contract called `invofi-invoice-registry`. It manages the complete lifecycle of invoices and financing offers on the Stellar ledger.
+The InvoFi protocol lives in the dedicated [invofi-contracts](https://github.com/Stellar-VaultLink/invofi-contracts) repo as **four separate Soroban contracts** — `registry`, `financing`, `repayment`, and `insurance` — plus a SEP-41 position token (`POS`) minted to lenders on offer acceptance:
+
+| Contract | Responsibility |
+|---|---|
+| `registry` | Invoice lifecycle — register, cancel, status transitions, blacklist, disputes |
+| `financing` | Offers — create/withdraw/reject; `accept_offer` moves principal **and mints the lender's position token** |
+| `repayment` | Full/partial repayments, mark overdue, reclaim/default |
+| `insurance` | Coverage pool — `stake`/`unstake` with flat pool accounting |
+
+Cross-contract calls are restricted to registered callers (implicit contract-invoker auth per Stellar's Authorization docs); user auth never propagates across contract boundaries. The lifecycle and each contract's functions are detailed below.
 
 ---
 

@@ -27,6 +27,15 @@ export const USDC_ISSUER_TESTNET = 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT
 export const XLM_DECIMALS = 7;
 export const STROOPS_PER_XLM = 10_000_000;
 
+// Position tokens (Task 7/8) are Stellar assets (SAC) minted to lenders on
+// offer acceptance. Holders must establish a trustline before mint/transfer
+// can touch their balance — standard Stellar asset behavior. The asset is
+// `POS` issued by the protocol deployer; override per deployment via
+// NEXT_PUBLIC_POSITION_TOKEN_ASSET.
+export const POSITION_TOKEN_ASSET =
+  process.env.NEXT_PUBLIC_POSITION_TOKEN_ASSET ??
+  'POS:GBDDLOWR6YUEEYUKFKS6ISTCLBQKDPUXAOVJMNJYAACT6UYQGEKYEVZR';
+
 export const INVOICE_STATUSES = ['Pending', 'Financed', 'Repaid', 'Overdue', 'Cancelled', 'Disputed'] as const;
 export const OFFER_STATUSES = ['Pending', 'Accepted', 'Financed', 'Rejected', 'Repaid', 'Defaulted'] as const;
 export const CURRENCIES = ['XLM', 'USDC'] as const;

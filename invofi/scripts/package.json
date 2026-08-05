@@ -1,0 +1,18 @@
+{
+  "name": "invofi-keeper",
+  "private": true,
+  "version": "0.1.0",
+  "description": "InvoFi keeper automation: overdue marking + TTL extension on Stellar Soroban",
+  "scripts": {
+    "keeper": "tsx keeper.ts",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@stellar/stellar-sdk": "^16.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.5.4"
+  }
+}

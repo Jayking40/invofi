@@ -97,6 +97,9 @@ The MVP records invoice financing as on-chain state but does not move real token
 | 7. **Position token minting on accept_offer** (SEP-41, 1:1, ADR-0002) | ✅ |
 | 8. **Position token transfer + portfolio "Transfer Position" UI** | ✅ |
 | 9. **Insurance pool contract — stake/unstake with flat pool accounting** | ✅ |
+| 10. **Insurance payout-on-default hook** — Overdue → Defaulted, capped pool payout, ADR-0003 | ✅ |
+| 11. **Reputation contract** — repayment outcomes → public score, ADR-0004 | ✅ |
+| 12. **Keeper automation** — 6-hourly TTL bump + overdue marking on testnet (proven live) | ✅ |
 
 ---
 

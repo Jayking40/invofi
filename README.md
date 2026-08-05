@@ -54,12 +54,16 @@ InvoFi lives across **two repositories**, split so the fast-moving app layer and
 ## Live Demo
 
 > **Frontend:** [invofi-five.vercel.app](https://invofi-five.vercel.app)
-> **Contracts on Stellar Testnet (3-contract deployment):**
-> - registry: [`CAS4GMVJOQ6M2X3ZZMEVXQ5BKVWVLGHBH5BEPC223H7XJCD2MLASBCXL`](https://stellar.expert/explorer/testnet/contract/CAS4GMVJOQ6M2X3ZZMEVXQ5BKVWVLGHBH5BEPC223H7XJCD2MLASBCXL)
-> - financing: [`CCI5EHSA3IDEBCBQOZISN2W2VURYQLKYHJQ4YTVQYMHTRXV7CREOSQ2K`](https://stellar.expert/explorer/testnet/contract/CCI5EHSA3IDEBCBQOZISN2W2VURYQLKYHJQ4YTVQYMHTRXV7CREOSQ2K)
-> - repayment: [`CCKXJ627TH43SXFO2K4M5BL3TBJ7X5I6VZC34P3BAMMTWIXVTMNAYVMS`](https://stellar.expert/explorer/testnet/contract/CCKXJ627TH43SXFO2K4M5BL3TBJ7X5I6VZC34P3BAMMTWIXVTMNAYVMS)
-> - insurance: [`CCEQAID3A3MHTIV633J6QVTFD4SUYNW2MREOBRISYIZLC2ID6UNJ2IXT`](https://stellar.expert/explorer/testnet/contract/CCEQAID3A3MHTIV633J6QVTFD4SUYNW2MREOBRISYIZLC2ID6UNJ2IXT)
-> - position token: `POS` minted to lenders on acceptance ([`CD54YPP7V5ZL6MJJ4TPA3U23MC54E4SLOGTC3P5PSZCC4J3TF5C3Q3B4`](https://stellar.expert/explorer/testnet/contract/CD54YPP7V5ZL6MJJ4TPA3U23MC54E4SLOGTC3P5PSZCC4J3TF5C3Q3B4))
+> **Contracts on Stellar Testnet (5-contract deployment):**
+> - registry: [`CAXNTWSKDVSB3GPJMU3RTSDTAIFF4A6FFRAAI35B4AE7LZLLI4VXMCF7`](https://stellar.expert/explorer/testnet/contract/CAXNTWSKDVSB3GPJMU3RTSDTAIFF4A6FFRAAI35B4AE7LZLLI4VXMCF7)
+> - financing: [`CBGRA3457ZFXYZNEQLO4YGUQ3OBEWOE6US6ZREHK6NF2DLZYBO73IFVW`](https://stellar.expert/explorer/testnet/contract/CBGRA3457ZFXYZNEQLO4YGUQ3OBEWOE6US6ZREHK6NF2DLZYBO73IFVW)
+> - repayment: [`CCDATW5GMVDOPK55Q4MLXV5SGA3VLXPD67ABLBNMHWFF6BLL2IZBUVEP`](https://stellar.expert/explorer/testnet/contract/CCDATW5GMVDOPK55Q4MLXV5SGA3VLXPD67ABLBNMHWFF6BLL2IZBUVEP)
+> - insurance: [`CAURQCGDZZ6PPCH6EKDVQP5W372CH3PQ62VQC2GKLIXNHB37VOMBMSU5`](https://stellar.expert/explorer/testnet/contract/CAURQCGDZZ6PPCH6EKDVQP5W372CH3PQ62VQC2GKLIXNHB37VOMBMSU5)
+> - reputation: [`CCHKVUWGTQ56U53C5U7ZSOFDTTMGLMOFCL22DME5UMXIYWQNUYXOYPDN`](https://stellar.expert/explorer/testnet/contract/CCHKVUWGTQ56U53C5U7ZSOFDTTMGLMOFCL22DME5UMXIYWQNUYXOYPDN)
+> - position token: `POS` minted to lenders on acceptance ([`CBIXYAJPEOOVIALBUTA7X2H26WXSI5JDZCTE23RUMQR4QFJNMPL6767Z`](https://stellar.expert/explorer/testnet/contract/CBIXYAJPEOOVIALBUTA7X2H26WXSI5JDZCTE23RUMQR4QFJNMPL6767Z))
+>
+> A keeper automation (6-hourly GitHub Action) scans testnet, bumps contract-data TTLs,
+> and marks past-due Financed invoices Overdue — see `invofi/scripts/keeper.ts`.
 >
 > Deploy your own via the **Deploy Contracts to Testnet** workflow in [invofi-contracts](https://github.com/Stellar-VaultLink/invofi-contracts) and set the three `NEXT_PUBLIC_*_CONTRACT_ID` variables in Vercel. Without a contract configured the app runs in alpha mode (off-chain only).
 
@@ -89,7 +93,10 @@ npm install && npm run dev
 - Transparent partial repayment history on the Stellar blockchain
 - Receive a **SEP-41 position token** (POS) for every accepted offer and
   **transfer your position** to another wallet from your portfolio (Task 8)
-- Stake into the **insurance coverage pool** to back the protocol (Task 9)
+- Stake into the **insurance coverage pool** to back the protocol (Task 9) —
+  and get **payout on default** up to the pool's balance (Task 10)
+- Screen borrowers by **on-chain reputation score** — one default outweighs
+  two repayments (Task 11)
 
 ### Protocol Properties
 - **Trustless** — all terms, state transitions, and repayments enforced by Soroban smart contracts
@@ -189,7 +196,7 @@ invofi/
 
 ## Smart Contract Reference
 
-Contracts: `invofi-registry`, `invofi-financing`, `invofi-repayment` · live in [invofi-contracts](https://github.com/Stellar-VaultLink/invofi-contracts)
+Contracts: `invofi-registry`, `invofi-financing`, `invofi-repayment`, `invofi-insurance`, `invofi-reputation` · live in [invofi-contracts](https://github.com/Stellar-VaultLink/invofi-contracts). **The authoritative, always-current function reference and ADRs live in that repo** — the summary below shows the protocol surface as it stood when the monolith was split.
 
 ### Invoice Fields
 
@@ -200,7 +207,7 @@ Contracts: `invofi-registry`, `invofi-financing`, `invofi-repayment` · live in 
 | `amount` | `i128` | Invoice amount in stroops (10,000,000 stroops = 1 unit) |
 | `currency` | `Symbol` | `XLM` or `USDC` |
 | `due_date` | `u64` | Unix timestamp of payment due date |
-| `status` | `InvoiceStatus` | `Pending → Financed → Repaid / Overdue / Cancelled` |
+| `status` | `InvoiceStatus` | `Pending → Financed → Repaid / Overdue / Cancelled / Disputed / Defaulted` |
 
 ### FinancingOffer Fields
 
@@ -289,10 +296,14 @@ register_invoice()
       ├── mark_overdue() ────────────────────────► [Overdue]
       │                                                │
       │                                           reclaim_invoice()
-      │                                           (after 7-day grace)
+      │                                           (after 7-day grace,
+      │                                            keeper or lender)
       │                                                │
       │                                                ▼
-      │                                           offer → [Defaulted]
+      │                                    invoice → [Defaulted]  ◄── insurance
+      │                                    offer  → [Defaulted]      pay_out +
+      │                                                               reputation
+      │                                                               recorded
       │
       └── raise_dispute() (originator) ──────────► [Disputed]
                                                        │
@@ -468,6 +479,9 @@ create policy "Own profile" on user_profiles for all using (id = auth.uid());
 - [x] One-click Testnet deploy via GitHub Actions workflow
 - [x] Protocol events (v0.3) — every state transition published on-chain for indexers and activity feeds
 - [x] Marketplace sorting (newest, amount, due date) and Stellar Expert explorer links
+- [x] Insurance coverage pool with **payout on default** (Tasks 9–10)
+- [x] On-chain **reputation scoring** for originators (Task 11)
+- [x] Keeper automation — 6-hourly TTL bump + overdue marking (Task 12)
 - [ ] Mainnet deployment
 - [ ] Oracle-based invoice verification and risk scoring
 - [ ] Multi-signature treasury and escrow

@@ -321,9 +321,11 @@ export async function markOverdue(
 }
 
 // After an Overdue invoice's 7-day grace period elapses, the financing
-// lender can mark their offer Defaulted. This is an on-chain default
-// record for off-chain recovery — no funds move, since principal was
-// already paid to the business at accept_offer time.
+// lender can mark their offer Defaulted. The invoice transitions
+// Overdue -> Defaulted in the registry, the originator's reputation
+// records a default, and — when an insurance pool is configured — the
+// lender receives a payout from the pool up to its available balance
+// (principal + yield - already repaid).
 export async function reclaimInvoice(
   invoiceId: string,
   offerId: string,

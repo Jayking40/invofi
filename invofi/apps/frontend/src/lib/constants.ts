@@ -36,7 +36,7 @@ export const POSITION_TOKEN_ASSET =
   process.env.NEXT_PUBLIC_POSITION_TOKEN_ASSET ??
   'POS:GBDDLOWR6YUEEYUKFKS6ISTCLBQKDPUXAOVJMNJYAACT6UYQGEKYEVZR';
 
-export const INVOICE_STATUSES = ['Pending', 'Financed', 'Repaid', 'Overdue', 'Cancelled', 'Disputed'] as const;
+export const INVOICE_STATUSES = ['Pending', 'Financed', 'Repaid', 'Overdue', 'Cancelled', 'Disputed', 'Defaulted'] as const;
 export const OFFER_STATUSES = ['Pending', 'Accepted', 'Financed', 'Rejected', 'Repaid', 'Defaulted'] as const;
 export const CURRENCIES = ['XLM', 'USDC'] as const;
 export const USER_ROLES = ['business', 'lender'] as const;

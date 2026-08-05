@@ -67,6 +67,7 @@ export const INVOICE_STATUS_COLORS: Record<InvoiceStatus, string> = {
   Overdue:   'bg-red-100 text-red-800 border-red-200',
   Cancelled: 'bg-gray-100 text-gray-600 border-gray-200',
   Disputed:  'bg-purple-100 text-purple-800 border-purple-200',
+  Defaulted: 'bg-orange-100 text-orange-800 border-orange-200',
 };
 
 export const OFFER_STATUS_COLORS: Record<OfferStatus, string> = {

@@ -1,0 +1,48 @@
+name: keeper
+
+# InvoFi keeper automation (Task 12).
+# Runs every 6 hours against the live testnet deployment:
+#   - marks Financed invoices overdue once their due_date passes
+#   - best-effort TTL extension for active invoice storage
+# See invofi/scripts/keeper.ts for details and env var docs.
+#
+# Required repo configuration (once):
+#   Secret:  KEEPER_SECRET_KEY  — secret key of a funded testnet account that
+#                                 pays transaction fees. Ask in the repo's
+#                                 issues if you need a funded key.
+#   Variable: REGISTRY_CONTRACT_ID, REPAYMENT_CONTRACT_ID — override the
+#             defaults below if you deployed your own contract set.
+
+on:
+  schedule:
+    # Every 6 hours at minute 0 (UTC).
+    - cron: '0 */6 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    name: Keeper / testnet sweep
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: invofi/scripts
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: invofi/scripts/package-lock.json
+      - run: npm ci
+      - run: npm run type-check
+      - name: Run keeper
+        env:
+          RPC_URL: https://soroban-testnet.stellar.org
+          NETWORK_PASSPHRASE: Test SDF Network ; September 2015
+          REGISTRY_CONTRACT_ID: ${{ vars.REGISTRY_CONTRACT_ID || 'CAXNTWSKDVSB3GPJMU3RTSDTAIFF4A6FFRAAI35B4AE7LZLLI4VXMCF7' }}
+          REPAYMENT_CONTRACT_ID: ${{ vars.REPAYMENT_CONTRACT_ID || 'CCDATW5GMVDOPK55Q4MLXV5SGA3VLXPD67ABLBNMHWFF6BLL2IZBUVEP' }}
+          KEEPER_SECRET_KEY: ${{ secrets.KEEPER_SECRET_KEY }}
+        run: npm run keeper

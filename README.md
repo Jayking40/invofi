@@ -205,7 +205,7 @@ invofi/
 
 ## Smart Contract Reference
 
-Contracts: `invofi-registry`, `invofi-financing`, `invofi-repayment`, `invofi-insurance`, `invofi-reputation` + the SEP-41 position token · live in [invofi-contracts](https://github.com/Stellar-VaultLink/invofi-contracts). **The authoritative, always-current function reference and ADRs live in that repo** — the summary below is the protocol surface since the split.
+Contracts: `invofi-registry`, `invofi-financing`, `invofi-repayment`, `invofi-insurance`, `invofi-reputation` + the SEP-41 position token · live in [invofi-contracts](https://github.com/Stellar-VaultLink/invofi-contracts). **The authoritative, always-current function reference and ADRs live in that repo** — the summary below is a condensed overview of the protocol surface and may lag the contracts repo.
 
 ### Invoice Fields
 
@@ -240,7 +240,7 @@ Contracts: `invofi-registry`, `invofi-financing`, `invofi-repayment`, `invofi-in
 | `__constructor(admin, …)` | Deployer (at deploy) | One-time setup runs atomically inside the deploy operation — no front-runnable `initialize()` (ADR-0005) |
 | `register_invoice(id, originator, amount, currency, due_date)` | Originator | Register a new invoice; validates `amount > 0` and `due_date > now` |
 | `get_invoice(id)` | Anyone | Read invoice state |
-| `update_invoice_status(id, status)` | Originator | Manually change invoice status |
+| `update_invoice_status(id, status)` | Admin / system | Status transition helper (registry); cross-contract system transitions are caller-guarded |
 | `create_offer(offer_id, invoice_id, lender, amount, currency, rate, duration)` | Lender | Submit a financing offer; validates `amount > 0`, `rate > 0` |
 | `get_offer(id)` | Anyone | Read offer state |
 | `accept_offer(offer_id, originator)` | Business | Accept offer → pulls lender's principal via prior `token.approve`, pays business; invoice → Financed |
@@ -253,7 +253,8 @@ Contracts: `invofi-registry`, `invofi-financing`, `invofi-repayment`, `invofi-in
 | `get_rate(tier)` | Anyone | Read the configured rate for a risk tier |
 | `transfer_admin(admin, new_admin)` | Admin | Rotate the admin address |
 | `get_admin()` | Anyone | Read the admin address |
-| `get_token()` | Anyone | Read the configured SEP-41 token address |
+| `get_currency_token(currency)` | Anyone | Read the settlement token for a currency (financing) |
+| `get_position_token()` | Anyone | Read the configured SEP-41 position-token contract (financing) |
 | `raise_dispute(invoice_id, originator)` | Originator | Mark a Financed invoice as Disputed |
 | `resolve_dispute(admin, invoice_id, target_status)` | Admin | Resolve a Disputed invoice to a new status |
 | `get_lender_stats(lender)` | Anyone | Return aggregated stats for a lender address |

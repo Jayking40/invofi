@@ -112,37 +112,46 @@ npm install && npm run dev
 ## Architecture
 
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│                        Browser (User)                           │
-│   Next.js 14 App Router — deployed on Vercel                   │
-│                                                                  │
-│   ┌──────────────────┐      ┌──────────────────────────────┐   │
-│   │  Email / Password │      │   Freighter / Lobstr Wallet   │   │
-│   │  auth via Supabase│      │   signs Soroban transactions  │   │
-│   └────────┬──────────┘      └──────────────┬───────────────┘   │
-└────────────┼────────────────────────────────┼───────────────────┘
-             │                                │
-             ▼                                ▼
-    ┌─────────────────┐          ┌────────────────────────────┐
-    │    Supabase      │          │   Stellar Soroban Contract │
-    │  Auth + mirror   │          │   invofi-invoice-registry  │
-    │                  │          │                            │
-    │  user_profiles   │          │  register_invoice()        │
-    │  invoices        │          │  create_offer()            │
-    │  financing_offers│          │  accept_offer()            │
-    └─────────────────┘          │  repay_invoice()  ◄─ partial│
-                                  │  mark_overdue()            │
-                                  │  reclaim_invoice()         │
-                                  │  get_invoices_by_status()  │
-                                  └──────────────┬─────────────┘
-                                                 │
-                                  ┌──────────────▼─────────────┐
-                                  │   Stellar Horizon API       │
-                                  │   Balance + tx history      │
-                                  └────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────┐
+│                              Browser (User)                                │
+│                Next.js 14 App Router — deployed on Vercel                  │
+│                                                                            │
+│   ┌──────────────────────┐   ┌─────────────────────────────────────────┐   │
+│   │ Email / Password auth │   │  Stellar wallet: Freighter / LOBSTR    │   │
+│   │ via Supabase          │   │  @creit.tech/stellar-wallets-kit      │   │
+│   │                       │   │  approved-wallets.ts allowlist (6A)    │   │
+│   └──────────┬───────────┘   └─────────────────────┬───────────────────┘   │
+└──────────────┼──────────────────────────────────────┼──────────────────────┘
+               │                                      │ signs Soroban txs
+               ▼                                      ▼
+┌──────────────────────────┐   ┌──────────────────────────────────────────────┐
+│          Supabase         │   │              @invofi/sdk (Task 15)           │
+│   auth + app mirror +     │   │   typed contract client — apps/sdk          │
+│   protocol_stats (T13)    │   └──────────────────────┬───────────────────────┘
+└─────────────┬────────────┘                          │
+              │                                       ▼
+              │                 ┌─────────────────────────────────────────────────┐
+              │                 │        Stellar Soroban — 6-contract system       │
+              │                 │                                                 │
+              │                 │   registry ──► financing ──► repayment           │
+              │                 │      ▲            │  ▲          │                │
+              │                 │      └────────────┼──┴──────────┘                │
+              │                 │        insurance ─┘  └── reputation              │
+              │                 │   position token (POS, SEP-41) minted on         │
+              │                 │   accept_offer; restricted cross-contract auth   │
+              │                 └─────────────────────┬───────────────────────────┘
+              │                                       │ protocol events (RPC)
+              ▼                                       ▼
+┌──────────────────────────┐   ┌──────────────────────────────────────────────┐
+│    /stats page (T14)      │◄──│  indexer (T13) — 6-hourly GitHub Action      │
+│  reads protocol_stats     │   │  checkpointed event replay → protocol_stats  │
+└──────────────────────────┘   └──────────────────────────────────────────────┘
+
+keeper (T12) — 6-hourly GitHub Action: mark_overdue + TTL bumps (Soroban RPC)
 ```
 
-No backend server. No database to manage. 100% free hosting.
+No always-on backend server to manage. 100% free hosting.
+
 
 ---
 
@@ -196,7 +205,7 @@ invofi/
 
 ## Smart Contract Reference
 
-Contracts: `invofi-registry`, `invofi-financing`, `invofi-repayment`, `invofi-insurance`, `invofi-reputation` · live in [invofi-contracts](https://github.com/Stellar-VaultLink/invofi-contracts). **The authoritative, always-current function reference and ADRs live in that repo** — the summary below shows the protocol surface as it stood when the monolith was split.
+Contracts: `invofi-registry`, `invofi-financing`, `invofi-repayment`, `invofi-insurance`, `invofi-reputation` + the SEP-41 position token · live in [invofi-contracts](https://github.com/Stellar-VaultLink/invofi-contracts). **The authoritative, always-current function reference and ADRs live in that repo** — the summary below is the protocol surface since the split.
 
 ### Invoice Fields
 
@@ -228,7 +237,7 @@ Contracts: `invofi-registry`, `invofi-financing`, `invofi-repayment`, `invofi-in
 
 | Function | Auth | Description |
 |---|---|---|
-| `initialize(admin, token)` | Anyone (once) | One-time setup — sets admin and SEP-41 token |
+| `__constructor(admin, …)` | Deployer (at deploy) | One-time setup runs atomically inside the deploy operation — no front-runnable `initialize()` (ADR-0005) |
 | `register_invoice(id, originator, amount, currency, due_date)` | Originator | Register a new invoice; validates `amount > 0` and `due_date > now` |
 | `get_invoice(id)` | Anyone | Read invoice state |
 | `update_invoice_status(id, status)` | Originator | Manually change invoice status |
@@ -375,7 +384,7 @@ Contracts live in the dedicated **[invofi-contracts](https://github.com/Stellar-
 ```bash
 git clone https://github.com/Stellar-VaultLink/invofi-contracts.git
 cd invofi-contracts
-cargo test          # 75+ tests
+cargo test          # 110+ tests across all five crates
 stellar contract build
 ```
 
@@ -482,6 +491,14 @@ create policy "Own profile" on user_profiles for all using (id = auth.uid());
 - [x] Insurance coverage pool with **payout on default** (Tasks 9–10)
 - [x] On-chain **reputation scoring** for originators (Task 11)
 - [x] Keeper automation — 6-hourly TTL bump + overdue marking (Task 12)
+- [x] SEP-41 token movement — `accept_offer` funds the business, `repay_invoice` repays principal + yield (Tasks 1–2)
+- [x] Split into 5 auditable contract crates — registry / financing / repayment / insurance / reputation (Tasks 4–5)
+- [x] Emergency pause / circuit breaker — admin-gated `pause` on every state-mutating function (Task 4A)
+- [x] Event indexer + public `/stats` page — aggregates protocol activity (Tasks 13–14)
+- [x] `@invofi/sdk` — shared typed contract client consumed by the frontend (Task 15)
+- [x] Architecture Decision Records — ADR index in both repos (Task 16)
+- [x] Deployer-bound initialization — `__constructor` on all contracts, no front-runnable `initialize()` (issue #75)
+- [x] Compliance posture documented — KYC/SEP-12 roadmap, jurisdictions, securities-by-design (Task 17)
 - [ ] Mainnet deployment
 - [ ] Oracle-based invoice verification and risk scoring
 - [ ] Multi-signature treasury and escrow

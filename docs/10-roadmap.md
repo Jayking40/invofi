@@ -1,118 +1,63 @@
 # Roadmap
 
----
-
-## What is Built (v0.1 — Testnet MVP)
-
-### Smart Contract
-
-- [x] Invoice registration on-chain (`register_invoice`)
-- [x] Invoice retrieval (`get_invoice`)
-- [x] Financing offer creation (`create_offer`)
-- [x] Offer acceptance — invoice becomes Financed (`accept_offer`)
-- [x] Offer rejection (`reject_offer`)
-- [x] Invoice repayment — full lifecycle closes (`repay_invoice`)
-- [x] Overdue marking (`mark_overdue`)
-- [x] Access control via `require_auth()` on all mutations
-- [x] 9 passing contract tests covering all functions and edge cases
-
-### Frontend
-
-- [x] Landing page with protocol description and CTA
-- [x] Email + password registration and login (via Supabase)
-- [x] Freighter wallet connection
-- [x] Role-based registration (Business / Lender)
-- [x] Business dashboard with invoice list
-- [x] Invoice creation form (registers on-chain + mirrors to Supabase)
-- [x] Invoice detail page with offer management
-- [x] Lender marketplace (browse Pending invoices)
-- [x] Lender portfolio tracker
-- [x] Accept and reject offer flows
-- [x] Toast notification system
-- [x] Responsive Navbar with wallet state
-
-### Infrastructure and Docs
-
-- [x] Next.js 14 App Router frontend configured for Vercel
-- [x] Supabase schema with Row Level Security
-- [x] Vercel deployment config (`vercel.json`)
-- [x] Environment variable templates
-- [x] Stellar testnet contract deployment instructions
-- [x] Full documentation in `docs/`
-- [x] GitHub community files (CONTRIBUTING, CODE_OF_CONDUCT, SECURITY, LICENSE)
-- [x] GitHub issue and PR templates
+Last updated: August 2026. Checkbox status reflects what is merged to `main`
+(and `master` in invofi-contracts) — nothing is marked done before it ships.
 
 ---
 
-## v0.2 — Token Integration
+## What Is Built (testnet MVP + Week 1–3 expansion)
 
-The MVP records invoice financing as on-chain state but does not move real tokens. v0.2 adds actual fund movement.
+### Smart Contracts (invofi-contracts — 5 crates + position token)
 
-- [ ] **USDC on-chain transfers during offer acceptance** — lender transfers USDC to originator atomically with the `accept_offer` call using Stellar's `payment` operation
-- [ ] **Repayment with token transfer** — originator pays USDC back to lender atomically with `repay_invoice`
-- [ ] **Escrow contract** — holds lender funds between acceptance and repayment, distributing principal + interest on repayment
-- [ ] **USDC balance display** — show USDC balance in the Dashboard wallet panel (needs USDC issuer configured)
+- [x] Registry — invoice lifecycle: register, cancel, disputes, blacklist, status transitions
+- [x] Financing — offers: create, withdraw, accept, reject; **SEP-41 principal transfer** (lender → business) and **position-token mint** on accept (Tasks 1, 7)
+- [x] Repayment — full + partial repayment with **SEP-41 transfer** of principal + yield; overdue marking, reclaim/default (Tasks 2, 5)
+- [x] Insurance — stake/unstake pool, **payout on default** capped at pool balance (Tasks 9–10)
+- [x] Reputation — repayment outcomes → public originator score (Task 11)
+- [x] Position token — SEP-41 `POS` minted 1:1 with principal; transferable between wallets (Tasks 7–8)
+- [x] Emergency pause / circuit breaker on every state-mutating function (Task 4A)
+- [x] Restricted cross-contract auth (registry ↔ financing ↔ repayment, insurance, reputation)
+- [x] Deployer-bound initialization — `__constructor`, no front-runnable `initialize()` (issue #75)
+- [x] Structured protocol events on every state-mutating function (Task 13 contracts half)
+- [x] 110 passing tests across all crates; clippy `-D warnings`; Soroban Scout; commitlint gates (Task 19)
 
----
+### Frontend / SDK (invofi)
 
-## v0.3 — Trust and Verification
+- [x] Landing page, role-based auth (email/password via Supabase + wallet)
+- [x] Wallet support: **Freighter + LOBSTR** via `@creit.tech/stellar-wallets-kit` approved allowlist (Task 6A)
+- [x] Business dashboard, invoice creation, offer management
+- [x] Lender marketplace (browse Pending invoices, sorting)
+- [x] Lender portfolio with **remaining balance after partial repayments** + position-token trustline/transfer UI (Tasks 8)
+- [x] Public `/stats` page reading indexer aggregates (Task 14)
+- [x] `@invofi/sdk` — shared typed contract client consumed by the frontend (Task 15)
+- [x] Alpha / demo mode when no contract is configured
 
-- [ ] **Oracle-based invoice verification** — integrate a Stellar oracle to verify that an invoice is real before it can be listed (prevents fraud)
-- [ ] **Document storage** — allow businesses to attach PDF invoice documents (stored on IPFS, hash recorded on-chain)
-- [ ] **Originator reputation score** — track repayment history on-chain and display a simple score to lenders
+### Infrastructure & Automation
 
----
-
-## v0.4 — Production Readiness
-
-- [ ] **KYC/AML with SEP-12** — integrate Stellar's SEP-12 protocol for identity verification, required for regulated markets
-- [ ] **Multi-signature treasury** — require multi-sig for admin operations
-- [ ] **Contract upgradeability with timelock** — allow contract logic updates with a mandatory delay, giving users time to exit before changes take effect
-- [ ] **Rate limiting** — protect the frontend and Supabase from abuse
-- [ ] **Error monitoring** — integrate Sentry for frontend error tracking
-
----
-
-## v1.0 — Mainnet Launch
-
-- [ ] Mainnet contract deployment
-- [ ] Security audit of the Soroban contract
-- [ ] Penetration test of the frontend
-- [ ] Legal review for supported jurisdictions
-- [ ] Mainnet documentation and user guides
-- [ ] Protocol governance mechanism
+- [x] 3-contract testnet deployment config (`NEXT_PUBLIC_{REGISTRY,FINANCING,REPAYMENT}_CONTRACT_ID`) (Task 6)
+- [x] Keeper automation — 6-hourly overdue marking + TTL bumps (Task 12)
+- [x] Event indexer — checkpointed replay → Supabase `protocol_stats` (Task 13 app half)
+- [x] Contributors auto-table on merge (no opt-in comment needed), bot-driven PRs, issues open to all
+- [x] One-click Testnet deploy via GitHub Actions (invofi-contracts)
+- [x] Compliance posture documented (Task 17) — see [compliance.md](./compliance.md)
 
 ---
 
-## Completed — Wave 8 sprint
+## Next Up
 
-| Task | Status |
-|---|---|
-| 1–3. SEP-41 token movement in accept/repay + failure-path tests | ✅ |
-| 1A. CI gates: clippy `-D warnings` + Soroban Scout | ✅ |
-| 4. Monolith split into registry / financing / common | ✅ |
-| 4A. Emergency pause (circuit breaker) | ✅ |
-| 5. Repayment as its own crate | ✅ |
-| 6 / 6A. 3-contract frontend wiring + approved-wallet allowlist (Freighter + LOBSTR) | ✅ |
-| 7. **Position token minting on accept_offer** (SEP-41, 1:1, ADR-0002) | ✅ |
-| 8. **Position token transfer + portfolio "Transfer Position" UI** | ✅ |
-| 9. **Insurance pool contract — stake/unstake with flat pool accounting** | ✅ |
-| 10. **Insurance payout-on-default hook** — Overdue → Defaulted, capped pool payout, ADR-0003 | ✅ |
-| 11. **Reputation contract** — repayment outcomes → public score, ADR-0004 | ✅ |
-| 12. **Keeper automation** — 6-hourly TTL bump + overdue marking on testnet (proven live) | ✅ |
-| 13. **Event indexer** — `apps/indexer`: RPC `getEvents` poller writing `protocol_stats` to Supabase, verified against testnet | ✅ |
-| 14. **Public /stats page** — reads indexer aggregates: financed, volume, repayment rate, lenders, insurance pool | ✅ |
-| 15. **@invofi/sdk** — framework-agnostic typed contract client; frontend consumes it via one binding point | ✅ |
-| 16. **ADRs** — indexed decision records in both repos (wallet allowlist, indexer, SDK, pause, tokens, payout, reputation) | ✅ |
+- [ ] Mainnet deployment (preceded by the SEP-12 KYC roadmap in compliance.md)
+- [ ] Independent security audit (SCF Audit Bank)
+- [ ] Oracle-based invoice verification and risk scoring
+- [ ] Multi-signature treasury and escrow
+- [ ] Contract upgradeability with timelock governance
+- [ ] Demo video walkthrough (see [demo-video.md](./demo-video.md))
+- [ ] Wave 8 reapplication / appeal package (see [wave8-reapplication.md](./wave8-reapplication.md))
 
 ---
 
-## Future Ideas
+## Long-Range
 
-These are not committed to a version yet but are worth exploring:
-
-- **Mobile app** — React Native frontend using the same contract
-- **Invoice NFTs** — mint tokenized invoices as SEP-39 assets on Stellar
-- **Secondary market** — allow lenders to sell their financing positions before repayment
-- **Batch financing** — allow multiple lenders to pool and finance a single large invoice
-- **Automated yield distribution** — smart contract distributes interest directly without a manual repay call
+- [ ] Lender verification (threshold-based SEP-12 onboarding, Phase 4 of compliance.md)
+- [ ] Secondary-market browsing/discovery for position tokens (transfer already ships)
+- [ ] Event-driven keeper (Soroban RPC event subscriptions instead of polling)
+- [ ] Historical time-series charts on `/stats`

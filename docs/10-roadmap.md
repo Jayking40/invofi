@@ -51,7 +51,6 @@ Last updated: August 2026. Checkbox status reflects what is merged to `main`
 - [ ] Multi-signature treasury and escrow
 - [ ] Contract upgradeability with timelock governance
 - [ ] Demo video walkthrough (see [demo-video.md](./demo-video.md))
-- [ ] Wave 8 reapplication / appeal package (see [wave8-reapplication.md](./wave8-reapplication.md))
 
 ---
 

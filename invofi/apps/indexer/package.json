@@ -1,0 +1,19 @@
+{
+  "name": "invofi-indexer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "InvoFi event indexer: polls Soroban protocol events via RPC and writes aggregate stats to Supabase (Task 13)",
+  "scripts": {
+    "index": "tsx src/index.ts",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@stellar/stellar-sdk": "^16.0.1",
+    "@supabase/supabase-js": "^2.111.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.5.4",
+    "tsx": "^4.19.2",
+    "typescript": "^5.5.4"
+  }
+}

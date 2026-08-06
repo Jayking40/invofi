@@ -100,6 +100,10 @@ The MVP records invoice financing as on-chain state but does not move real token
 | 10. **Insurance payout-on-default hook** — Overdue → Defaulted, capped pool payout, ADR-0003 | ✅ |
 | 11. **Reputation contract** — repayment outcomes → public score, ADR-0004 | ✅ |
 | 12. **Keeper automation** — 6-hourly TTL bump + overdue marking on testnet (proven live) | ✅ |
+| 13. **Event indexer** — `apps/indexer`: RPC `getEvents` poller writing `protocol_stats` to Supabase, verified against testnet | ✅ |
+| 14. **Public /stats page** — reads indexer aggregates: financed, volume, repayment rate, lenders, insurance pool | ✅ |
+| 15. **@invofi/sdk** — framework-agnostic typed contract client; frontend consumes it via one binding point | ✅ |
+| 16. **ADRs** — indexed decision records in both repos (wallet allowlist, indexer, SDK, pause, tokens, payout, reputation) | ✅ |
 
 ---
 

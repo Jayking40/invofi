@@ -1,0 +1,18 @@
+{
+  "name": "@invofi/sdk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "InvoFi TypeScript SDK — typed contract-call client for the InvoFi protocol (Task 15). Consumed by apps/frontend; published to npm as a fast follow.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@stellar/stellar-sdk": "^16.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.5.4",
+    "typescript": "^5.5.4"
+  }
+}

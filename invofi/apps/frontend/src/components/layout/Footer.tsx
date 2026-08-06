@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { REGISTRY_CONTRACT_ID, STELLAR_NETWORK, explorerContractUrl } from '@/lib/constants';
 
 const LINKS = [
+  { label: 'Stats', href: '/stats' },
   { label: 'GitHub', href: 'https://github.com/Stellar-VaultLink/invofi' },
   { label: 'Frontend', href: 'https://github.com/Stellar-VaultLink/invofi-frontend' },
   { label: 'Contracts', href: 'https://github.com/Stellar-VaultLink/invofi-contracts' },

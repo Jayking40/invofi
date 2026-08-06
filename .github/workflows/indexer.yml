@@ -1,0 +1,51 @@
+name: indexer
+
+# InvoFi protocol event indexer (Task 13).
+# Runs every 6 hours: replays protocol events via Soroban RPC and writes
+# aggregate stats to the Supabase `protocol_stats` table for the /stats page.
+# See invofi/apps/indexer/README.md for schema + setup.
+#
+# Required repo configuration (once):
+#   Secrets:   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+#   Variables: REGISTRY_CONTRACT_ID, FINANCING_CONTRACT_ID,
+#              REPAYMENT_CONTRACT_ID, INSURANCE_CONTRACT_ID,
+#              REPUTATION_CONTRACT_ID (defaults point at the live testnet
+#              deployment below).
+
+on:
+  schedule:
+    # Every 6 hours at minute 15 (UTC) — offset from the keeper sweep.
+    - cron: '15 */6 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    name: Indexer / testnet sweep
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: invofi/apps/indexer
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: invofi/apps/indexer/package-lock.json
+      - run: npm ci
+      - run: npm run type-check
+      - name: Run indexer
+        env:
+          RPC_URL: https://soroban-testnet.stellar.org
+          NETWORK_PASSPHRASE: Test SDF Network ; September 2015
+          REGISTRY_CONTRACT_ID: ${{ vars.REGISTRY_CONTRACT_ID || 'CAXNTWSKDVSB3GPJMU3RTSDTAIFF4A6FFRAAI35B4AE7LZLLI4VXMCF7' }}
+          FINANCING_CONTRACT_ID: ${{ vars.FINANCING_CONTRACT_ID || 'CBGRA3457ZFXYZNEQLO4YGUQ3OBEWOE6US6ZREHK6NF2DLZYBO73IFVW' }}
+          REPAYMENT_CONTRACT_ID: ${{ vars.REPAYMENT_CONTRACT_ID || 'CCDATW5GMVDOPK55Q4MLXV5SGA3VLXPD67ABLBNMHWFF6BLL2IZBUVEP' }}
+          INSURANCE_CONTRACT_ID: ${{ vars.INSURANCE_CONTRACT_ID || 'CAURQCGDZZ6PPCH6EKDVQP5W372CH3PQ62VQC2GKLIXNHB37VOMBMSU5' }}
+          REPUTATION_CONTRACT_ID: ${{ vars.REPUTATION_CONTRACT_ID || 'CCHKVUWGTQ56U53C5U7ZSOFDTTMGLMOFCL22DME5UMXIYWQNUYXOYPDN' }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run index

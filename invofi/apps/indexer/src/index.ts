@@ -132,10 +132,11 @@ async function main(): Promise<void> {
     );
     for (;;) {
       pages += 1;
-      if (page.events.length > 0) {
-        lastProcessedLedger = endLedger;
-      }
+      let pageLastLedger = lastProcessedLedger;
       for (const ev of page.events) {
+        // Advance the checkpoint only to the last event actually seen, so a
+        // truncated run (pagination guard) never skips unprocessed events.
+        pageLastLedger = Math.max(pageLastLedger, ev.ledger);
         let value: unknown;
         try {
           value = scValToNative(ev.value);
@@ -144,8 +145,14 @@ async function main(): Promise<void> {
         }
         foldEvent(agg, ev.topic, value);
       }
+      lastProcessedLedger = pageLastLedger;
       if (page.events.length === 0 || pages > 200) {
-        if (pages > 200) console.warn('WARN: pagination guard hit (200 pages) — stopping early');
+        if (pages > 200) {
+          // Fail loudly rather than silently dropping events: the next run
+          // resumes from the last seen ledger, so no data is lost — but an
+          // operator should know the sweep is behind.
+          throw new Error(`Pagination guard hit (${pages} pages) — rerun to catch up`);
+        }
         break;
       }
       page = await fetchEventsFromCursor(CFG, page.cursor);

@@ -5,7 +5,7 @@
 // The table has a public-read RLS policy, so this page works without auth.
 // See invofi/apps/indexer/README.md for the schema and pipeline.
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   FileText,
@@ -57,7 +57,7 @@ export default function StatsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     const { data, error } = await supabase.from('protocol_stats').select('*').eq('id', 1).maybeSingle();
@@ -67,11 +67,11 @@ export default function StatsPage() {
       setStats((data as ProtocolStats | null) ?? null);
     }
     setLoading(false);
-  };
+  }, []);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">

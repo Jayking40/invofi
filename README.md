@@ -543,6 +543,10 @@ Read [CONTRIBUTING.md](./CONTRIBUTING.md) before opening a pull request. For bug
 
 Do not open a public issue for security vulnerabilities. See [SECURITY.md](./SECURITY.md) for responsible disclosure.
 
+## Compliance
+
+See [docs/compliance.md](./docs/compliance.md) for the KYC/SEP-12 roadmap, jurisdictions avoided at launch, and the design analysis of why the current offer/lender flows are not structured as securities.
+
 ## License
 
 MIT © 2026 InvoFi Contributors. See [LICENSE](./LICENSE).

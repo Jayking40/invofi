@@ -53,5 +53,14 @@ jobs:
       - run: npm ci
       - run: npm run build
 
+  commitlint:
+    name: Conventional Commits
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: wagoid/commitlint-github-action@v6
+
   # Smart contract tests and WASM builds moved to Stellar-VaultLink/invofi-contracts
   # (Rust-only CI) as part of the two-repo topology migration.

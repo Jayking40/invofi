@@ -17,11 +17,23 @@ InvoFi is currently in active development on Stellar testnet. The following vers
 
 ### How to report
 
+Private vulnerability reporting is **enabled** on this repository. To report confidentially:
+
 1. Go to the [GitHub Security Advisories](https://github.com/Stellar-VaultLink/invofi/security/advisories/new) page for this repo.
 2. Click **"New draft security advisory"** and fill in the details.
 3. We will acknowledge your report within 48 hours and provide an estimated timeline for a fix.
 
-Alternatively, email the maintainer directly if you cannot use GitHub advisories. Include as much detail as possible:
+> If you're reviewing the smart contracts, file in the dedicated contracts repo instead:
+> [invofi-contracts security advisories](https://github.com/Stellar-VaultLink/invofi-contracts/security/advisories/new)
+
+### Alternative contact
+
+Prefer email? Reach the maintainer directly at:
+
+- **samuelojetunde898@gmail.com**
+
+Either channel works; the advisory route is preferred because it gives us a
+tracked, embargoed thread. Include as much detail as possible:
 
 - A description of the vulnerability
 - Steps to reproduce it
@@ -41,23 +53,13 @@ Please report anything that could harm users of the protocol, including:
 
 ---
 
-## Out of Scope
+## Process
 
-The following are considered out of scope for security reports:
+We follow a responsible-disclosure flow:
 
-- Issues in dependencies that do not directly affect InvoFi users
-- Social engineering attacks
-- Rate limiting or denial-of-service on the testnet
-- Theoretical vulnerabilities without a proof of concept
+1. **Acknowledge** your report within 48 hours.
+2. **Triage** severity and impact; if it's a live risk we prioritize a fix.
+3. **Fix + coordinate** a release, then disclose publicly (with credit if you want it).
 
----
-
-## Disclosure Policy
-
-Once a fix is released, we will:
-
-1. Publish a GitHub Security Advisory crediting the reporter (with their permission).
-2. Tag a new release with the fix.
-3. Update this file if the scope of supported versions changes.
-
-We appreciate responsible disclosure and will acknowledge contributors in our release notes.
+Smart-contract findings also feed our [ADRs](https://github.com/Stellar-VaultLink/invofi-contracts/tree/main/adr)
+and changelog so the audit trail stays honest.

@@ -16,7 +16,7 @@
     "plugins": [{ "name": "next" }],
     "paths": {
       "@/*": ["./src/*"],
-      "@invofi/sdk": ["../../sdk/src/index.ts"],
+      "@invofi/sdk": ["../sdk/src/index.ts"],
       "@stellar/stellar-sdk": ["./node_modules/@stellar/stellar-sdk"]
     }
   },

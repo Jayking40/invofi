@@ -32,7 +32,9 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
         with:
-          node-version: 20
+          # Node 22+ required: @supabase/supabase-js@2.112+ and
+          # @stellar/stellar-sdk@16.2+ declare engines node >=22.
+          node-version: 22
           cache: npm
           cache-dependency-path: invofi/apps/indexer/package-lock.json
       - run: npm ci

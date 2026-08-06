@@ -5,6 +5,12 @@ name: indexer
 # aggregate stats to the Supabase `protocol_stats` table for the /stats page.
 # See invofi/apps/indexer/README.md for schema + setup.
 #
+# ⚠️ TEMPORARILY DISABLED (Aug 2026) — pending the Supabase/DB migration.
+# The indexer writes to Supabase's `protocol_stats`; until the database is
+# migrated it is disabled to avoid failing scheduled runs. Re-enable after
+# rewiring apps/indexer to the new database:
+#   gh workflow enable indexer.yml -R Stellar-VaultLink/invofi
+#
 # Required repo configuration (once):
 #   Secrets:   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 #   Variables: REGISTRY_CONTRACT_ID, FINANCING_CONTRACT_ID,

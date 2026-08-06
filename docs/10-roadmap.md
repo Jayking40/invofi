@@ -36,7 +36,7 @@ Last updated: August 2026. Checkbox status reflects what is merged to `main`
 
 - [x] 3-contract testnet deployment config (`NEXT_PUBLIC_{REGISTRY,FINANCING,REPAYMENT}_CONTRACT_ID`) (Task 6)
 - [x] Keeper automation — 6-hourly overdue marking + TTL bumps (Task 12)
-- [x] Event indexer — checkpointed replay → Supabase `protocol_stats` (Task 13 app half)
+- [x] Event indexer — checkpointed replay → `protocol_stats` (Task 13 app half); **temporarily bypassed pending the Supabase/DB migration** — re-enabled when the indexer is rewired to the new database
 - [x] Contributors auto-table on merge (no opt-in comment needed), bot-driven PRs, issues open to all
 - [x] One-click Testnet deploy via GitHub Actions (invofi-contracts)
 - [x] Compliance posture documented (Task 17) — see [compliance.md](./compliance.md)

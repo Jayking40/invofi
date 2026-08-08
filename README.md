@@ -51,6 +51,32 @@ InvoFi lives across **two repositories**, split so the fast-moving app layer and
 
 ---
 
+## Related Issues — Contracts Backlog
+
+Several features in this app start as contract work in **invofi-contracts** and
+land here once the contract ships. If you pick up a frontend task that depends
+on an on-chain change, the contract half is tracked there — nothing in this
+repo is silently blocked on unlisted work:
+
+| Frontend feature | Contract issue (invofi-contracts) |
+|---|---|
+| Cancel an offer from the marketplace / portfolio | [#77 — Lender offer cancellation before acceptance](https://github.com/Stellar-VaultLink/invofi-contracts/issues/77) |
+| Withdraw a registered invoice before financing starts | [#79 — Originator invoice withdrawal](https://github.com/Stellar-VaultLink/invofi-contracts/issues/79) |
+| Read full offer details in the UI | [#92 — Public `get_offer` read helper](https://github.com/Stellar-VaultLink/invofi-contracts/issues/92) |
+| Friendly error messages instead of raw contract panics | [#93 — Structured typed errors for client-facing failure modes](https://github.com/Stellar-VaultLink/invofi-contracts/issues/93) |
+| Verify the deployed contract version | [#96 — On-chain `contract_version` getter](https://github.com/Stellar-VaultLink/invofi-contracts/issues/96) |
+| EURC in the invoice-creation form | [#71 — Add EURC as a third registered currency](https://github.com/Stellar-VaultLink/invofi-contracts/issues/71) |
+| Configurable grace period in the invoice form | [#72 — Configurable repayment grace period per invoice](https://github.com/Stellar-VaultLink/invofi-contracts/issues/72) |
+| Lender-stats panels in the portfolio | [#53 — Paginated lender-stats queries](https://github.com/Stellar-VaultLink/invofi-contracts/issues/53) |
+| Pause-state banner when the protocol is paused | [#45 — Expose `contract_is_paused` on insurance and reputation](https://github.com/Stellar-VaultLink/invofi-contracts/issues/45) |
+| Indexer + `/stats` event consumption | [#60 — Formalize event payload schema](https://github.com/Stellar-VaultLink/invofi-contracts/issues/60) · [#84 — Common `bump_ttl` helper](https://github.com/Stellar-VaultLink/invofi-contracts/issues/84) · [#91 — Paginated invoice-id listing](https://github.com/Stellar-VaultLink/invofi-contracts/issues/91) |
+
+The full contracts backlog — 70+ open issues, including `good first issue` and
+`high-complexity` items — lives at
+[github.com/Stellar-VaultLink/invofi-contracts/issues](https://github.com/Stellar-VaultLink/invofi-contracts/issues).
+
+---
+
 ## Live Demo
 
 > **Frontend:** [invofi-five.vercel.app](https://invofi-five.vercel.app)

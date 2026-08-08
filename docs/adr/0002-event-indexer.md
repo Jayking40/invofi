@@ -48,9 +48,9 @@ invoices" and "protocol totals" are off-chain concerns.
 
 ## Related contract issues (backlog, invofi-contracts)
 
-- [#90 — Event-emission completeness audit against the events ADR](https://github.com/Stellar-VaultLink/invofi-contracts/issues/90) — closes the
-  gap between the events table and actual emissions, which this indexer's
-  replay depends on.
+- [#90 — Event-emission completeness audit against the Protocol Events spec](https://github.com/Stellar-VaultLink/invofi-contracts/issues/90) —
+  closes the gap between the events table and actual emissions, which this
+  indexer's replay depends on.
 - [#91 — Bounded paginated invoice-id listing for indexer consumption](https://github.com/Stellar-VaultLink/invofi-contracts/issues/91) — gives the
   indexer a paged enumeration without violating Soroban resource limits.
 - [#84 — Common bump_ttl helper so the keeper extends storage TTL uniformly](https://github.com/Stellar-VaultLink/invofi-contracts/issues/84) and

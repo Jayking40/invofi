@@ -71,7 +71,10 @@ repo is silently blocked on unlisted work:
 | Pause-state banner when the protocol is paused | [#45 — Expose `contract_is_paused` on insurance and reputation](https://github.com/Stellar-VaultLink/invofi-contracts/issues/45) |
 | Indexer + `/stats` event consumption | [#60 — Formalize event payload schema](https://github.com/Stellar-VaultLink/invofi-contracts/issues/60) · [#84 — Common `bump_ttl` helper](https://github.com/Stellar-VaultLink/invofi-contracts/issues/84) · [#91 — Paginated invoice-id listing](https://github.com/Stellar-VaultLink/invofi-contracts/issues/91) |
 
-The full contracts backlog — 70+ open issues, including `good first issue` and
+The three indexer rows are infra-side: they power the keeper and `/stats` page
+rather than a single UI control.
+
+The full contracts backlog — including `good first issue` and
 `high-complexity` items — lives at
 [github.com/Stellar-VaultLink/invofi-contracts/issues](https://github.com/Stellar-VaultLink/invofi-contracts/issues).
 

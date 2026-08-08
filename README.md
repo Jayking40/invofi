@@ -572,18 +572,18 @@ Both repos label onboarding-friendly issues `good first issue`. Filter here:
 - Frontend/app: [github.com/Stellar-VaultLink/invofi/labels/good%20first%20issue](https://github.com/Stellar-VaultLink/invofi/labels/good%20first%20issue)
 - Contracts: [github.com/Stellar-VaultLink/invofi-contracts/labels/good%20first%20issue](https://github.com/Stellar-VaultLink/invofi-contracts/labels/good%20first%20issue)
 
-**2. Understand effort (Wave points)**
+**2. Understand effort**
 
-Issues are labelled by complexity, which maps to Wave reward tiers:
+Issues are labelled by **complexity** so you can gauge effort at a glance:
 
-| Label | Wave points |
+| Label | What it covers |
 |---|---|
-| `trivial` | 100 |
-| `medium` | 150 |
-| `high-complexity` | 200 |
-| `good-first-issue` | 100 |
+| `trivial` | Small, well-scoped fixes — typos, one-line bugs, simple docs |
+| `medium` | Standard features and fixes — a single page, hook, or contract function |
+| `high-complexity` | Large multi-part efforts — new subsystems, cross-cutting changes |
+| `good-first-issue` | Onboarding-friendly tasks; usually also trivial or medium |
 
-See the full label guide in [CONTRIBUTING.md — Label → Wave points](./CONTRIBUTING.md#label--wave-points).
+See the full label guide in [CONTRIBUTING.md — Issue labels](./CONTRIBUTING.md#issue-labels).
 
 **3. Read the rules**
 

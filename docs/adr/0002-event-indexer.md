@@ -26,7 +26,7 @@ invoices" and "protocol totals" are off-chain concerns.
    lenders and defaulted count, plus an independent cross-check of event
    volume vs on-chain `total_financed` (reported in the Action log).
 4. **No time-series charts in this pass** — current totals only (Task 14
-   scope). Historical series are a follow-up Wave issue, not this plan's scope.
+   scope). Historical series are a follow-up issue, not this plan's scope.
 
 ## Alternatives considered
 

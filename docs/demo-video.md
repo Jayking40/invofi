@@ -56,4 +56,3 @@ script to memorize.
       `- 🎬 [Demo video](<youtube-url>) — 4-minute testnet walkthrough.`
       (added to the **Security/Compliance** area of the invofi README and the
       **Changelog** area of the invofi-contracts README)
-- [ ] Share the link with Drips Wave 8 review + SCF application (Task 21).

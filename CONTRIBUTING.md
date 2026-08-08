@@ -35,16 +35,16 @@ By participating in this project you agree to abide by our [Code of Conduct](./C
 
 For anything not on the roadmap or larger than a bug fix, **open an issue first** and describe what you want to build. This prevents duplicate work and ensures your effort aligns with the project direction.
 
-### Label → Wave points
+### Issue labels
 
-Issues are labelled by **complexity**, not raw point values. Each label maps to a Wave reward tier so contributors can gauge effort at a glance:
+Issues are labelled by **complexity** so contributors can gauge effort at a glance:
 
-| Label | Wave points | What it covers |
-|---|---|---|
-| `trivial` | 100 | Small, well-scoped fixes — typos, one-line bugs, simple docs |
-| `medium` | 150 | Standard features and fixes — a single page, hook, or contract function |
-| `high-complexity` | 200 | Large multi-part efforts — new subsystems, cross-cutting changes |
-| `good-first-issue` | 100 | Onboarding-friendly tasks; usually also trivial or medium |
+| Label | What it covers |
+|---|---|
+| `trivial` | Small, well-scoped fixes — typos, one-line bugs, simple docs |
+| `medium` | Standard features and fixes — a single page, hook, or contract function |
+| `high-complexity` | Large multi-part efforts — new subsystems, cross-cutting changes |
+| `good-first-issue` | Onboarding-friendly tasks; usually also trivial or medium |
 
 Additional area labels (`frontend`, `contracts`, `sdk`, `docs`, `infra`) describe *where* the work lives, not its size — a `docs` issue can still be `trivial`, `medium`, or `high-complexity`.
 

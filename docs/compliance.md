@@ -121,7 +121,7 @@ opinion.
 | Return | Fixed interest, owed by the borrower |
 | Pooling / common enterprise | None |
 | Passive-income / promoter effort | None — return is contractually fixed |
-| Secondary market | None built (transfer form only, Task 8) |
+| Secondary market | None built (transfer form only) |
 | Token rights | Claim record only — no governance/equity |
 
 ### 4.5 What would change the analysis (and therefore requires counsel)

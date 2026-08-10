@@ -92,11 +92,11 @@ npm install && npm run dev
 - Track active investments and yields in a live portfolio
 - Transparent partial repayment history on the Stellar blockchain
 - Receive a **SEP-41 position token** (POS) for every accepted offer and
-  **transfer your position** to another wallet from your portfolio (Task 8)
-- Stake into the **insurance coverage pool** to back the protocol (Task 9) —
-  and get **payout on default** up to the pool's balance (Task 10)
+  **transfer your position** to another wallet from your portfolio
+- Stake into the **insurance coverage pool** to back the protocol —
+  and get **payout on default** up to the pool's balance
 - Screen borrowers by **on-chain reputation score** — one default outweighs
-  two repayments (Task 11)
+  two repayments
 
 ### Protocol Properties
 - **Trustless** — all terms, state transitions, and repayments enforced by Soroban smart contracts
@@ -125,9 +125,9 @@ npm install && npm run dev
                │                                      │ signs Soroban txs
                ▼                                      ▼
 ┌──────────────────────────┐   ┌──────────────────────────────────────────────┐
-│          Supabase         │   │              @invofi/sdk (Task 15)           │
+│          Supabase         │   │              @invofi/sdk                    │
 │   auth + app mirror +     │   │   typed contract client — apps/sdk          │
-│   protocol_stats (T13)    │   └──────────────────────┬───────────────────────┘
+│   protocol_stats          │   └──────────────────────┬───────────────────────┘
 └─────────────┬────────────┘                          │
               │                                       ▼
               │                 ┌─────────────────────────────────────────────────┐
@@ -489,17 +489,17 @@ create policy "Own profile" on user_profiles for all using (id = auth.uid());
 - [x] One-click Testnet deploy via GitHub Actions workflow
 - [x] Protocol events (v0.3) — every state transition published on-chain for indexers and activity feeds
 - [x] Marketplace sorting (newest, amount, due date) and Stellar Expert explorer links
-- [x] Insurance coverage pool with **payout on default** (Tasks 9–10)
-- [x] On-chain **reputation scoring** for originators (Task 11)
-- [x] Keeper automation — 6-hourly TTL bump + overdue marking (Task 12)
-- [x] SEP-41 token movement — `accept_offer` funds the business, `repay_invoice` repays principal + yield (Tasks 1–2)
-- [x] Split into 5 auditable contract crates — registry / financing / repayment / insurance / reputation (Tasks 4–5)
-- [x] Emergency pause / circuit breaker — admin-gated `pause` on every state-mutating function (Task 4A)
-- [x] Event indexer + public `/stats` page — aggregates protocol activity (Tasks 13–14)
-- [x] `@invofi/sdk` — shared typed contract client consumed by the frontend (Task 15)
-- [x] Architecture Decision Records — ADR index in both repos (Task 16)
+- [x] Insurance coverage pool with **payout on default**
+- [x] On-chain **reputation scoring** for originators
+- [x] Keeper automation — 6-hourly TTL bump + overdue marking
+- [x] SEP-41 token movement — `accept_offer` funds the business, `repay_invoice` repays principal + yield
+- [x] Split into 5 auditable contract crates — registry / financing / repayment / insurance / reputation
+- [x] Emergency pause / circuit breaker — admin-gated `pause` on every state-mutating function
+- [x] Event indexer + public `/stats` page — aggregates protocol activity
+- [x] `@invofi/sdk` — shared typed contract client consumed by the frontend
+- [x] Architecture Decision Records — ADR index in both repos
 - [x] Deployer-bound initialization — `__constructor` on all contracts, no front-runnable `initialize()` (issue #75)
-- [x] Compliance posture documented — KYC/SEP-12 roadmap, jurisdictions, securities-by-design (Task 17)
+- [x] Compliance posture documented — KYC/SEP-12 roadmap, jurisdictions, securities-by-design
 - [ ] Mainnet deployment
 - [ ] Oracle-based invoice verification and risk scoring
 - [ ] Multi-signature treasury and escrow

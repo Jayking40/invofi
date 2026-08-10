@@ -1,13 +1,13 @@
 # ADR-0003: SDK extraction (@invofi/sdk)
 
-**Status:** Accepted (2026-08-06) · **Task:** 15
+**Status:** Accepted (2026-08-06)
 
 ## Context
 
 All contract-call logic (encoding, simulate/sign/submit, parsing) lived inside
 `apps/frontend/src/lib/contract.ts`. That couples the frontend to the contract
 ABI and makes the protocol's client unusable from scripts, bots, or a future
-mobile app. Task 15 moves it out.
+mobile app. The SDK extraction resolves that.
 
 ## Decision
 
@@ -26,7 +26,7 @@ mobile app. Task 15 moves it out.
    unions live in the SDK and are re-exported by the frontend — one source of
    truth for contract shapes.
 5. **Not published yet.** npm publishing is a fast follow once the ABI is
-   stable (Task 6 contract IDs finalized); the package is consumed internally
+   stable (contract IDs finalized); the package is consumed internally
    via a TypeScript path alias.
 
 ## Consequences

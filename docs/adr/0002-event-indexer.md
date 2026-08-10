@@ -1,12 +1,11 @@
 # ADR-0002: Event indexer + off-chain store
 
-**Status:** Accepted (2026-08-06) · **Task:** 13 (indexer), 14 (stats page)
+**Status:** Accepted (2026-08-06)
 
 ## Context
 
 InvoFi needs protocol-wide aggregates (invoices financed, total volume,
-repayment rate, active lenders, insurance pool size) for a public /stats page
-(Task 14). Soroban contracts must never return unbounded lists — a full-list
+repayment rate, active lenders, insurance pool size) for a public /stats page. Soroban contracts must never return unbounded lists — a full-list
 read would blow past transaction resource limits at scale. So "browse all
 invoices" and "protocol totals" are off-chain concerns.
 
@@ -16,7 +15,7 @@ invoices" and "protocol totals" are off-chain concerns.
    `registry.get_stats()` (invoices/offers/financed/repaid) and
    `insurance.get_pool_total()` are read directly by the indexer and win over
    any event-derived number. Every state-mutating contract function publishes
-   a structured Soroban event (Task 13 audit completed the gaps).
+   a structured Soroban event.
 2. **A lightweight poller, not a subgraph.** `apps/indexer` runs on a GitHub
    Action schedule (every 6 hours, plus `workflow_dispatch`). It reads
    `getEvents` via Soroban RPC, replays events since a ledger checkpoint, and
@@ -25,8 +24,7 @@ invoices" and "protocol totals" are off-chain concerns.
 3. **Event replay fills the gaps the contracts don't expose**: unique active
    lenders and defaulted count, plus an independent cross-check of event
    volume vs on-chain `total_financed` (reported in the Action log).
-4. **No time-series charts in this pass** — current totals only (Task 14
-   scope). Historical series are a follow-up issue, not this plan's scope.
+4. **No time-series charts in this pass** — current totals only. Historical series are a follow-up issue, not this plan's scope.
 
 ## Alternatives considered
 

@@ -1,6 +1,6 @@
-# Demo Video — Shot List & Production Notes (Task 20)
+# Demo Video — Shot List & Production Notes
 
-> **Task 20 is a human-track deliverable** — recording and uploading are done
+> **This is a human-track deliverable** — recording and uploading are done
 > by the maintainer; this document is the full recording script. Target:
 > **3–5 minutes**, uploaded **unlisted** to YouTube, then linked from both
 > READMEs (invofi + invofi-contracts).

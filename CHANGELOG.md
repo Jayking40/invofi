@@ -10,31 +10,30 @@ mechanically from the git history.
 
 ---
 
-## [Unreleased] — 2026-08-06 (Weeks 1–3 expansion)
+## [Unreleased] — 2026-08-06
 
 ### Added
 
 - **Compliance posture** — `docs/compliance.md`: current status, phased
   SEP-12 KYC/AML roadmap, jurisdictions avoided at launch, and a
-  securities-by-design analysis (Task 17)
+  securities-by-design analysis
 - **Architecture + roadmap refresh** — diagram redrawn for the 2-repo,
   6-contract system; `docs/10-roadmap.md` and README checklist synced to
-  shipped reality (Task 18)
+  shipped reality
 - **Commitlint enforcement** on PRs — Conventional Commits gate in CI
-  (Task 19)
 - **Event indexer** — checkpointed Soroban event replay writing aggregates
-  to `protocol_stats` (Task 13)
+  to `protocol_stats`
 - **Public `/stats` page** — reads indexer aggregates; loading/error/empty
-  states + refresh (Task 14)
+  states + refresh
 - **`@invofi/sdk`** — shared typed contract client under `apps/sdk`,
-  consumed by the frontend via tsconfig paths (Task 15)
+  consumed by the frontend via tsconfig paths
 - **ADR index** — `docs/adr` (approved-wallet allowlist, event indexer, SDK
-  extraction) (Task 16)
+  extraction)
 - **Frontend Defaulted status** + 5-contract testnet docs + keeper workflow
-  docs (Tasks 10–12)
-- **Position-token transfer UI** + live 3-contract IDs + docs (Tasks 7–9)
+  docs
+- **Position-token transfer UI** + live 3-contract IDs + docs
 - **3-contract wiring + approved-wallet allowlist** — Freighter + LOBSTR
-  behind `approved-wallets.ts` (Tasks 6, 6A)
+  behind `approved-wallets.ts`
 - **LOBSTR detection** via the official signer-extension-api handshake
 - **Offer remaining balance** after partial repayments
 - **Auto-generated README contributors** on merge — no opt-in comment needed
@@ -44,7 +43,7 @@ mechanically from the git history.
 ### Fixed
 
 - `@invofi/sdk` tsconfig path — sibling directories are one level up
-  (`../sdk`, not `../../sdk`) (Task 15)
+  (`../sdk`, not `../../sdk`)
 - Keeper + indexer scheduled workflows run on Node 22 to match
   `@stellar/stellar-sdk`/`@supabase/supabase-js` engine requirements
 - Code-review pass: single source of truth for types, indexer checkpoint

@@ -5,41 +5,41 @@ Last updated: August 2026. Checkbox status reflects what is merged to `main`
 
 ---
 
-## What Is Built (testnet MVP + Week 1–3 expansion)
+## What Is Built
 
 ### Smart Contracts (invofi-contracts — 5 crates + position token)
 
 - [x] Registry — invoice lifecycle: register, cancel, disputes, blacklist, status transitions
-- [x] Financing — offers: create, withdraw, accept, reject; **SEP-41 principal transfer** (lender → business) and **position-token mint** on accept (Tasks 1, 7)
-- [x] Repayment — full + partial repayment with **SEP-41 transfer** of principal + yield; overdue marking, reclaim/default (Tasks 2, 5)
-- [x] Insurance — stake/unstake pool, **payout on default** capped at pool balance (Tasks 9–10)
-- [x] Reputation — repayment outcomes → public originator score (Task 11)
-- [x] Position token — SEP-41 `POS` minted 1:1 with principal; transferable between wallets (Tasks 7–8)
-- [x] Emergency pause / circuit breaker on every state-mutating function (Task 4A)
+- [x] Financing — offers: create, withdraw, accept, reject; **SEP-41 principal transfer** (lender → business) and **position-token mint** on accept
+- [x] Repayment — full + partial repayment with **SEP-41 transfer** of principal + yield; overdue marking, reclaim/default
+- [x] Insurance — stake/unstake pool, **payout on default** capped at pool balance
+- [x] Reputation — repayment outcomes → public originator score
+- [x] Position token — SEP-41 `POS` minted 1:1 with principal; transferable between wallets
+- [x] Emergency pause / circuit breaker on every state-mutating function
 - [x] Restricted cross-contract auth (registry ↔ financing ↔ repayment, insurance, reputation)
 - [x] Deployer-bound initialization — `__constructor`, no front-runnable `initialize()` (issue #75)
-- [x] Structured protocol events on every state-mutating function (Task 13 contracts half)
-- [x] 110 passing tests across all crates; clippy `-D warnings`; Soroban Scout; commitlint gates (Task 19)
+- [x] Structured protocol events on every state-mutating function
+- [x] 110 passing tests across all crates; clippy `-D warnings`; Soroban Scout; commitlint gates
 
 ### Frontend / SDK (invofi)
 
 - [x] Landing page, role-based auth (email/password via Supabase + wallet)
-- [x] Wallet support: **Freighter + LOBSTR** via `@creit.tech/stellar-wallets-kit` approved allowlist (Task 6A)
+- [x] Wallet support: **Freighter + LOBSTR** via `@creit.tech/stellar-wallets-kit` approved allowlist
 - [x] Business dashboard, invoice creation, offer management
 - [x] Lender marketplace (browse Pending invoices, sorting)
-- [x] Lender portfolio with **remaining balance after partial repayments** + position-token trustline/transfer UI (Tasks 8)
-- [x] Public `/stats` page reading indexer aggregates (Task 14)
-- [x] `@invofi/sdk` — shared typed contract client consumed by the frontend (Task 15)
+- [x] Lender portfolio with **remaining balance after partial repayments** + position-token trustline/transfer UI
+- [x] Public `/stats` page reading indexer aggregates
+- [x] `@invofi/sdk` — shared typed contract client consumed by the frontend
 - [x] Alpha / demo mode when no contract is configured
 
 ### Infrastructure & Automation
 
-- [x] 3-contract testnet deployment config (`NEXT_PUBLIC_{REGISTRY,FINANCING,REPAYMENT}_CONTRACT_ID`) (Task 6)
-- [x] Keeper automation — 6-hourly overdue marking + TTL bumps (Task 12)
-- [x] Event indexer — checkpointed replay → `protocol_stats` (Task 13 app half); **temporarily bypassed pending the Supabase/DB migration** — re-enabled when the indexer is rewired to the new database
+- [x] Frontend testnet config — registry/financing/repayment contract IDs (`NEXT_PUBLIC_{REGISTRY,FINANCING,REPAYMENT}_CONTRACT_ID`)
+- [x] Keeper automation — 6-hourly overdue marking + TTL bumps
+- [x] Event indexer — checkpointed replay → `protocol_stats`; **temporarily bypassed pending the Supabase/DB migration** — re-enabled when the indexer is rewired to the new database
 - [x] Contributors auto-table on merge (no opt-in comment needed), bot-driven PRs, issues open to all
 - [x] One-click Testnet deploy via GitHub Actions (invofi-contracts)
-- [x] Compliance posture documented (Task 17) — see [compliance.md](./compliance.md)
+- [x] Compliance posture documented — see [compliance.md](./compliance.md)
 
 ---
 

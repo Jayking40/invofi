@@ -10,7 +10,7 @@ InvoFi is a three-layer system with no traditional backend server. Each layer ha
 │         Next.js 14 frontend on Vercel (free tier)          │
 │                                                             │
 │   ┌──────────────────┐    ┌────────────────────────────┐   │
-│   │  Email / Password│    │   Freighter Wallet          │   │
+│   │  Email / Password│    │   Freighter / Lobstr       │   │
 │   │  → Supabase Auth │    │   signs Soroban txs         │   │
 │   └────────┬─────────┘    └────────────┬───────────────┘   │
 └────────────┼──────────────────────────┼───────────────────┘
@@ -18,11 +18,11 @@ InvoFi is a three-layer system with no traditional backend server. Each layer ha
              ▼                          ▼
     ┌─────────────────┐      ┌──────────────────────────┐
     │  Supabase       │      │  Stellar Soroban         │
-    │  (free tier)    │      │  Smart Contract          │
-    │                 │      │  invofi-invoice-registry  │
-    │  - Auth users   │      │                          │
-    │  - user_profiles│      │  - register_invoice()    │
-    │  - invoices     │      │  - create_offer()        │
+    │  (free tier)    │      │  5 contracts: registry,  │
+    │                 │      │  financing, repayment,   │
+    │  - Auth users   │      │  insurance, reputation   │
+    │  - user_profiles│      │  (POS token on accept)   │
+    │  - invoices     │      │  - register_invoice()    │
     │  - offers       │      │  - accept_offer()        │
     │    (mirrors)    │      │  - repay_invoice()       │
     └─────────────────┘      └──────────┬───────────────┘
@@ -38,11 +38,11 @@ InvoFi is a three-layer system with no traditional backend server. Each layer ha
 
 ## Layer 1 — Smart Contract (Source of Truth)
 
-The Soroban contract (in the dedicated [invofi-contracts](https://github.com/Stellar-VaultLink/invofi-contracts) repo) is the authoritative record for all invoices and financing offers. Nothing in Supabase or the frontend overrides what the contract says.
+The five Soroban contracts (in the dedicated [invofi-contracts](https://github.com/Stellar-VaultLink/invofi-contracts) repo) are the authoritative record for all invoices, offers, and repayments. Nothing in Supabase or the frontend overrides what the contracts say.
 
 **Responsibilities:**
 - Store invoice and offer state on the Stellar ledger
-- Enforce access control (`require_auth()` on all mutations)
+- Enforce access control (caller auth on all mutations; cross-contract calls restricted to registered callers)
 - Enforce business rules (e.g. invoice must be Financed before repayment)
 - Emit state changes that the frontend can read
 

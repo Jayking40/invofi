@@ -4,8 +4,6 @@ import { REGISTRY_CONTRACT_ID, STELLAR_NETWORK, explorerContractUrl } from '@/li
 const LINKS = [
   { label: 'Stats', href: '/stats' },
   { label: 'GitHub', href: 'https://github.com/Stellar-VaultLink/invofi' },
-  { label: 'Frontend', href: 'https://github.com/Stellar-VaultLink/invofi-frontend' },
-  { label: 'Contracts', href: 'https://github.com/Stellar-VaultLink/invofi-contracts' },
   { label: 'Docs', href: 'https://stellar-vault-link.gitbook.io/stellar-vault-link-docs' },
   { label: 'Issues', href: 'https://github.com/Stellar-VaultLink/invofi/issues' },
 ];

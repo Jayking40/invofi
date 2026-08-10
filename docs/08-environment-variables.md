@@ -10,9 +10,9 @@ All environment variables for the InvoFi frontend are prefixed with `NEXT_PUBLIC
 | --- | --- | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | Yes | `https://xxxx.supabase.co` | Your Supabase project URL, from Settings → API |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | `eyJhbGci...` | Supabase anon/public key, from Settings → API |
-| `NEXT_PUBLIC_REGISTRY_CONTRACT_ID` | Yes* | `CD4PT7V5...` | Registry contract (invoices, admin, pause) — 56 chars, starts with C |
-| `NEXT_PUBLIC_FINANCING_CONTRACT_ID` | Yes* | `CCJUYGGM...` | Financing contract (offers, accept/reject) |
-| `NEXT_PUBLIC_REPAYMENT_CONTRACT_ID` | Yes* | `CASENBBH...` | Repayment contract (repay, overdue, reclaim) |
+| `NEXT_PUBLIC_REGISTRY_CONTRACT_ID` | Yes* | `CAXNTWS...` | Registry contract (invoices, admin, pause) — 56 chars, starts with C |
+| `NEXT_PUBLIC_FINANCING_CONTRACT_ID` | Yes* | `CBGRA34...` | Financing contract (offers, accept/reject) |
+| `NEXT_PUBLIC_REPAYMENT_CONTRACT_ID` | Yes* | `CCDATW5...` | Repayment contract (repay, overdue, reclaim) |
 | `NEXT_PUBLIC_STELLAR_NETWORK` | Yes | `testnet` | `testnet` for development, `mainnet` for production |
 | `NEXT_PUBLIC_RPC_URL` | Yes | See below | Soroban RPC endpoint (differs by network) |
 | `NEXT_PUBLIC_HORIZON_URL` | Yes | See below | Stellar Horizon REST API (differs by network) |

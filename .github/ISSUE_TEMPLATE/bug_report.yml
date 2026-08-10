@@ -22,9 +22,10 @@ body:
       label: Area
       description: Which part of the project is affected?
       options:
-        - Smart Contract (Soroban / Rust)
         - Frontend (Next.js)
-        - Auth (Supabase / Freighter)
+        - SDK (@invofi/sdk)
+        - Auth (Supabase / Wallet)
+        - Infrastructure / CI
         - Documentation
         - Other
     validations:
@@ -47,7 +48,7 @@ body:
       label: Steps to reproduce
       description: Step-by-step instructions to reproduce the bug.
       placeholder: |
-        1. Connect Freighter wallet
+        1. Connect Freighter or Lobstr wallet
         2. Register an invoice with amount 1000 USDC
         3. Submit a financing offer
         4. Click "Accept offer"

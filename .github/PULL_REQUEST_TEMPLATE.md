@@ -28,11 +28,10 @@ Closes #<!-- issue number -->
 
 <!-- Describe how you tested this. -->
 
-- [ ] `cargo test` passes (if contracts changed)
-- [ ] `npm run type-check` passes (if frontend changed)
+- [ ] `npm run type-check` passes (if frontend or SDK changed)
 - [ ] `npm run lint` passes (if frontend changed)
-- [ ] Manually tested on Stellar testnet (for contract changes)
-- [ ] Manually tested in browser with Freighter wallet (for frontend changes)
+- [ ] Manually tested on Stellar testnet against the deployed contracts
+- [ ] Manually tested in browser with Freighter or Lobstr wallet (for frontend changes)
 
 ## Screenshots (if UI changed)
 

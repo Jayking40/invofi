@@ -8,4 +8,7 @@ contact_links:
     about: Official Stellar and Soroban documentation.
   - name: Freighter Wallet
     url: https://freighter.app
-    about: Install the Freighter browser extension to use InvoFi.
+    about: Install the Freighter browser extension to connect to InvoFi.
+  - name: Lobstr Wallet
+    url: https://lobstr.co
+    about: Install the Lobstr browser extension to connect to InvoFi.

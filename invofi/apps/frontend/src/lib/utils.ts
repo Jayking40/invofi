@@ -7,17 +7,23 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatAmount(stroops: bigint, decimals = 7): string {
+export function formatAmount(stroops: bigint | number | string | null | undefined, decimals = 7): string {
+  const bStroops = toStroopsBigInt(stroops);
   const divisor = BigInt(10 ** decimals);
-  const whole = stroops / divisor;
-  const fraction = (stroops % divisor).toString().padStart(decimals, '0').replace(/0+$/, '');
+  const whole = bStroops / divisor;
+  const remainder = bStroops % divisor;
+  const positiveRemainder = remainder < 0n ? -remainder : remainder;
+  const fraction = positiveRemainder.toString().padStart(decimals, '0').replace(/0+$/, '');
   return fraction.length > 0 ? `${whole}.${fraction}` : `${whole}`;
 }
 
 export function amountToStroops(amount: string, decimals = 7): bigint {
-  const [whole, fraction = ''] = amount.split('.');
+  const isNegative = (amount || '').trim().startsWith('-');
+  const clean = (amount || '0').replace('-', '').trim();
+  const [whole = '0', fraction = ''] = clean.split('.');
   const paddedFraction = fraction.padEnd(decimals, '0').slice(0, decimals);
-  return BigInt(whole) * BigInt(10 ** decimals) + BigInt(paddedFraction);
+  const result = BigInt(whole || '0') * BigInt(10 ** decimals) + BigInt(paddedFraction || '0');
+  return isNegative ? -result : result;
 }
 
 /**
@@ -40,8 +46,10 @@ export function toStroopsBigInt(value: bigint | number | string | null | undefin
   return 0n;
 }
 
-export function formatDate(timestamp: number): string {
-  return format(new Date(timestamp * 1000), 'MMM d, yyyy');
+export function formatDate(timestamp: number | bigint | string): string {
+  const ts = Number(timestamp);
+  if (!ts || isNaN(ts)) return '-';
+  return format(new Date(ts * 1000), 'MMM d, yyyy');
 }
 
 export function formatAddress(address: string): string {
@@ -49,12 +57,12 @@ export function formatAddress(address: string): string {
   return `${address.slice(0, 4)}…${address.slice(-4)}`;
 }
 
-export function interestRateLabel(basisPoints: number): string {
-  return `${(basisPoints / 100).toFixed(2)}%`;
+export function interestRateLabel(basisPoints: number | bigint | string): string {
+  return `${(Number(basisPoints) / 100).toFixed(2)}%`;
 }
 
-export function durationLabel(seconds: number): string {
-  const days = Math.floor(seconds / 86_400);
+export function durationLabel(seconds: number | bigint | string): string {
+  const days = Math.floor(Number(seconds) / 86_400);
   if (days < 7) return `${days}d`;
   if (days < 30) return `${Math.floor(days / 7)}w`;
   return `${Math.floor(days / 30)}mo`;

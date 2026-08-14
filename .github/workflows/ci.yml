@@ -56,6 +56,11 @@ jobs:
   commitlint:
     name: Conventional Commits
     runs-on: ubuntu-latest
+    # Gate to pull requests only. Direct maintainer pushes to main (e.g. GitHub
+    # web-editor commits such as "Update README.md") are not Conventional Commits
+    # and would otherwise fail every direct push. The gate still protects every
+    # contributor PR, which is where it adds value.
+    if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v7
         with:

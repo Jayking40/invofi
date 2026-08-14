@@ -4,6 +4,21 @@ on:
   push:
     branches:
       - main
+  schedule:
+    # Weekly retry: GitHub's contributor-stats cache lags new merges by up to
+    # a few days, so the push-triggered run right after a merge can miss a
+    # contributor. This run re-syncs the table once the cache has caught up.
+    # Wednesday 09:00 UTC — deliberately offset from the contracts Monday
+    # token watchdog so the two scheduled jobs don't overlap.
+    - cron: '0 9 * * 3'
+  workflow_dispatch:
+
+# Serialize runs: the bot rewrites the same README section (via a PR on this
+# protected branch), so a scheduled run and a push-triggered run must never
+# race each other.
+concurrency:
+  group: contributors-readme
+  cancel-in-progress: false
 
 permissions:
   contents: write

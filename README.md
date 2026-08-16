@@ -473,6 +473,39 @@ create policy "Own profile" on user_profiles for all using (id = auth.uid());
 
 ---
 
+## Testing
+
+### Frontend end-to-end (Playwright)
+
+The frontend ships a Playwright smoke suite that exercises the core user
+lifecycle — landing → login/register, the wallet-connect dialog, the
+marketplace, and the invoice detail + print views — against the live Stellar
+testnet contracts (issue #171):
+
+```bash
+cd invofi/apps/frontend
+npm run test:e2e
+```
+
+Supabase and the on-chain invoice read are stubbed with fixtures, so the suite
+needs no Supabase credentials. It also runs in CI on demand — see
+`.github/workflows/e2e.yml`.
+
+### Scripted on-chain flow
+
+A scripted `register → offer → accept` flow exercises the contract wiring
+against testnet with two seeded identities:
+
+```bash
+cd invofi/scripts
+E2E_ORIGINATOR_SECRET_KEY=… E2E_LENDER_SECRET_KEY=… npm run e2e:onchain
+```
+
+Both identities are auto-funded via Friendbot on testnet. See
+[CONTRIBUTING.md](./CONTRIBUTING.md#testing) for how to create them.
+
+---
+
 ## Roadmap
 
 - [x] Core invoice registry contract (register, offer, accept, reject, repay, overdue, reclaim)

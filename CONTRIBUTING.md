@@ -226,7 +226,47 @@ cd invofi/apps/frontend
 npm run type-check
 ```
 
-There is no frontend unit test suite yet. If you add one, use Vitest.
+### Frontend end-to-end (Playwright)
+
+The frontend has a Playwright smoke suite for the core user lifecycle (landing
+→ login/register, wallet-connect dialog, marketplace, invoice detail, print
+view):
+
+```bash
+cd invofi/apps/frontend
+npm run test:e2e
+```
+
+It runs against the live Stellar testnet contracts and stubs Supabase + the
+on-chain invoice read with fixtures, so no Supabase credentials are needed.
+There is no unit test suite yet — if you add one, use Vitest.
+
+### Scripted on-chain flow
+
+A scripted `register → offer → accept` flow runs against testnet with two
+seeded identities:
+
+```bash
+cd invofi/scripts
+E2E_ORIGINATOR_SECRET_KEY=… E2E_LENDER_SECRET_KEY=… npm run e2e:onchain
+```
+
+| Variable | Role |
+| --- | --- |
+| `E2E_ORIGINATOR_SECRET_KEY` | Business — registers the invoice and accepts the offer |
+| `E2E_LENDER_SECRET_KEY` | Lender — creates the offer, approves XLM, holds the position token |
+
+Both identities are auto-funded via Friendbot on testnet if missing, and the
+script asserts the invoice reaches `Financed` and the offer reaches `Accepted`.
+To create a fresh identity (a funded Stellar testnet secret key):
+
+```bash
+cd invofi/scripts
+node -e "console.log(require('@stellar/stellar-sdk').Keypair.random().secret())"
+```
+
+Never commit these secret keys — pass them as environment variables or GitHub
+Actions secrets.
 
 ---
 

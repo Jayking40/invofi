@@ -85,6 +85,23 @@ Lender-facing page listing all `Pending` invoices.
 - Grid of `MarketplaceCard` components
 - Each card links to the invoice detail page where lenders can submit offers
 
+### Position listings — `/marketplace/positions`
+
+Secondary-market discovery for position tokens ([ADR-0004](./adr/0004-position-token-listings.md)).
+Discovery only — InvoFi never escrows the token or the payment.
+
+- **Sell a position**: a lender picks one of their live positions (an
+  `Accepted`/`Financed` offer), sets the number of position tokens and an
+  asking price, and publishes a row in `position_listings`. A listing may not
+  exceed the position's principal (1 token = 1 base unit of principal).
+- **Your listings**: the seller's own rows in every status, with
+  "Settle: transfer" (hands off to `/portfolio` with the size prefilled),
+  "Mark settled", and "Withdraw".
+- **Open listings**: everyone else's asks — search by invoice reference or
+  seller, filter by asking currency, sort by price or size.
+- Settlement is a plain SEP-41 transfer the seller signs on `/portfolio`;
+  buyers are told to verify the seller's balance on-chain before paying.
+
 ### Portfolio — `/portfolio`
 
 Lender's investment tracker.
@@ -95,7 +112,9 @@ Lender's investment tracker.
   balance and lets them transfer it to any Stellar wallet in one signed
   transaction. Since POS is a Stellar asset, a missing trustline is detected
   and added with a one-click "Add POS trustline" button (changeTrust signed by
-  the connected wallet)
+  the connected wallet). This is also where a secondary-market sale settles: a
+  listing links here with `?amount=` prefilled, and the seller signs the
+  transfer themselves
 
 ### Forbidden — `/403`
 

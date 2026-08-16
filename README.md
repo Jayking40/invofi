@@ -93,6 +93,10 @@ npm install && npm run dev
 - Transparent partial repayment history on the Stellar blockchain
 - Receive a **SEP-41 position token** (POS) for every accepted offer and
   **transfer your position** to another wallet from your portfolio
+- **List a position for sale and browse everyone else's** on the secondary
+  board (`/marketplace/positions`) — asking price + invoice reference.
+  Discovery only: settlement is the same bilateral SEP-41 transfer, and
+  InvoFi never holds the token or the payment ([ADR-0004](./docs/adr/0004-position-token-listings.md))
 - Stake into the **insurance coverage pool** to back the protocol —
   and get **payout on default** up to the pool's balance
 - Screen borrowers by **on-chain reputation score** — one default outweighs
@@ -168,6 +172,7 @@ invofi/
 │           │   ├── dashboard/        Business invoice dashboard
 │           │   ├── invoices/         Create and view invoices
 │           │   ├── marketplace/      Lender invoice browser
+│           │   │   └── positions/    Secondary-market position listings
 │           │   ├── portfolio/        Lender investment tracker
 │           │   ├── profile/          User profile + display name
 │           │   └── settings/         Account settings
@@ -479,8 +484,9 @@ create policy "Own profile" on user_profiles for all using (id = auth.uid());
 
 The frontend ships a Playwright smoke suite that exercises the core user
 lifecycle — landing → login/register, the wallet-connect dialog, the
-marketplace, and the invoice detail + print views — against the live Stellar
-testnet contracts (issue #171):
+marketplace, the position-listings board (list / browse / withdraw), and the
+invoice detail + print views — against the live Stellar testnet contracts
+(issue #171):
 
 ```bash
 cd invofi/apps/frontend

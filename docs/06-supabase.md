@@ -69,11 +69,32 @@ create table financing_offers (
   created_at timestamptz default now()
 );
 
+-- Secondary-market position listings (ADR-0004) — discovery only.
+-- A row advertises a position token holder's intent to sell; the protocol
+-- never escrows the token or the payment. Settlement is a plain SEP-41
+-- transfer the seller signs, after which they mark the listing Settled.
+create table position_listings (
+  id uuid primary key default gen_random_uuid(),
+  seller text not null,                 -- Stellar public key holding the position
+  seller_id uuid references auth.users(id),
+  invoice_id text not null references invoices(id) on delete cascade,
+  offer_id text references financing_offers(id) on delete set null,
+  token_amount text not null,           -- position tokens offered, e.g. "1000.00"
+  asking_price text not null,           -- what the seller wants, e.g. "950.00"
+  price_currency text not null check (price_currency in ('XLM', 'USDC')),
+  status text not null default 'Open'
+    check (status in ('Open', 'Settled', 'Withdrawn')),
+  note text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
 -- ── Row Level Security ─────────────────────────────────────────────────────────
 
 alter table user_profiles enable row level security;
 alter table invoices enable row level security;
 alter table financing_offers enable row level security;
+alter table position_listings enable row level security;
 
 -- user_profiles: each user manages their own row
 create policy "own_profile_select" on user_profiles
@@ -110,6 +131,14 @@ create policy "offers_update" on financing_offers
     )
   );
 
+-- position_listings: anyone can read (discovery), only the seller writes
+create policy "listings_select" on position_listings
+  for select using (true);
+create policy "listings_insert" on position_listings
+  for insert with check (seller_id = auth.uid());
+create policy "listings_update" on position_listings
+  for update using (seller_id = auth.uid());
+
 -- ── Indexes ───────────────────────────────────────────────────────────────────
 
 create index invoices_originator_id_idx on invoices (originator_id);
@@ -117,6 +146,9 @@ create index invoices_status_idx on invoices (status);
 create index offers_invoice_id_idx on financing_offers (invoice_id);
 create index offers_lender_id_idx on financing_offers (lender_id);
 create index offers_status_idx on financing_offers (status);
+create index listings_status_idx on position_listings (status);
+create index listings_invoice_id_idx on position_listings (invoice_id);
+create index listings_seller_id_idx on position_listings (seller_id);
 ```
 
 ---
@@ -140,6 +172,7 @@ Re-enable this before going to mainnet.
 | `user_profiles` | User identity, role, linked wallet | Supabase (authoritative) |
 | `invoices` | Fast-read invoice list | Soroban contract (authoritative) |
 | `financing_offers` | Fast-read offer list | Soroban contract (authoritative) |
+| `position_listings` | Secondary-market asks for position tokens (discovery only) | Supabase (authoritative — a listing is an advertisement, not chain state) |
 
 The `invoices` and `financing_offers` tables are display caches. When a user performs an action (register invoice, submit offer, accept, repay), the frontend writes to both the Soroban contract and Supabase simultaneously. If the contract call fails, the Supabase write is skipped.
 

@@ -28,6 +28,7 @@ Last updated: August 2026. Checkbox status reflects what is merged to `main`
 - [x] Business dashboard, invoice creation, offer management
 - [x] Lender marketplace (browse Pending invoices, sorting)
 - [x] Lender portfolio with **remaining balance after partial repayments** + position-token trustline/transfer UI
+- [x] Secondary-market **position listings** — publish an ask (invoice reference, size, price) and browse the board at `/marketplace/positions`; discovery only, settlement stays a bilateral SEP-41 transfer ([ADR-0004](./adr/0004-position-token-listings.md))
 - [x] Public `/stats` page reading indexer aggregates
 - [x] `@invofi/sdk` — shared typed contract client consumed by the frontend
 - [x] Alpha / demo mode when no contract is configured
@@ -57,6 +58,6 @@ Last updated: August 2026. Checkbox status reflects what is merged to `main`
 ## Long-Range
 
 - [ ] Lender verification (threshold-based SEP-12 onboarding, Phase 4 of compliance.md)
-- [ ] Secondary-market browsing/discovery for position tokens (transfer already ships)
+- [ ] On-chain (event-sourced) position listings — the alternative deferred in ADR-0004, if listings ever need to be readable without InvoFi's frontend
 - [ ] Event-driven keeper (Soroban RPC event subscriptions instead of polling)
 - [ ] Historical time-series charts on `/stats`

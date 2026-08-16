@@ -14,6 +14,12 @@ mechanically from the git history.
 
 ### Added
 
+- **Secondary-market position listings** — `/marketplace/positions`: lenders
+  publish an ask (invoice reference, position size, asking price) and browse,
+  filter, and sort everyone else's. Discovery only — no matching, custody, or
+  fees; settlement stays a bilateral SEP-41 transfer. ADR-0004 plus a
+  compliance revisit (`docs/compliance.md` § 4.6) and a Playwright spec
+  covering list / browse / guard / withdraw
 - **Compliance posture** — `docs/compliance.md`: current status, phased
   SEP-12 KYC/AML roadmap, jurisdictions avoided at launch, and a
   securities-by-design analysis

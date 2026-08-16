@@ -91,6 +91,41 @@ export const SMOKE_INVOICES: MirrorInvoice[] = [
   },
 ];
 
+/** Shape of a position listing as stored in the Supabase mirror (ADR-0004). */
+export interface MirrorListing {
+  id: string;
+  seller: string;
+  seller_id: string | null;
+  invoice_id: string;
+  offer_id: string | null;
+  /** Human-unit decimal strings (mirror convention). */
+  token_amount: string;
+  asking_price: string;
+  price_currency: 'XLM' | 'USDC';
+  status: 'Open' | 'Settled' | 'Withdrawn';
+  note: string | null;
+  created_at: string;
+}
+
+/** Shape of a financing offer as stored in the Supabase mirror. */
+export interface MirrorOffer {
+  id: string;
+  invoice_id: string;
+  lender: string;
+  lender_id: string;
+  amount: string;
+  currency: 'XLM' | 'USDC';
+  interest_rate: number;
+  duration: number;
+  amount_repaid: string;
+  status: 'Pending' | 'Accepted' | 'Financed' | 'Rejected' | 'Repaid' | 'Defaulted';
+  funded_at: number;
+  created_at: string;
+}
+
+/** A second lender's account — the counterparty on the listings board. */
+export const OTHER_SELLER = 'GDNSSYSCSSJ76FER5WEEXME5G4MTCUBKDRQSKOYP36KUKVDB2VCMERS6';
+
 /** A Supabase user the app sees for the authenticated smoke flows. */
 export const SMOKE_USER = {
   id: '00000000-0000-4000-8000-0000000000e2',
@@ -102,6 +137,52 @@ export const SMOKE_USER = {
   user_metadata: { role: 'lender', display_name: 'E2E Lender' },
   created_at: '2026-08-01T00:00:00.000Z',
   updated_at: '2026-08-01T00:00:00.000Z',
+};
+
+/** Two open listings published by another lender — the discovery fixtures. */
+export const SMOKE_LISTINGS: MirrorListing[] = [
+  {
+    id: 'lst_smoke_1',
+    seller: OTHER_SELLER,
+    seller_id: '00000000-0000-4000-8000-00000000aaaa',
+    invoice_id: 'inv_smoke_market_1',
+    offer_id: 'off_smoke_1',
+    token_amount: '10000.00',
+    asking_price: '9500.00',
+    price_currency: 'XLM',
+    status: 'Open',
+    note: 'Exiting early, open to offers',
+    created_at: '2026-08-10T00:00:00.000Z',
+  },
+  {
+    id: 'lst_smoke_2',
+    seller: OTHER_SELLER,
+    seller_id: '00000000-0000-4000-8000-00000000aaaa',
+    invoice_id: 'inv_smoke_market_2',
+    offer_id: 'off_smoke_2',
+    token_amount: '2500000.00',
+    asking_price: '2400000.00',
+    price_currency: 'USDC',
+    status: 'Open',
+    note: null,
+    created_at: '2026-08-11T00:00:00.000Z',
+  },
+];
+
+/** A live position held by SMOKE_USER — the one they are allowed to list. */
+export const SMOKE_POSITION_OFFER: MirrorOffer = {
+  id: 'off_smoke_mine',
+  invoice_id: 'inv_smoke_market_1',
+  lender: ORIGINATOR,
+  lender_id: SMOKE_USER.id,
+  amount: '1000.00',
+  currency: 'USDC',
+  interest_rate: 500,
+  duration: 2_592_000,
+  amount_repaid: '0',
+  status: 'Financed',
+  funded_at: 1_770_000_000,
+  created_at: '2026-08-05T00:00:00.000Z',
 };
 
 // ── Session seeding ─────────────────────────────────────────────────────────
@@ -155,6 +236,63 @@ export async function mockSupabaseMirror(
   );
   await page.route('**/rest/v1/financing_offers**', (route) =>
     route.fulfill({ json: data.offers ?? [] }),
+  );
+}
+
+/**
+ * Stubs the `position_listings` table (ADR-0004) as a tiny in-memory store:
+ * GET returns the current rows, POST appends the inserted row and returns it
+ * (matching `.insert().select().single()`), PATCH updates the row named by the
+ * `id=eq.<id>` filter. The returned handle exposes what the app actually sent,
+ * so tests can assert on the real request bodies.
+ */
+export interface ListingStore {
+  rows: MirrorListing[];
+  inserted: Record<string, unknown>[];
+  updated: { id: string; body: Record<string, unknown> }[];
+}
+
+export async function mockPositionListings(
+  page: Page,
+  initial: MirrorListing[] = [],
+): Promise<ListingStore> {
+  const store: ListingStore = { rows: [...initial], inserted: [], updated: [] };
+
+  await page.route('**/rest/v1/position_listings**', async (route) => {
+    const request = route.request();
+    const method = request.method();
+
+    if (method === 'POST') {
+      const body = (request.postDataJSON() ?? {}) as Record<string, unknown>;
+      store.inserted.push(body);
+      const row = {
+        id: `lst_e2e_${store.inserted.length}`,
+        created_at: new Date().toISOString(),
+        ...body,
+      } as unknown as MirrorListing;
+      store.rows = [row, ...store.rows];
+      return route.fulfill({ status: 201, json: row });
+    }
+
+    if (method === 'PATCH') {
+      const id = new URL(request.url()).searchParams.get('id')?.replace('eq.', '') ?? '';
+      const body = (request.postDataJSON() ?? {}) as Record<string, unknown>;
+      store.updated.push({ id, body });
+      store.rows = store.rows.map((r) => (r.id === id ? ({ ...r, ...body } as MirrorListing) : r));
+      const row = store.rows.find((r) => r.id === id) ?? null;
+      return route.fulfill({ json: row });
+    }
+
+    return route.fulfill({ json: store.rows });
+  });
+
+  return store;
+}
+
+/** Stubs the profile read the listing form uses to find the seller's wallet. */
+export async function mockUserProfile(page: Page, walletAddress: string | null): Promise<void> {
+  await page.route('**/rest/v1/user_profiles**', (route) =>
+    route.fulfill({ json: { wallet_address: walletAddress } }),
   );
 }
 

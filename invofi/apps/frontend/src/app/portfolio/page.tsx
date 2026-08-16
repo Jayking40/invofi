@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { TrendingUp, Clock, CheckCircle2, AlertCircle, Download, Copy, Check, Send, RefreshCw } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { TrendingUp, Clock, CheckCircle2, AlertCircle, Download, Copy, Check, Send, RefreshCw, Tag } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -54,10 +55,20 @@ function isStellarAddress(addr: string): boolean {
  * Task 8: transfer a financed-invoice position token to another wallet.
  * The token is a standard SEP-41 Stellar asset contract minted to the lender
  * on offer acceptance (1 token = 1 base unit of principal — ADR-0002).
+ *
+ * This is also where a secondary-market sale settles: a listing on the
+ * position board (ADR-0004) links here with `?amount=` prefilled, and the
+ * seller signs the transfer themselves. The board never mediates it.
  */
 function TransferPositionCard() {
   const { publicKey } = useWallet();
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+  // Amount handed over by a position listing; ignored unless well-formed.
+  const [prefilledAmount] = useState(() => {
+    const raw = searchParams.get('amount') ?? '';
+    return /^\d+(\.\d{1,7})?$/.test(raw) ? raw : '';
+  });
   const [tokenId, setTokenId] = useState<string | null>(null);
   const [decimals, setDecimals] = useState(7);
   const [balance, setBalance] = useState<bigint | null>(null);
@@ -65,7 +76,7 @@ function TransferPositionCard() {
   const [addingTrustline, setAddingTrustline] = useState(false);
   const [loading, setLoading] = useState(true);
   const [recipient, setRecipient] = useState('');
-  const [amount, setAmount] = useState('');
+  const [amount, setAmount] = useState(prefilledAmount);
   const [busy, setBusy] = useState(false);
 
   const refresh = useCallback(async () => {
@@ -158,7 +169,7 @@ function TransferPositionCard() {
     balance === null ? '—' : (Number(balance) / 10 ** decimals).toFixed(decimals > 7 ? 7 : decimals);
 
   return (
-    <Card className="mt-8">
+    <Card className="mt-8" id="transfer">
       <CardContent className="pt-5">
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2">
@@ -169,10 +180,24 @@ function TransferPositionCard() {
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground mb-4">
+        <p className="text-xs text-muted-foreground mb-2">
           Position tokens represent your claim on financed invoices (1 token = 1 base unit of
           principal). Send them to another Stellar wallet to transfer the position.
         </p>
+        <p className="text-xs text-muted-foreground mb-4">
+          <Tag className="inline h-3 w-3 mr-1" />
+          Looking for a buyer?{' '}
+          <Link href="/marketplace/positions" className="text-blue-600 hover:underline">
+            List the position on the secondary board
+          </Link>{' '}
+          — settlement still happens here, with this transfer.
+        </p>
+        {prefilledAmount && (
+          <p className="text-xs text-blue-600 mb-4" role="status">
+            Amount prefilled from your listing ({prefilledAmount} tokens). Enter the buyer&apos;s
+            address to settle.
+          </p>
+        )}
 
         {!publicKey ? (
           <p className="text-sm text-muted-foreground">Connect a wallet to view and transfer positions.</p>
@@ -434,7 +459,10 @@ export default function PortfolioPage() {
           })}
         </div>
 
-        <TransferPositionCard />
+        {/* useSearchParams (the listing hand-off prefill) needs a Suspense boundary. */}
+        <Suspense fallback={null}>
+          <TransferPositionCard />
+        </Suspense>
       </div>
     </AuthGuard>
   );

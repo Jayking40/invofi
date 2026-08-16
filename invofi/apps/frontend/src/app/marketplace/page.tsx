@@ -5,6 +5,7 @@ import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { MarketplaceCard } from '@/components/marketplace/MarketplaceCard';
+import { MarketplaceTabs } from '@/components/marketplace/MarketplaceTabs';
 import { CardSkeleton } from '@/components/common/LoadingSkeleton';
 import { supabase } from '@/lib/supabase';
 import type { Currency, Invoice, InvoiceStatus } from '@/types';
@@ -69,12 +70,14 @@ export default function MarketplacePage() {
   return (
     <AuthGuard>
       <div className="max-w-5xl mx-auto px-4 py-8">
-        <div className="mb-8">
+        <div className="mb-6">
           <h1 className="text-2xl font-bold text-foreground">Invoice Marketplace</h1>
           <p className="text-muted-foreground text-sm mt-1">
             Browse invoices available for financing and submit offers to earn yield.
           </p>
         </div>
+
+        <MarketplaceTabs />
 
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-3 mb-6">

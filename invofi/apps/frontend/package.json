@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "next": "14.2.35",
@@ -49,6 +50,7 @@
     "autoprefixer": "^10.4.20",
     "postcss": "^8.5.26",
     "eslint": "^8.57.1",
-    "eslint-config-next": "14.2.35"
+    "eslint-config-next": "14.2.35",
+    "@playwright/test": "^1.49.1"
   }
 }

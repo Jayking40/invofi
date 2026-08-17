@@ -595,6 +595,13 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                 </a>
             </td>
             <td align="center">
+                <a href="https://github.com/Aycode01">
+                    <img src="https://avatars.githubusercontent.com/u/145759024?v=4" width="100;" alt="Aycode01"/>
+                    <br />
+                    <sub><b>Omitogun Ayobami</b></sub>
+                </a>
+            </td>
+            <td align="center">
                 <a href="https://github.com/Fury03">
                     <img src="https://avatars.githubusercontent.com/u/98775983?v=4" width="100;" alt="Fury03"/>
                     <br />
@@ -608,6 +615,8 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                     <sub><b>Pavel</b></sub>
                 </a>
             </td>
+		</tr>
+		<tr>
             <td align="center">
                 <a href="https://github.com/Meet-hybrid">
                     <img src="https://avatars.githubusercontent.com/u/231819661?v=4" width="100;" alt="Meet-hybrid"/>
@@ -615,13 +624,18 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                     <sub><b>Philip Michael</b></sub>
                 </a>
             </td>
-		</tr>
-		<tr>
             <td align="center">
                 <a href="https://github.com/RawNuke">
                     <img src="https://avatars.githubusercontent.com/u/67506722?v=4" width="100;" alt="RawNuke"/>
                     <br />
                     <sub><b>Raw_Nuke</b></sub>
+                </a>
+            </td>
+            <td align="center">
+                <a href="https://github.com/retkatmun">
+                    <img src="https://avatars.githubusercontent.com/u/153809730?v=4" width="100;" alt="retkatmun"/>
+                    <br />
+                    <sub><b>scholar</b></sub>
                 </a>
             </td>
             <td align="center">

@@ -69,9 +69,11 @@ jobs:
       PR_NUMBER: ${{ github.event.pull_request.number }}
       INPUT_PR: ${{ inputs.pr }}
       # Job names (check-run names) that must pass before auto-merge.
+      # NOTE: "Frontend / Unit Tests" (added by PR #209) is intentionally
+      # NOT listed here yet — the job only exists once that PR lands on
+      # main. Add it here after #209 merges.
       REQUIRED_CHECKS: |-
         Frontend / Lint & Type Check
-        Frontend / Unit Tests
         Frontend / Build
         Conventional Commits
       # Top-level path prefixes PRs normally touch. Files outside these

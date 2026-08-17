@@ -595,6 +595,13 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                 </a>
             </td>
             <td align="center">
+                <a href="https://github.com/Fury03">
+                    <img src="https://avatars.githubusercontent.com/u/98775983?v=4" width="100;" alt="Fury03"/>
+                    <br />
+                    <sub><b>Damilola Ogunrotimi</b></sub>
+                </a>
+            </td>
+            <td align="center">
                 <a href="https://github.com/Pavel-glitch-ui">
                     <img src="https://avatars.githubusercontent.com/u/208336145?v=4" width="100;" alt="Pavel-glitch-ui"/>
                     <br />
@@ -608,6 +615,8 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                     <sub><b>Philip Michael</b></sub>
                 </a>
             </td>
+		</tr>
+		<tr>
             <td align="center">
                 <a href="https://github.com/RawNuke">
                     <img src="https://avatars.githubusercontent.com/u/67506722?v=4" width="100;" alt="RawNuke"/>
@@ -615,8 +624,6 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                     <sub><b>Raw_Nuke</b></sub>
                 </a>
             </td>
-		</tr>
-		<tr>
             <td align="center">
                 <a href="https://github.com/Jah-yee">
                     <img src="https://avatars.githubusercontent.com/u/166608075?v=4" width="100;" alt="Jah-yee"/>

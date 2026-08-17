@@ -75,9 +75,12 @@ export default function InvoicePrintView() {
   return (
     <>
       {/* ── Print / screen styles ─────────────────────────────────────────── */}
+      {/*
+        Note: no @import of Google Fonts here — Inter is already self-hosted
+        by next/font (root layout) and served from this origin, so the print
+        view keeps a strict, third-party-free CSP (issue #186).
+      */}
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
         *, *::before, *::after { box-sizing: border-box; }
 
         body {

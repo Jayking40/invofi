@@ -7,8 +7,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "next lint && node scripts/localstorage-secrets-guard.mjs",
     "type-check": "tsc --noEmit",
+    "test": "vitest run",
     "test:e2e": "playwright test"
   },
   "dependencies": {
@@ -51,6 +52,7 @@
     "postcss": "^8.5.26",
     "eslint": "^8.57.1",
     "eslint-config-next": "14.2.35",
-    "@playwright/test": "^1.49.1"
+    "@playwright/test": "^1.49.1",
+    "vitest": "^2.1.9"
   }
 }

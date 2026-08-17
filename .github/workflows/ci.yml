@@ -26,6 +26,8 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run type-check
+      # Unit tests — includes the localStorage secret guard tests (issue #187).
+      - run: npm test
 
   frontend-build:
     name: Frontend / Build

@@ -39,6 +39,50 @@ function networkMismatchFor(walletNet: string | null): boolean {
   return n !== EXPECTED_NETWORK;
 }
 
+/**
+ * Persistent "last wallet" choice (issue #187): the only wallet state allowed
+ * in localStorage is the *public address* — never a key, seed, or signature.
+ * The stored entry is a hint that lets a returning user reconnect to the
+ * wallet they chose last time without probing every installed wallet first.
+ */
+interface LastWalletEntry {
+  walletId: string;
+  publicKey: string;
+}
+
+const LAST_WALLET_STORAGE_KEY = 'invofi:last-wallet';
+
+function readLastWallet(): LastWalletEntry | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(LAST_WALLET_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<LastWalletEntry>;
+    if (
+      typeof parsed.walletId === 'string' &&
+      typeof parsed.publicKey === 'string' &&
+      parsed.publicKey.startsWith('G') // Stellar public addresses start with G
+    ) {
+      return { walletId: parsed.walletId, publicKey: parsed.publicKey };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function persistLastWallet(walletId: string, publicKey: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(
+      LAST_WALLET_STORAGE_KEY,
+      JSON.stringify({ walletId, publicKey } satisfies LastWalletEntry),
+    );
+  } catch {
+    // private mode or quota exceeded — persistence is best-effort
+  }
+}
+
 export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [isCheckingWallet, setIsCheckingWallet] = useState(true);
   const [state, setState] = useState<WalletState>({
@@ -50,19 +94,51 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     networkMismatch: false,
   });
 
+  /**
+   * Attempts to restore a previously-granted wallet session (Freighter returns
+   * the address without prompting when already allowed; others may too).
+   * Returns true when a connection was restored. Never throws — a wallet that
+   * has not been granted access yet simply yields false so the caller can try
+   * the next candidate.
+   */
+  const tryRestoreWallet = useCallback(async (walletId: string): Promise<boolean> => {
+    try {
+      StellarWalletsKit.setWallet(walletId);
+      const { address } = await StellarWalletsKit.fetchAddress();
+      if (!address) return false;
+      const net = await probeWalletNetwork(walletId);
+      setActiveWallet(walletId);
+      persistLastWallet(walletId, address);
+      setState({
+        publicKey: address,
+        walletId,
+        isConnected: true,
+        isConnecting: false,
+        isInstalled: true,
+        networkMismatch: networkMismatchFor(net),
+      });
+      // Ensure a Supabase session exists for the restored wallet connection.
+      await signInWithWallet(address).catch(() => { });
+      setIsCheckingWallet(false);
+      return true;
+    } catch {
+      // Wallet not granted yet — the caller tries the next candidate.
+      return false;
+    }
+  }, []);
+
   useEffect(() => {
     initWalletKit();
 
     (async () => {
-      let anyInstalled = false;
+      const installed = new Set<string>();
       for (const w of APPROVED_WALLETS) {
         if (await w.isInstalled()) {
-          anyInstalled = true;
-          break;
+          installed.add(w.id);
         }
       }
 
-      if (!anyInstalled) {
+      if (installed.size === 0) {
         setState(s => ({ ...s, isInstalled: false }));
         setIsCheckingWallet(false);
         return;
@@ -70,36 +146,21 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
       setState(s => ({ ...s, isInstalled: true }));
 
-      // Restore any previously-granted wallet session (Freighter returns the
-      // address without prompting when already allowed; others may too).
+      // Prefer the last-connected wallet so returning users reconnect to the
+      // wallet they chose last time; fall back to probing every approved
+      // wallet for a previously-granted session.
+      const lastWallet = readLastWallet();
+      if (lastWallet && installed.has(lastWallet.walletId)) {
+        if (await tryRestoreWallet(lastWallet.walletId)) return;
+      }
       for (const w of APPROVED_WALLETS) {
-        try {
-          if (!(await w.isInstalled())) continue;
-          StellarWalletsKit.setWallet(w.id);
-          const { address } = await StellarWalletsKit.fetchAddress();
-          if (!address) continue;
-          const net = await probeWalletNetwork(w.id);
-          setActiveWallet(w.id);
-          setState({
-            publicKey: address,
-            walletId: w.id,
-            isConnected: true,
-            isConnecting: false,
-            isInstalled: true,
-            networkMismatch: networkMismatchFor(net),
-          });
-          // Ensure a Supabase session exists for the restored wallet connection.
-          await signInWithWallet(address).catch(() => { });
-          setIsCheckingWallet(false);
-          return;
-        } catch {
-          // Wallet not granted yet — try the next approved wallet.
-        }
+        if (!installed.has(w.id)) continue;
+        if (await tryRestoreWallet(w.id)) return;
       }
 
       setIsCheckingWallet(false);
     })();
-  }, []);
+  }, [tryRestoreWallet]);
 
   const connect = useCallback(async (walletId: string): Promise<string> => {
     setState(s => ({ ...s, isConnecting: true }));
@@ -109,6 +170,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       const address = result.address;
       const net = await probeWalletNetwork(walletId);
       setActiveWallet(walletId);
+      persistLastWallet(walletId, address);
       setState({
         publicKey: address,
         walletId,

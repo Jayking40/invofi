@@ -1,0 +1,35 @@
+name: merge-diag
+
+# TEMPORARY diagnostic — remove after testing. Tests whether the plain
+# GITHUB_TOKEN can merge a PR in this repo (the auto-merge bot's core
+# operation keeps failing here).
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: 'PR number to attempt merging'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Attempt merge with GITHUB_TOKEN
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR="${{ inputs.pr }}"
+          echo "--- gh api user ---"
+          gh api user --jq .login 2>&1 | head -3 || true
+          echo "--- mergeStateStatus ---"
+          gh pr view "$PR" --json mergeable,mergeStateStatus,state \
+            -q '{mergeable,mergeStateStatus,state}' 2>&1 | head -5 || true
+          echo "--- gh pr merge --merge ---"
+          gh pr merge "$PR" --merge 2>&1 | head -5
+          echo "merge exit=$?"

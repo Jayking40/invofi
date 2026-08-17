@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "next lint && node scripts/localstorage-secrets-guard.mjs",
     "type-check": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --coverage",
     "test:e2e": "playwright test"
   },
   "dependencies": {
@@ -53,6 +53,10 @@
     "eslint": "^8.57.1",
     "eslint-config-next": "14.2.35",
     "@playwright/test": "^1.49.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@vitest/coverage-v8": "^2.1.9",
+    "jsdom": "^26.1.0",
     "vitest": "^2.1.9"
   }
 }

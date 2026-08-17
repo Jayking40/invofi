@@ -1,127 +1,101 @@
 import Link from 'next/link';
+import { getTranslations } from 'next-intl/server';
 import {
   ArrowRight, FileText, TrendingUp, Zap,
   Building2, Wallet, CheckCircle, Clock, Globe, Lock, ChevronDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-const STATS = [
-  { label: 'Total Invoices Financed', value: '124' },
-  { label: 'Total Volume', value: '$2.4M' },
-  { label: 'Active Lenders', value: '340' },
-  { label: 'Avg. Interest Rate', value: '8.5%' },
-];
+export default async function LandingPage() {
+  const t = await getTranslations('Landing');
 
-const HOW_IT_WORKS = [
-  {
-    step: '01',
-    icon: FileText,
-    title: 'Register Your Invoice',
-    description:
-      'Connect your Stellar wallet, fill in the invoice details — amount, currency, due date — and mint it as a Soroban on-chain asset in seconds.',
-  },
-  {
-    step: '02',
-    icon: TrendingUp,
-    title: 'Lenders Compete',
-    description:
-      'Your invoice appears in the live marketplace. Investors worldwide submit competing offers with their own rates and durations. You pick the best one.',
-  },
-  {
-    step: '03',
-    icon: Zap,
-    title: 'Receive Funds & Repay',
-    description:
-      "Accept the best offer — the smart contract transfers the principal to your wallet instantly. Repay in full or partially at your own pace.",
-  },
-];
+  const STATS = [
+    { label: t('stats.totalInvoices'), value: '124' },
+    { label: t('stats.totalVolume'), value: '$2.4M' },
+    { label: t('stats.activeLenders'), value: '340' },
+    { label: t('stats.avgInterestRate'), value: '8.5%' },
+  ];
 
-const FOR_BUSINESSES = [
-  'Instant liquidity — funds in your wallet within minutes of accepting an offer',
-  'No bank account, credit score, or collateral required',
-  'Partial repayment support — pay back on your schedule',
-  'Global lender competition drives your interest rate down',
-  'Full transparency — every offer and repayment recorded on-chain',
-];
+  const HOW_IT_WORKS = [
+    {
+      step: '01',
+      icon: FileText,
+      title: t('howItWorks.step1Title'),
+      description: t('howItWorks.step1Desc'),
+    },
+    {
+      step: '02',
+      icon: TrendingUp,
+      title: t('howItWorks.step2Title'),
+      description: t('howItWorks.step2Desc'),
+    },
+    {
+      step: '03',
+      icon: Zap,
+      title: t('howItWorks.step3Title'),
+      description: t('howItWorks.step3Desc'),
+    },
+  ];
 
-const FOR_LENDERS = [
-  'Earn predictable yield on real-world trade finance — not speculation',
-  'Browse and filter invoices by amount, currency, and due date',
-  'Smart contract enforces all terms — no intermediary risk',
-  'Partial repayments tracked on-chain — always know your exposure',
-  'Portfolio dashboard shows active positions, yields, and history',
-];
+  const FOR_BUSINESSES = [
+    t('features.businessPoint1'),
+    t('features.businessPoint2'),
+    t('features.businessPoint3'),
+    t('features.businessPoint4'),
+    t('features.businessPoint5'),
+  ];
 
-const ASSETS = [
-  {
-    symbol: 'XLM',
-    name: 'Stellar Lumens',
-    gradient: 'from-violet-500 to-purple-600',
-    description:
-      'The native asset of the Stellar network. Zero custody risk, sub-cent fees, 5-second finality.',
-  },
-  {
-    symbol: 'USDC',
-    name: 'USD Coin',
-    gradient: 'from-blue-400 to-blue-600',
-    description:
-      "Circle's fully-reserved stablecoin on Stellar via SEP-41. Eliminate FX risk for USD-denominated invoices.",
-  },
-];
+  const FOR_LENDERS = [
+    t('features.lenderPoint1'),
+    t('features.lenderPoint2'),
+    t('features.lenderPoint3'),
+    t('features.lenderPoint4'),
+    t('features.lenderPoint5'),
+  ];
 
-const STELLAR_PROPS = [
-  {
-    icon: Clock,
-    title: '5-Second Finality',
-    description:
-      'Stellar confirms transactions in seconds — funds are truly final, not "pending".',
-  },
-  {
-    icon: Lock,
-    title: 'Soroban Smart Contracts',
-    description:
-      'Purpose-built for DeFi. Deterministic, auditable, and efficient — no runaway gas costs.',
-  },
-  {
-    icon: Globe,
-    title: 'Global & Permissionless',
-    description:
-      'Anyone with a Stellar wallet can participate. No geography, no gatekeepers.',
-  },
-];
+  const ASSETS = [
+    {
+      symbol: 'XLM',
+      name: 'Stellar Lumens',
+      gradient: 'from-violet-500 to-purple-600',
+      description: t('assets.xlmDesc'),
+    },
+    {
+      symbol: 'USDC',
+      name: 'USD Coin',
+      gradient: 'from-blue-400 to-blue-600',
+      description: t('assets.usdcDesc'),
+    },
+  ];
 
-const FAQS = [
-  {
-    q: 'Do I need a bank account?',
-    a: 'No. All you need is a Stellar wallet — InvoFi supports both Freighter and LOBSTR. There is no KYC, no bank account, and no credit check required to use InvoFi.',
-  },
-  {
-    q: 'Which wallets are supported?',
-    a: 'InvoFi supports Freighter (browser extension — freighter.app) and LOBSTR (mobile + browser extension — lobstr.co). When you click "Connect Wallet" you can choose either. More wallets may be added as the Stellar ecosystem grows.',
-  },
-  {
-    q: 'How does the lender get their money back?',
-    a: 'The business repays through the smart contract, which transfers funds directly to the lender\'s wallet. Partial repayments are supported — the offer tracks amount_repaid on-chain until the full balance (principal + yield) is cleared.',
-  },
-  {
-    q: 'What happens if the business never repays?',
-    a: 'After a 7-day grace period following the due date, the lender can call reclaim_invoice. This marks the offer as Defaulted on-chain. InvoFi does not hold collateral — the on-chain default record is a permanent, transparent signal to the network.',
-  },
-  {
-    q: 'What currencies are supported?',
-    a: "Currently XLM (Stellar Lumens) and USDC (Circle's stablecoin on Stellar). More SEP-41 tokens will be added as the protocol grows.",
-  },
-  {
-    q: 'Is the contract audited?',
-    a: 'The contract is open source and live on Stellar Testnet. A formal third-party audit is on the roadmap before mainnet launch. Read the full source on GitHub.',
-  },
-  {
-    q: 'How do I start as a lender?',
-    a: 'Create an account, choose the Lender role, connect your Stellar wallet (Freighter or LOBSTR), and go to the Marketplace. Browse open invoices and submit a financing offer with your desired rate and duration.',
-  },
-];
+  const STELLAR_PROPS = [
+    {
+      icon: Clock,
+      title: t('stellar.finalityTitle'),
+      description: t('stellar.finalityDesc'),
+    },
+    {
+      icon: Lock,
+      title: t('stellar.sorobanTitle'),
+      description: t('stellar.sorobanDesc'),
+    },
+    {
+      icon: Globe,
+      title: t('stellar.globalTitle'),
+      description: t('stellar.globalDesc'),
+    },
+  ];
 
-export default function LandingPage() {
+  const FAQS = [
+    { q: t('faq.q1'), a: t('faq.a1') },
+    { q: t('faq.q2'), a: t('faq.a2') },
+    { q: t('faq.q3'), a: t('faq.a3') },
+    { q: t('faq.q4'), a: t('faq.a4') },
+    { q: t('faq.q5'), a: t('faq.a5') },
+    { q: t('faq.q6'), a: t('faq.a6') },
+    { q: t('faq.q7'), a: t('faq.a7') },
+  ];
+
   return (
     <div className="min-h-screen bg-background text-foreground">
 
@@ -130,19 +104,17 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 text-sm mb-8">
             <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-            Live on Stellar Testnet
+            {t('hero.liveOnTestnet')}
           </div>
 
           <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-6">
-            Invoice Financing,
+            {t('hero.titlePart1')}
             <br />
-            <span className="text-blue-200">On-Chain.</span>
+            <span className="text-blue-200">{t('hero.titlePart2')}</span>
           </h1>
 
           <p className="text-xl text-blue-100 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Businesses tokenize unpaid invoices as Soroban assets and get immediate
-            liquidity. Investors earn yield by financing real-world receivables —
-            trustlessly.
+            {t('hero.description')}
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -152,7 +124,7 @@ export default function LandingPage() {
               className="bg-white text-blue-700 hover:bg-blue-50 font-semibold"
             >
               <Link href="/auth/register">
-                Get Started <ArrowRight className="ml-2 h-4 w-4" />
+                {t('hero.getStarted')} <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
 
@@ -162,7 +134,7 @@ export default function LandingPage() {
               size="lg"
               className="border-white text-white bg-white/10 hover:bg-white/20"
             >
-              <Link href="/marketplace">Browse Marketplace</Link>
+              <Link href="/marketplace">{t('hero.browseMarketplace')}</Link>
             </Button>
           </div>
         </div>
@@ -184,10 +156,10 @@ export default function LandingPage() {
       <section className="py-24 px-4 bg-muted">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-3xl font-bold text-center text-foreground mb-4">
-            How InvoFi Works
+            {t('howItWorks.title')}
           </h2>
           <p className="text-center text-muted-foreground mb-16 max-w-xl mx-auto">
-            Three steps from unpaid invoice to funded wallet — all on-chain, all trustless.
+            {t('howItWorks.subtitle')}
           </p>
 
           <div className="grid md:grid-cols-3 gap-10">
@@ -200,7 +172,7 @@ export default function LandingPage() {
                   <item.icon className="h-7 w-7 text-white" />
                 </div>
                 <span className="text-xs font-mono font-bold tracking-widest text-blue-500 uppercase mb-2">
-                  Step {item.step}
+                  {t('howItWorks.stepLabel', { step: item.step })}
                 </span>
                 <h3 className="text-lg font-semibold text-foreground mb-3">{item.title}</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed">{item.description}</p>
@@ -214,7 +186,7 @@ export default function LandingPage() {
       <section className="py-24 px-4 bg-background">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-3xl font-bold text-center text-foreground mb-16">
-            Built for Both Sides
+            {t('features.title')}
           </h2>
 
           <div className="grid md:grid-cols-2 gap-8">
@@ -222,9 +194,9 @@ export default function LandingPage() {
               <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-950 flex items-center justify-center mb-6 shrink-0">
                 <Building2 className="h-6 w-6 text-blue-600" />
               </div>
-              <h3 className="text-xl font-bold text-card-foreground mb-2">For Businesses</h3>
+              <h3 className="text-xl font-bold text-card-foreground mb-2">{t('features.forBusinesses')}</h3>
               <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
-                Turn unpaid invoices into immediate working capital — without giving up equity or waiting 90 days.
+                {t('features.forBusinessesDesc')}
               </p>
               <ul className="space-y-3 flex-1">
                 {FOR_BUSINESSES.map((point) => (
@@ -236,7 +208,7 @@ export default function LandingPage() {
               </ul>
               <Button asChild className="mt-8 w-full">
                 <Link href="/auth/register?role=business">
-                  Register an Invoice <ArrowRight className="ml-2 h-4 w-4" />
+                  {t('features.registerInvoiceBtn')} <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
             </div>
@@ -245,9 +217,9 @@ export default function LandingPage() {
               <div className="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-950 flex items-center justify-center mb-6 shrink-0">
                 <Wallet className="h-6 w-6 text-indigo-600" />
               </div>
-              <h3 className="text-xl font-bold text-card-foreground mb-2">For Lenders</h3>
+              <h3 className="text-xl font-bold text-card-foreground mb-2">{t('features.forLenders')}</h3>
               <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
-                Earn predictable yield on real-world trade finance. Your terms, your rate, your risk appetite.
+                {t('features.forLendersDesc')}
               </p>
               <ul className="space-y-3 flex-1">
                 {FOR_LENDERS.map((point) => (
@@ -259,7 +231,7 @@ export default function LandingPage() {
               </ul>
               <Button asChild variant="outline" className="mt-8 w-full">
                 <Link href="/marketplace">
-                  Browse Marketplace <ArrowRight className="ml-2 h-4 w-4" />
+                  {t('hero.browseMarketplace')} <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
             </div>
@@ -270,9 +242,9 @@ export default function LandingPage() {
       {/* ── Supported Assets ── */}
       <section className="py-24 px-4 bg-muted">
         <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl font-bold text-foreground mb-4">Supported Assets</h2>
+          <h2 className="text-3xl font-bold text-foreground mb-4">{t('assets.title')}</h2>
           <p className="text-muted-foreground mb-12 max-w-md mx-auto">
-            Invoices and financing offers can be denominated in any supported Stellar asset.
+            {t('assets.subtitle')}
           </p>
 
           <div className="grid sm:grid-cols-2 gap-6">
@@ -301,12 +273,11 @@ export default function LandingPage() {
       <section className="py-24 px-4 bg-gradient-to-br from-indigo-900 to-blue-900 text-white">
         <div className="max-w-5xl mx-auto text-center">
           <div className="inline-block bg-white/10 border border-white/20 rounded-full px-4 py-1 text-sm mb-6">
-            Powered by Stellar
+            {t('stellar.poweredBy')}
           </div>
-          <h2 className="text-3xl font-bold mb-4">Why We Build on Stellar</h2>
+          <h2 className="text-3xl font-bold mb-4">{t('stellar.title')}</h2>
           <p className="text-blue-200 mb-16 max-w-xl mx-auto">
-            Stellar was purpose-built for financial applications. Soroban brings smart contracts
-            that are deterministic, cheap to run, and designed to move real money.
+            {t('stellar.subtitle')}
           </p>
 
           <div className="grid md:grid-cols-3 gap-6">
@@ -330,7 +301,7 @@ export default function LandingPage() {
       <section className="py-24 px-4 bg-background">
         <div className="max-w-2xl mx-auto">
           <h2 className="text-3xl font-bold text-center text-foreground mb-12">
-            Frequently Asked Questions
+            {t('faq.title')}
           </h2>
 
           <div className="divide-y divide-border">
@@ -349,17 +320,17 @@ export default function LandingPage() {
 
       {/* ── CTA ── */}
       <section className="py-20 px-4 bg-muted text-center">
-        <h2 className="text-3xl font-bold text-foreground mb-4">Ready to get started?</h2>
+        <h2 className="text-3xl font-bold text-foreground mb-4">{t('cta.title')}</h2>
         <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-          Connect your Stellar wallet or create an account — no bank, no broker, no wait.
+          {t('cta.subtitle')}
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Button asChild size="lg">
-            <Link href="/auth/register?role=business">I&apos;m a Business</Link>
+            <Link href="/auth/register?role=business">{t('cta.imBusinessBtn')}</Link>
           </Button>
           <Button asChild variant="outline" size="lg">
-            <Link href="/auth/register?role=lender">I&apos;m a Lender</Link>
+            <Link href="/auth/register?role=lender">{t('cta.imLenderBtn')}</Link>
           </Button>
         </div>
       </section>

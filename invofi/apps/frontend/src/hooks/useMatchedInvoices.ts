@@ -47,8 +47,13 @@ async function fetchOriginatorHistory(): Promise<Map<string, OriginatorHistory>>
   const map = new Map<string, OriginatorHistory>();
 
   for (const row of data ?? []) {
-    // Supabase returns the joined row as `invoices: { originator }` (object)
-    const inv = row.invoices as { originator: string } | null;
+    // Supabase may return the joined relation as an object OR an array depending
+    // on the inferred type. Normalise to a single object either way.
+    const rawInv = row.invoices as
+      | { originator: string }
+      | { originator: string }[]
+      | null;
+    const inv = Array.isArray(rawInv) ? (rawInv[0] ?? null) : rawInv;
     if (!inv?.originator) continue;
 
     const addr = inv.originator;

@@ -618,6 +618,13 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
 		</tr>
 		<tr>
             <td align="center">
+                <a href="https://github.com/Jayking40">
+                    <img src="https://avatars.githubusercontent.com/u/101714779?v=4" width="100;" alt="Jayking40"/>
+                    <br />
+                    <sub><b>joseph okoronkwo</b></sub>
+                </a>
+            </td>
+            <td align="center">
                 <a href="https://github.com/Pavel-glitch-ui">
                     <img src="https://avatars.githubusercontent.com/u/208336145?v=4" width="100;" alt="Pavel-glitch-ui"/>
                     <br />

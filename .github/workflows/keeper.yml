@@ -1,16 +1,18 @@
 name: keeper
 
-# InvoFi keeper automation (Task 12).
-# Runs every 6 hours against the live testnet deployment:
+# InvoFi keeper automation (Task 12 & Event-driven upgrade).
+# Runs against the live testnet deployment:
+#   - reacts to inv_reg / off_acc contract events
 #   - marks Financed invoices overdue once their due_date passes
 #   - best-effort TTL extension for active invoice storage
+#   - retains full-sweep fallback
 # See invofi/scripts/keeper.ts for details and env var docs.
 #
 # Required repo configuration (once):
 #   Secret:  KEEPER_SECRET_KEY  — secret key of a funded testnet account that
 #                                 pays transaction fees. Ask in the repo's
 #                                 issues if you need a funded key.
-#   Variable: REGISTRY_CONTRACT_ID, REPAYMENT_CONTRACT_ID — override the
+#   Variable: REGISTRY_CONTRACT_ID, REPAYMENT_CONTRACT_ID, FINANCING_CONTRACT_ID — override the
 #             defaults below if you deployed your own contract set.
 
 on:
@@ -46,5 +48,6 @@ jobs:
           NETWORK_PASSPHRASE: Test SDF Network ; September 2015
           REGISTRY_CONTRACT_ID: ${{ vars.REGISTRY_CONTRACT_ID || 'CAXNTWSKDVSB3GPJMU3RTSDTAIFF4A6FFRAAI35B4AE7LZLLI4VXMCF7' }}
           REPAYMENT_CONTRACT_ID: ${{ vars.REPAYMENT_CONTRACT_ID || 'CCDATW5GMVDOPK55Q4MLXV5SGA3VLXPD67ABLBNMHWFF6BLL2IZBUVEP' }}
+          FINANCING_CONTRACT_ID: ${{ vars.FINANCING_CONTRACT_ID || 'CBGRA3457ZFXYZNEQLO4YGUQ3OBEWOE6US6ZREHK6NF2DLZYBO73IFVW' }}
           KEEPER_SECRET_KEY: ${{ secrets.KEEPER_SECRET_KEY }}
         run: npm run keeper

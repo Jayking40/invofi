@@ -36,7 +36,7 @@ Last updated: August 2026. Checkbox status reflects what is merged to `main`
 ### Infrastructure & Automation
 
 - [x] Frontend testnet config — registry/financing/repayment contract IDs (`NEXT_PUBLIC_{REGISTRY,FINANCING,REPAYMENT}_CONTRACT_ID`)
-- [x] Keeper automation — 6-hourly overdue marking + TTL bumps
+- [x] Keeper automation — event-driven Soroban RPC subscriptions (`inv_reg`, `off_acc`) + 6-hourly polling fallback
 - [x] Event indexer — checkpointed replay → `protocol_stats`; **temporarily bypassed pending the Supabase/DB migration** — re-enabled when the indexer is rewired to the new database
 - [x] Contributors auto-table on merge (no opt-in comment needed), bot-driven PRs, issues open to all
 - [x] One-click Testnet deploy via GitHub Actions (invofi-contracts)

@@ -24,3 +24,57 @@ export {
 // Stellar primitives the client surface needs — re-exported so consumers
 // don't need a direct @stellar/stellar-sdk dependency for common cases.
 export { Contract, Networks, xdr, nativeToScVal, scValToNative } from '@stellar/stellar-sdk';
+
+// ── Event stream (listenToEvents) ───────────────────────────────────────────
+// Typed, polling-based event subscription for InvoFi protocol events.
+// All 20 on-chain event types are covered with strongly-typed payloads.
+//
+// @example
+// ```ts
+// import { listenToEvents, Networks } from '@invofi/sdk';
+//
+// const stop = listenToEvents({
+//   rpcUrl:            'https://soroban-testnet.stellar.org',
+//   networkPassphrase: Networks.TESTNET,
+//   contractIds:       [registryId, financingId, repaymentId],
+//   eventTypes:        ['inv_reg', 'off_acc', 'inv_rep'],
+//   onEvent(event) {
+//     if (event.type === 'inv_reg') {
+//       console.log('Invoice registered:', event.subjectId, event.data.originator);
+//     }
+//   },
+//   onError(err) {
+//     console.error('Event stream error:', err.message);
+//   },
+// });
+//
+// // Stop polling when done:
+// stop();
+// ```
+export { listenToEvents } from './events';
+export type {
+  ProtocolEventName,
+  ProtocolEvent,
+  ListenToEventsOptions,
+  StopListening,
+  // Per-event payload types
+  InvoiceRegisteredData,
+  InvoiceAmountUpdatedData,
+  InvoiceStatusUpdatedData,
+  InvoiceCancelledData,
+  InvoiceOverdueData,
+  InvoiceDefaultedData,
+  InvoiceDisputedData,
+  InvoiceResolvedData,
+  OfferCreatedData,
+  OfferWithdrawnData,
+  OfferAcceptedData,
+  OfferRejectedData,
+  OfferDefaultedData,
+  PositionTokenMintedData,
+  InvoiceRepaidData,
+  PoolStakedData,
+  PoolUnstakedData,
+  PoolPayoutData,
+  ReputationRecordedData,
+} from './events';

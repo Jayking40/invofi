@@ -62,7 +62,7 @@ InvoFi lives across **two repositories**, split so the fast-moving app layer and
 > - reputation: [`CCHKVUWGTQ56U53C5U7ZSOFDTTMGLMOFCL22DME5UMXIYWQNUYXOYPDN`](https://stellar.expert/explorer/testnet/contract/CCHKVUWGTQ56U53C5U7ZSOFDTTMGLMOFCL22DME5UMXIYWQNUYXOYPDN)
 > - position token: `POS` minted to lenders on acceptance ([`CBIXYAJPEOOVIALBUTA7X2H26WXSI5JDZCTE23RUMQR4QFJNMPL6767Z`](https://stellar.expert/explorer/testnet/contract/CBIXYAJPEOOVIALBUTA7X2H26WXSI5JDZCTE23RUMQR4QFJNMPL6767Z))
 >
-> A keeper automation (event-driven Soroban RPC subscriptions for `inv_reg`/`off_acc` + 6-hourly fallback sweep)
+> A keeper automation (event-driven Soroban RPC getEvents polling for `inv_reg`/`off_acc` + 6-hourly fallback sweep)
 > bumps contract-data TTLs and marks past-due Financed invoices Overdue — see `invofi/scripts/keeper.ts`.
 >
 > Deploy your own via the **Deploy Contracts to Testnet** workflow in [invofi-contracts](https://github.com/Stellar-VaultLink/invofi-contracts) and set the three `NEXT_PUBLIC_*_CONTRACT_ID` variables in Vercel. Without a contract configured the app runs in alpha mode (off-chain only).

@@ -25,7 +25,7 @@
  *  NETWORK_PASSPHRASE     network passphrase (default: testnet)
  *  REGISTRY_CONTRACT_ID   registry contract (required)
  *  REPAYMENT_CONTRACT_ID  repayment contract (required)
- *  FINANCING_CONTRACT_ID  financing contract (optional, required for event-driven)
+ *  FINANCING_CONTRACT_ID  financing contract (required for event-driven)
  *  KEEPER_SECRET_KEY      secret key of the funded keeper account (required)
  *  PAGE_SIZE              invoices per page for sweep (default 50)
  *  MAX_TTL_BUMPS          max TTL extensions per sweep (default 50)
@@ -35,7 +35,6 @@
  */
 
 import fs from 'fs';
-import path from 'path';
 import {
   Contract,
   Keypair,
@@ -284,23 +283,19 @@ export interface ParsedEvent {
 
 export function parseRawEvent(rawEvent: SorobanRpc.Api.EventResponse): ParsedEvent | null {
   try {
-    const topic0 = rawEvent.topic[0];
+    const topic0 = rawEvent.topic?.[0];
     if (!topic0) return null;
     const name = scValToNative(topic0);
     if (typeof name !== 'string') return null;
 
-    let invoiceId = '';
-    if (rawEvent.topic[1]) {
-      const topic1Dec = scValToNative(rawEvent.topic[1]);
-      if (typeof topic1Dec === 'string') invoiceId = topic1Dec;
-    }
+    const topic1 = rawEvent.topic?.[1];
+    if (!topic1) return null;
+    const topic1Dec = scValToNative(topic1);
+    if (typeof topic1Dec !== 'string' || !topic1Dec) return null;
+    const invoiceId = topic1Dec;
 
     let valDec: unknown;
-    try {
-      valDec = scValToNative(rawEvent.value);
-    } catch {
-      valDec = {};
-    }
+    valDec = scValToNative(rawEvent.value);
 
     const arr = Array.isArray(valDec) ? valDec : [];
     const map = typeof valDec === 'object' && valDec !== null && !Array.isArray(valDec)
@@ -308,7 +303,6 @@ export function parseRawEvent(rawEvent: SorobanRpc.Api.EventResponse): ParsedEve
       : {};
 
     if (name === 'inv_reg') {
-      if (!invoiceId && arr[0]) invoiceId = String(arr[0]);
       return {
         type: 'inv_reg',
         invoiceId,
@@ -318,17 +312,24 @@ export function parseRawEvent(rawEvent: SorobanRpc.Api.EventResponse): ParsedEve
     }
 
     if (name === 'off_acc') {
-      // payload: (invoice_id, lender, amount)
-      const targetInvoice = String(arr[0] ?? map['invoice_id'] ?? invoiceId);
       return {
         type: 'off_acc',
-        invoiceId: targetInvoice,
+        invoiceId,
         ledger: rawEvent.ledger,
         data: {
-          invoiceId: targetInvoice,
+          invoiceId,
           lender: arr[1] ?? map['lender'],
           amount: arr[2] ?? map['amount'],
         },
+      };
+    }
+
+    if (name === 'off_def') {
+      return {
+        type: 'off_def',
+        invoiceId,
+        ledger: rawEvent.ledger,
+        data: { valDec },
       };
     }
 
@@ -381,7 +382,6 @@ export async function processEvents(
       log(`[event:off_acc] Offer accepted for invoice: ${evt.invoiceId} -> triggering instant TTL bump & overdue check`);
       if (await bumpTtl(evt.invoiceId, kp)) ttlBumps++;
 
-      // Check if invoice is past due
       const inv = await fetchInvoiceDetails(evt.invoiceId, pub);
       if (inv) {
         const st = statusNum(inv.status);
@@ -443,7 +443,7 @@ export async function runFullSweep(kp: Keypair): Promise<{ scanned: number; mark
   return { scanned, marked, bumped };
 }
 
-/** Poll contract events from starting ledger cursor up to latest ledger. */
+/** Poll contract events from starting ledger cursor up to latest ledger with pagination. */
 export async function pollEventsOnce(
   currentLedger: number,
   kp: Keypair,
@@ -460,27 +460,60 @@ export async function pollEventsOnce(
     return { nextLedger: currentLedger, processed: 0, ttlBumps: 0, markedOverdue: 0 };
   }
 
-  const eventRes = await rpc.getEvents({
-    startLedger: currentLedger,
-    filters: [{ type: 'contract', contractIds }],
-    limit: 100,
-  });
+  let cursor: string | undefined = undefined;
+  let latestSeenLedger = currentLedger;
+  let totalProcessed = 0;
+  let totalTtlBumps = 0;
+  let totalMarkedOverdue = 0;
 
-  const parsedEvents: ParsedEvent[] = [];
-  for (const rawEvt of eventRes.events) {
-    const parsed = parseRawEvent(rawEvt);
-    if (parsed) parsedEvents.push(parsed);
+  while (true) {
+    const params: SorobanRpc.Api.GetEventsRequest = cursor
+      ? { cursor, filters: [{ type: 'contract', contractIds }], limit: 100 }
+      : { startLedger: currentLedger, filters: [{ type: 'contract', contractIds }], limit: 100 };
+
+    const eventRes = await rpc.getEvents(params);
+    if (!eventRes.events || eventRes.events.length === 0) {
+      if (eventRes.latestLedger && eventRes.latestLedger > latestSeenLedger) {
+        latestSeenLedger = eventRes.latestLedger;
+      }
+      break;
+    }
+
+    const parsedEvents: ParsedEvent[] = [];
+    for (const rawEvt of eventRes.events) {
+      const parsed = parseRawEvent(rawEvt);
+      if (parsed) {
+        parsedEvents.push(parsed);
+        if (parsed.ledger > latestSeenLedger) {
+          latestSeenLedger = parsed.ledger;
+        }
+      }
+    }
+
+    const result = await processEvents(parsedEvents, kp);
+    totalProcessed += result.processed;
+    totalTtlBumps += result.ttlBumps;
+    totalMarkedOverdue += result.markedOverdue;
+
+    if (eventRes.latestLedger && eventRes.latestLedger > latestSeenLedger) {
+      latestSeenLedger = eventRes.latestLedger;
+    }
+
+    if (eventRes.cursor && eventRes.cursor !== cursor && eventRes.events.length >= 100) {
+      cursor = eventRes.cursor;
+    } else {
+      break;
+    }
   }
 
-  const result = await processEvents(parsedEvents, kp);
-  const nextLedger = eventRes.latestLedger >= currentLedger ? eventRes.latestLedger + 1 : currentLedger;
+  const nextLedger = latestSeenLedger >= currentLedger ? latestSeenLedger + 1 : currentLedger;
   saveCheckpoint(nextLedger);
 
   return {
     nextLedger,
-    processed: result.processed,
-    ttlBumps: result.ttlBumps,
-    markedOverdue: result.markedOverdue,
+    processed: totalProcessed,
+    ttlBumps: totalTtlBumps,
+    markedOverdue: totalMarkedOverdue,
   };
 }
 
@@ -506,22 +539,42 @@ export async function runEventDrivenDaemon(kp: Keypair): Promise<void> {
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
 
-  // Initial fallback sweep at startup
   await runFullSweep(kp);
   let lastSweepTime = Date.now();
+  let consecutiveFailures = 0;
 
   while (running) {
     try {
       const res = await pollEventsOnce(currentLedger, kp);
       currentLedger = res.nextLedger;
-
-      if (Date.now() - lastSweepTime >= FALLBACK_SWEEP_INTERVAL_MS) {
-        log('[daemon] running periodic fallback sweep');
-        await runFullSweep(kp);
-        lastSweepTime = Date.now();
-      }
+      consecutiveFailures = 0;
     } catch (err) {
-      log(`[daemon error] event poll failed: ${(err as Error).message}`);
+      consecutiveFailures++;
+      log(`[daemon error] event poll failed (attempt ${consecutiveFailures}): ${(err as Error).message}`);
+
+      if (consecutiveFailures >= 3) {
+        try {
+          const health = await rpc.getHealth();
+          log(`[daemon recovery] rpc health: ${health.status}`);
+          const latestRes = await rpc.getLatestLedger();
+          currentLedger = latestRes.sequence;
+          log(`[daemon recovery] resetting ledger cursor to latest ledger ${currentLedger}`);
+          saveCheckpoint(currentLedger);
+          consecutiveFailures = 0;
+        } catch (healthErr) {
+          log(`[daemon recovery error] health check failed: ${(healthErr as Error).message}`);
+        }
+      }
+    }
+
+    if (Date.now() - lastSweepTime >= FALLBACK_SWEEP_INTERVAL_MS) {
+      log('[daemon] running periodic fallback sweep');
+      try {
+        await runFullSweep(kp);
+      } catch (sweepErr) {
+        log(`[daemon sweep error]: ${(sweepErr as Error).message}`);
+      }
+      lastSweepTime = Date.now();
     }
 
     await sleep(EVENT_POLL_INTERVAL_MS);
@@ -548,14 +601,18 @@ export function parseKeeperMode(): KeeperMode {
 }
 
 export async function main(): Promise<void> {
+  const mode = parseKeeperMode();
+
   if (!REGISTRY_ID || !REPAYMENT_ID) {
     throw new Error('REGISTRY_CONTRACT_ID and REPAYMENT_CONTRACT_ID are required.');
+  }
+  if ((mode === 'event-driven' || mode === 'event-catchup') && !FINANCING_ID) {
+    throw new Error('FINANCING_CONTRACT_ID is required for event-driven keeper modes.');
   }
   if (!KEEPER_SECRET_KEY) {
     throw new Error('KEEPER_SECRET_KEY is required (funded keeper account).');
   }
 
-  const mode = parseKeeperMode();
   const kp = Keypair.fromSecret(KEEPER_SECRET_KEY);
   const pub = kp.publicKey();
   await ensureAccount(pub);

@@ -41,9 +41,14 @@ jobs:
           cache: npm
           cache-dependency-path: invofi/scripts/package-lock.json
       - run: npm ci
+      - run: npm test
       - run: npm run type-check
       - name: Run keeper
+        # Note: continuous long-running daemon (KEEPER_MODE=event-driven) is intended
+        # for persistent container/VPS hosting. In scheduled GitHub Actions runs, we
+        # execute KEEPER_MODE=event-catchup to process recent contract events before the sweep.
         env:
+          KEEPER_MODE: event-catchup
           RPC_URL: https://soroban-testnet.stellar.org
           NETWORK_PASSPHRASE: Test SDF Network ; September 2015
           REGISTRY_CONTRACT_ID: ${{ vars.REGISTRY_CONTRACT_ID || 'CAXNTWSKDVSB3GPJMU3RTSDTAIFF4A6FFRAAI35B4AE7LZLLI4VXMCF7' }}

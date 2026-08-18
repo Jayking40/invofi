@@ -1,6 +1,6 @@
 # Environment Variables
 
-All environment variables for the InvoFi frontend are prefixed with `NEXT_PUBLIC_` so they are available in the browser. There are no server-side secrets in this stack.
+Most environment variables for the InvoFi frontend are prefixed with `NEXT_PUBLIC_` so they are available in the browser. The invoice document workflow (issue #222) adds the stack's first server-only secrets (`PINATA_API_KEY` / `PINATA_SECRET_API_KEY`), which are read only by Next.js route handlers on the Node.js runtime and never reach the browser.
 
 ---
 
@@ -17,10 +17,20 @@ All environment variables for the InvoFi frontend are prefixed with `NEXT_PUBLIC
 | `NEXT_PUBLIC_RPC_URL` | Yes | See below | Soroban RPC endpoint (differs by network) |
 | `NEXT_PUBLIC_HORIZON_URL` | Yes | See below | Stellar Horizon REST API (differs by network) |
 | `NEXT_PUBLIC_USDC_ISSUER` | No | `GBBD47IF...` | USDC issuer address. Required to display USDC balances. |
+| `PINATA_API_KEY` | No* | `eSx0P...` | Pinata API key — **server-only**, used to pin invoice documents to IPFS (issue #222). Required only when documents are uploaded. |
+| `PINATA_SECRET_API_KEY` | No* | `9vQwM...` | Pinata secret API key — **server-only** (see above). |
+| `IPFS_GATEWAY_URL` | No | `https://ipfs.io/ipfs` | Public IPFS gateway used server-side to fetch document bytes for preview and verification. Defaults to `https://ipfs.io/ipfs`. |
 
 \* Legacy fallback: if the three `*_CONTRACT_ID` variables are unset, the app
 uses the single `NEXT_PUBLIC_CONTRACT_ID` and routes every call to that one
 contract (pre-3-contract deployments keep working).
+
+\** Pinata variables are only needed for the invoice document workflow.
+
+> **Server-only secrets**: `PINATA_API_KEY` and `PINATA_SECRET_API_KEY` are the
+> stack's first server-only secrets. They must never be prefixed with
+> `NEXT_PUBLIC_` (that would ship them to every browser) and are only read by
+> the `app/api/documents/*` route handlers on the Node.js runtime.
 
 ---
 
@@ -79,3 +89,5 @@ To use different values for Preview and Production deployments, set the environm
 | `RPC_URL` | `lib/contract.ts` — Soroban RPC for simulating and sending transactions |
 | `HORIZON_URL` | `lib/horizon.ts` — reads account balances and transaction history |
 | `USDC_ISSUER` | `lib/horizon.ts` — identifies the USDC asset when reading balances |
+| `PINATA_API_KEY` + `PINATA_SECRET_API_KEY` | `lib/documents/server.ts` — pins invoice documents to IPFS via the `app/api/documents/upload` route (server-only) |
+| `IPFS_GATEWAY_URL` | `lib/documents/server.ts` — gateway used to fetch document bytes in the `app/api/documents/[id]/content` route (server-only) |

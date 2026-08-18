@@ -173,6 +173,7 @@ invofi/
 │           │   ├── invoices/         Create and view invoices
 │           │   ├── marketplace/      Lender invoice browser
 │           │   │   └── positions/    Secondary-market position listings
+│           │   ├── api/documents/    Invoice document upload + content routes (issue #222)
 │           │   ├── portfolio/        Lender investment tracker
 │           │   ├── profile/          User profile + display name
 │           │   └── settings/         Account settings
@@ -182,7 +183,7 @@ invofi/
 │           │   ├── common/           ConfirmDialog, StatsCard, StatsGrid,
 │           │   │                     StatusBadge, PageHeader, EmptyState
 │           │   ├── invoices/         InvoiceCard, InvoiceForm, InvoiceTable,
-│           │   │                     OfferList
+│           │   │                     OfferList, documents/ (upload, verify, preview)
 │           │   ├── layout/           Navbar (dark mode + a11y), Footer
 │           │   └── ui/               shadcn/ui — button, dialog, table,
 │           │                         badge, card, input, tabs, toast...
@@ -196,6 +197,8 @@ invofi/
 │               ├── supabase.ts       Auth + database helpers
 │               ├── formatters.ts     Amount, date, address formatters
 │               ├── csv.ts            CSV export helpers
+│               ├── documents/        Invoice document validation, SHA-256 hash,
+│               │                     IPFS/Pinata server helpers
 │               └── constants.ts      Network config, risk tiers, enums
 ├── scripts/
 │   └── close-issues.sh              Bulk GitHub issue close

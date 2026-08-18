@@ -23,5 +23,7 @@ test.describe('invoice detail', () => {
     await expect(
       page.getByRole('heading', { name: /Financing Offers/ }),
     ).toBeVisible();
+    // Invoice proof documents section (issue #222).
+    await expect(page.getByRole('heading', { name: /Documents/ })).toBeVisible();
   });
 });

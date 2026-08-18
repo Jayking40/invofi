@@ -581,6 +581,13 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                 </a>
             </td>
             <td align="center">
+                <a href="https://github.com/MJ-RWA">
+                    <img src="https://avatars.githubusercontent.com/u/240063069?v=4" width="100;" alt="MJ-RWA"/>
+                    <br />
+                    <sub><b>MJ | Dev 🏀</b></sub>
+                </a>
+            </td>
+            <td align="center">
                 <a href="https://github.com/Damieee">
                     <img src="https://avatars.githubusercontent.com/u/115638760?v=4" width="100;" alt="Damieee"/>
                     <br />
@@ -608,6 +615,8 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                     <sub><b>scholar</b></sub>
                 </a>
             </td>
+		</tr>
+		<tr>
             <td align="center">
                 <a href="https://github.com/Fury03">
                     <img src="https://avatars.githubusercontent.com/u/98775983?v=4" width="100;" alt="Fury03"/>
@@ -615,8 +624,6 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                     <sub><b>Damilola Ogunrotimi</b></sub>
                 </a>
             </td>
-		</tr>
-		<tr>
             <td align="center">
                 <a href="https://github.com/Jayking40">
                     <img src="https://avatars.githubusercontent.com/u/101714779?v=4" width="100;" alt="Jayking40"/>

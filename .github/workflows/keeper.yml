@@ -44,7 +44,7 @@ jobs:
       - run: npm test
       - run: npm run type-check
       - name: Download checkpoint artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4
         with:
           name: keeper-checkpoint
           path: invofi/scripts
@@ -64,7 +64,7 @@ jobs:
         run: npm run keeper
       - name: Upload checkpoint artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: keeper-checkpoint
           path: invofi/scripts/.keeper-checkpoint.json

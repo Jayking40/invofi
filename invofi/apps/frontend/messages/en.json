@@ -1,0 +1,112 @@
+{
+  "Navbar": {
+    "dashboard": "Dashboard",
+    "marketplace": "Marketplace",
+    "portfolio": "Portfolio",
+    "wrongNetwork": "wrong network",
+    "toggleTheme": "Toggle theme",
+    "testnet": "Testnet",
+    "viewContracts": "View smart contract addresses",
+    "settings": "Settings",
+    "signOut": "Sign out"
+  },
+  "Footer": {
+    "tagline": "Decentralized Invoice Financing on Stellar Soroban",
+    "stats": "Stats",
+    "github": "GitHub",
+    "docs": "Docs",
+    "issues": "Issues",
+    "contractOnStellar": "Contract on Stellar {network}:",
+    "viewOnStellarExpert": "View the InvoFi contract on Stellar Expert",
+    "openSource": "Open Source"
+  },
+  "DashboardLayout": {
+    "title": "Dashboard",
+    "description": "Manage your registered invoices, track financing offers, and monitor repayment status."
+  },
+  "Landing": {
+    "hero": {
+      "liveOnTestnet": "Live on Stellar Testnet",
+      "titlePart1": "Invoice Financing,",
+      "titlePart2": "On-Chain.",
+      "description": "Businesses tokenize unpaid invoices as Soroban assets and get immediate liquidity. Investors earn yield by financing real-world receivables — trustlessly.",
+      "getStarted": "Get Started",
+      "browseMarketplace": "Browse Marketplace"
+    },
+    "stats": {
+      "totalInvoices": "Total Invoices Financed",
+      "totalVolume": "Total Volume",
+      "activeLenders": "Active Lenders",
+      "avgInterestRate": "Avg. Interest Rate"
+    },
+    "howItWorks": {
+      "title": "How InvoFi Works",
+      "subtitle": "Three steps from unpaid invoice to funded wallet — all on-chain, all trustless.",
+      "step1Title": "Register Your Invoice",
+      "step1Desc": "Connect your Stellar wallet, fill in the invoice details — amount, currency, due date — and mint it as a Soroban on-chain asset in seconds.",
+      "step2Title": "Lenders Compete",
+      "step2Desc": "Your invoice appears in the live marketplace. Investors worldwide submit competing offers with their own rates and durations. You pick the best one.",
+      "step3Title": "Receive Funds & Repay",
+      "step3Desc": "Accept the best offer — the smart contract transfers the principal to your wallet instantly. Repay in full or partially at your own pace.",
+      "stepLabel": "Step {step}"
+    },
+    "features": {
+      "title": "Built for Both Sides",
+      "forBusinesses": "For Businesses",
+      "forBusinessesDesc": "Turn unpaid invoices into immediate working capital — without giving up equity or waiting 90 days.",
+      "businessPoint1": "Instant liquidity — funds in your wallet within minutes of accepting an offer",
+      "businessPoint2": "No bank account, credit score, or collateral required",
+      "businessPoint3": "Partial repayment support — pay back on your schedule",
+      "businessPoint4": "Global lender competition drives your interest rate down",
+      "businessPoint5": "Full transparency — every offer and repayment recorded on-chain",
+      "registerInvoiceBtn": "Register an Invoice",
+      "forLenders": "For Lenders",
+      "forLendersDesc": "Earn predictable yield on real-world trade finance. Your terms, your rate, your risk appetite.",
+      "lenderPoint1": "Earn predictable yield on real-world trade finance — not speculation",
+      "lenderPoint2": "Browse and filter invoices by amount, currency, and due date",
+      "lenderPoint3": "Smart contract enforces all terms — no intermediary risk",
+      "lenderPoint4": "Partial repayments tracked on-chain — always know your exposure",
+      "lenderPoint5": "Portfolio dashboard shows active positions, yields, and history"
+    },
+    "assets": {
+      "title": "Supported Assets",
+      "subtitle": "Invoices and financing offers can be denominated in any supported Stellar asset.",
+      "xlmDesc": "The native asset of the Stellar network. Zero custody risk, sub-cent fees, 5-second finality.",
+      "usdcDesc": "Circle's fully-reserved stablecoin on Stellar via SEP-41. Eliminate FX risk for USD-denominated invoices."
+    },
+    "stellar": {
+      "poweredBy": "Powered by Stellar",
+      "title": "Why We Build on Stellar",
+      "subtitle": "Stellar was purpose-built for financial applications. Soroban brings smart contracts that are deterministic, cheap to run, and designed to move real money.",
+      "finalityTitle": "5-Second Finality",
+      "finalityDesc": "Stellar confirms transactions in seconds — funds are truly final, not \"pending\".",
+      "sorobanTitle": "Soroban Smart Contracts",
+      "sorobanDesc": "Purpose-built for DeFi. Deterministic, auditable, and efficient — no runaway gas costs.",
+      "globalTitle": "Global & Permissionless",
+      "globalDesc": "Anyone with a Stellar wallet can participate. No geography, no gatekeepers."
+    },
+    "faq": {
+      "title": "Frequently Asked Questions",
+      "q1": "Do I need a bank account?",
+      "a1": "No. All you need is a Stellar wallet — InvoFi supports both Freighter and LOBSTR. There is no KYC, no bank account, and no credit check required to use InvoFi.",
+      "q2": "Which wallets are supported?",
+      "a2": "InvoFi supports Freighter (browser extension — freighter.app) and LOBSTR (mobile + browser extension — lobstr.co). When you click \"Connect Wallet\" you can choose either. More wallets may be added as the Stellar ecosystem grows.",
+      "q3": "How does the lender get their money back?",
+      "a3": "The business repays through the smart contract, which transfers funds directly to the lender's wallet. Partial repayments are supported — the offer tracks amount_repaid on-chain until the full balance (principal + yield) is cleared.",
+      "q4": "What happens if the business never repays?",
+      "a4": "After a 7-day grace period following the due date, the lender can call reclaim_invoice. This marks the offer as Defaulted on-chain. InvoFi does not hold collateral — the on-chain default record is a permanent, transparent signal to the network.",
+      "q5": "What currencies are supported?",
+      "a5": "Currently XLM (Stellar Lumens) and USDC (Circle's stablecoin on Stellar). More SEP-41 tokens will be added as the protocol grows.",
+      "q6": "Is the contract audited?",
+      "a6": "The contract is open source and live on Stellar Testnet. A formal third-party audit is on the roadmap before mainnet launch. Read the full source on GitHub.",
+      "q7": "How do I start as a lender?",
+      "a7": "Create an account, choose the Lender role, connect your Stellar wallet (Freighter or LOBSTR), and go to the Marketplace. Browse open invoices and submit a financing offer with your desired rate and duration."
+    },
+    "cta": {
+      "title": "Ready to get started?",
+      "subtitle": "Connect your Stellar wallet or create an account — no bank, no broker, no wait.",
+      "imBusinessBtn": "I'm a Business",
+      "imLenderBtn": "I'm a Lender"
+    }
+  }
+}

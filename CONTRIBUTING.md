@@ -200,6 +200,13 @@ cargo clippy -- -D warnings
 - New pages must be wrapped in `<AuthGuard>` if they require authentication.
 - Run the type checker before pushing.
 
+### Adding a Translation
+
+To add a new locale to the frontend app:
+1. Create a new JSON file in `invofi/apps/frontend/messages/{locale}.json` (e.g. `es.json` for Spanish), copying the structure from `en.json`.
+2. Translate all strings within the file.
+3. Update `src/i18n/request.ts` to support the new locale if the locale routing strategy has evolved, or open a PR with just the JSON file. Note: The app currently uses a single default locale strategy, so adding the JSON file is the first step toward full localization.
+
 ```bash
 cd invofi/apps/frontend
 npm run type-check

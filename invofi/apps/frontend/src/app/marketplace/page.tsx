@@ -29,17 +29,17 @@ export default function MarketplacePage() {
   const [sort, setSort] = useState<SortKey>('newest');
 
   useEffect(() => {
-    setLoading(true);
-    supabase
-      .from('invoices')
-      .select('*')
-      .in('status', ['Pending', 'Financed', 'Overdue'])
-      .order('created_at', { ascending: false })
-      .then(({ data }) => {
-        setInvoices((data as unknown as Invoice[]) ?? []);
-        setLoading(false);
-      });
-  }, []);
+  setLoading(true);
+  supabase
+    .from('invoices')
+    .select('*')
+    .in('status', ['Pending', 'Financed', 'Overdue'])
+    .order('created_at', { ascending: false })
+    .then(({ data }: { data: Invoice[] | null }) => {
+      setInvoices((data as unknown as Invoice[]) ?? []);
+      setLoading(false);
+    });
+}, []);
 
   const filtered = invoices.filter(inv => {
     if (filters.currency !== 'ALL' && inv.currency !== filters.currency) return false;

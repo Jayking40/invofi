@@ -43,6 +43,12 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run type-check
+      - name: Download checkpoint artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: keeper-checkpoint
+          path: invofi/scripts
+        continue-on-error: true
       - name: Run keeper
         # Note: continuous long-running daemon (KEEPER_MODE=event-driven) is intended
         # for persistent container/VPS hosting. In scheduled GitHub Actions runs, we
@@ -56,3 +62,11 @@ jobs:
           FINANCING_CONTRACT_ID: ${{ vars.FINANCING_CONTRACT_ID || 'CBGRA3457ZFXYZNEQLO4YGUQ3OBEWOE6US6ZREHK6NF2DLZYBO73IFVW' }}
           KEEPER_SECRET_KEY: ${{ secrets.KEEPER_SECRET_KEY }}
         run: npm run keeper
+      - name: Upload checkpoint artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: keeper-checkpoint
+          path: invofi/scripts/.keeper-checkpoint.json
+          overwrite: true
+        continue-on-error: true

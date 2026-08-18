@@ -6,6 +6,7 @@ import {
   parseRawEvent,
   statusNum,
   parseKeeperMode,
+  parseStartLedger,
   STATUS,
   processEvents,
 } from './keeper.js';
@@ -132,6 +133,30 @@ describe('Keeper Unit Tests', () => {
         process.env.KEEPER_MODE = originalEnvMode;
       } else {
         delete process.env.KEEPER_MODE;
+      }
+    }
+  });
+
+  test('parseStartLedger handles CLI flags, env vars, and default fallbacks', () => {
+    const originalArgv = process.argv;
+    const originalEnvStart = process.env.KEEPER_START_LEDGER;
+
+    try {
+      process.argv = ['node', 'keeper.js'];
+      delete process.env.KEEPER_START_LEDGER;
+      assert.equal(parseStartLedger(), undefined);
+
+      process.env.KEEPER_START_LEDGER = '50000';
+      assert.equal(parseStartLedger(), 50000);
+
+      process.argv = ['node', 'keeper.js', '--start-ledger=60000'];
+      assert.equal(parseStartLedger(), 60000);
+    } finally {
+      process.argv = originalArgv;
+      if (originalEnvStart !== undefined) {
+        process.env.KEEPER_START_LEDGER = originalEnvStart;
+      } else {
+        delete process.env.KEEPER_START_LEDGER;
       }
     }
   });

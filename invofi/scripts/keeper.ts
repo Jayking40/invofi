@@ -21,6 +21,7 @@
  *
  * Env vars / CLI flags:
  *  KEEPER_MODE / --mode   Operating mode: 'event-driven' | 'event-catchup' | 'sweep' (default: 'sweep')
+ *  KEEPER_START_LEDGER / --start-ledger Target starting ledger for event mode (optional)
  *  RPC_URL                Soroban RPC endpoint (default: soroban-testnet)
  *  NETWORK_PASSPHRASE     network passphrase (default: testnet)
  *  REGISTRY_CONTRACT_ID   registry contract (required)
@@ -499,7 +500,7 @@ export async function pollEventsOnce(
       latestSeenLedger = eventRes.latestLedger;
     }
 
-    if (eventRes.cursor && eventRes.cursor !== cursor && eventRes.events.length >= 100) {
+    if (eventRes.cursor && eventRes.cursor !== cursor) {
       cursor = eventRes.cursor;
     } else {
       break;
@@ -521,14 +522,14 @@ export async function pollEventsOnce(
 export async function runEventDrivenDaemon(kp: Keypair): Promise<void> {
   log(`starting event-driven keeper daemon (poll interval: ${EVENT_POLL_INTERVAL_MS}ms, fallback sweep: ${FALLBACK_SWEEP_INTERVAL_MS}ms)`);
 
-  let currentLedger = loadCheckpoint();
+  let currentLedger = parseStartLedger() ?? loadCheckpoint();
   if (currentLedger === undefined) {
     const latestRes = await rpc.getLatestLedger();
     currentLedger = latestRes.sequence;
     log(`no checkpoint found — initializing starting ledger to ${currentLedger}`);
     saveCheckpoint(currentLedger);
   } else {
-    log(`resumed from checkpoint ledger ${currentLedger}`);
+    log(`resumed from starting/checkpoint ledger ${currentLedger}`);
   }
 
   let running = true;
@@ -556,10 +557,14 @@ export async function runEventDrivenDaemon(kp: Keypair): Promise<void> {
         try {
           const health = await rpc.getHealth();
           log(`[daemon recovery] rpc health: ${health.status}`);
-          const latestRes = await rpc.getLatestLedger();
-          currentLedger = latestRes.sequence;
-          log(`[daemon recovery] resetting ledger cursor to latest ledger ${currentLedger}`);
-          saveCheckpoint(currentLedger);
+          const oldestLedger = (health as { oldestLedger?: number }).oldestLedger;
+          if (oldestLedger !== undefined && oldestLedger > currentLedger) {
+            log(`[daemon recovery] cursor ${currentLedger} expired below oldest ledger ${oldestLedger} -> advancing cursor`);
+            currentLedger = oldestLedger;
+            saveCheckpoint(currentLedger);
+          } else {
+            log(`[daemon recovery] preserving current cursor ${currentLedger}`);
+          }
           consecutiveFailures = 0;
         } catch (healthErr) {
           log(`[daemon recovery error] health check failed: ${(healthErr as Error).message}`);
@@ -600,6 +605,19 @@ export function parseKeeperMode(): KeeperMode {
   return 'sweep';
 }
 
+export function parseStartLedger(): number | undefined {
+  const args = process.argv.slice(2);
+  for (const arg of args) {
+    if (arg.startsWith('--start-ledger=')) {
+      const val = Number(arg.split('=')[1]);
+      if (Number.isInteger(val) && val > 0) return val;
+    }
+  }
+  const envVal = Number(process.env.KEEPER_START_LEDGER);
+  if (Number.isInteger(envVal) && envVal > 0) return envVal;
+  return undefined;
+}
+
 export async function main(): Promise<void> {
   const mode = parseKeeperMode();
 
@@ -622,7 +640,7 @@ export async function main(): Promise<void> {
   if (mode === 'event-driven') {
     await runEventDrivenDaemon(kp);
   } else if (mode === 'event-catchup') {
-    let ledger = loadCheckpoint();
+    let ledger = parseStartLedger() ?? loadCheckpoint();
     if (ledger === undefined) {
       const latest = await rpc.getLatestLedger();
       ledger = Math.max(1, latest.sequence - 1_000);

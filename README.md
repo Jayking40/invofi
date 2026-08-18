@@ -184,12 +184,18 @@ invofi/
 │           │   ├── invoices/         InvoiceCard, InvoiceForm, InvoiceTable,
 │           │   │                     OfferList
 │           │   ├── layout/           Navbar (dark mode + a11y), Footer
+│           │   ├── marketplace/      MarketplaceCard, PositionListingCard, etc.
+│           │   ├── portfolio/        LivePortfolioProvider, ConnectionStatus,
+│           │   │                     RepaymentProgress (live dashboard, issue #221)
 │           │   └── ui/               shadcn/ui — button, dialog, table,
 │           │                         badge, card, input, tabs, toast...
 │           ├── hooks/                useInvoices, useOffers, useMarketplace,
 │           │                         useLocalStorage, useDebounce, useMediaQuery
 │           └── lib/
 │               ├── contract.ts       Soroban contract call helpers (3 contracts)
+│               ├── live/             Live portfolio engine (issue #221): WebSocket
+│               │                     + Soroban-event polling transports, per-position
+│               │                     throttle, yield/APY math, USD pricing, reducer
 │               ├── approved-wallets.ts  Approved-wallet allowlist (extension point)
 │               ├── walletkit.ts      stellar-wallets-kit init + active-wallet signing
 │               ├── horizon.ts        Stellar Horizon API helpers
@@ -475,6 +481,8 @@ create policy "Own profile" on user_profiles for all using (id = auth.uid());
 | `NEXT_PUBLIC_STELLAR_NETWORK` | `testnet` |
 | `NEXT_PUBLIC_RPC_URL` | `https://soroban-testnet.stellar.org` |
 | `NEXT_PUBLIC_HORIZON_URL` | `https://horizon-testnet.stellar.org` |
+| `NEXT_PUBLIC_WS_URL` | *(optional)* WebSocket relay for the live portfolio dashboard — omit to use the polling fallback |
+| `NEXT_PUBLIC_XLM_USD_PRICE` | *(optional)* Fallback XLM/USD price for live USD position values |
 
 ---
 
@@ -539,6 +547,7 @@ Both identities are auto-funded via Friendbot on testnet. See
 - [x] Architecture Decision Records — ADR index in both repos
 - [x] Deployer-bound initialization — `__constructor` on all contracts, no front-runnable `initialize()` (issue #75)
 - [x] Compliance posture documented — KYC/SEP-12 roadmap, jurisdictions, securities-by-design
+- [x] Live portfolio dashboard — WebSocket streaming (position/yield/repayment) with reconnection + polling fallback (issue #221)
 - [ ] Mainnet deployment
 - [ ] Oracle-based invoice verification and risk scoring
 - [ ] Multi-signature treasury and escrow

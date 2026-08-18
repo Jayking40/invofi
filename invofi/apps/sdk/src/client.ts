@@ -31,8 +31,23 @@ import {
   validateAssetString,
   validateConfigField,
 } from './validation';
+import { invalidate } from './cache';
 
 export { SdkValidationError, ErrorCode };
+
+/**
+ * Invalidates the offline-cache (Task 218) key prefixes affected by a
+ * state-changing contract call, once it has succeeded. Best-effort and
+ * side-effect-only: `invalidate()` never throws (see cache.ts), so this
+ * never affects the caller's return value. Fire-and-forget is intentional —
+ * callers already have the fresh on-chain result; invalidation just makes
+ * sure a subsequent cached read doesn't serve stale data.
+ */
+function invalidateCache(prefixes: string[]): void {
+  for (const prefix of prefixes) {
+    void invalidate(prefix);
+  }
+}
 
 const BASE_FEE = '100';
 
@@ -252,7 +267,9 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
         ],
         originatorAddress,
       );
-      return parseInvoice(val);
+      const invoice = parseInvoice(val);
+      invalidateCache(['invoices:']);
+      return invoice;
     },
 
     /**
@@ -285,7 +302,9 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
         [encodeSymbol(invoiceId), encodeAddress(originatorAddress)],
         originatorAddress,
       );
-      return parseInvoice(val);
+      const invoice = parseInvoice(val);
+      invalidateCache(['invoices:', `offers:${invoiceId}`]);
+      return invoice;
     },
 
     // ── Financing contract ───────────────────────────────────────────────────
@@ -331,7 +350,9 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
         ],
         lenderAddress,
       );
-      return parseOffer(val);
+      const offer = parseOffer(val);
+      invalidateCache([`offers:${params.invoiceId}`]);
+      return offer;
     },
 
     /**
@@ -364,7 +385,12 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
         [encodeSymbol(offerId), encodeAddress(originatorAddress)],
         originatorAddress,
       );
-      return parseOffer(val);
+      const offer = parseOffer(val);
+      // Accepting an offer moves the invoice to Financed, mints a position
+      // token to the lender, and settles this offer — all three cache
+      // families are affected.
+      invalidateCache(['invoices:', `offers:${offer.invoice_id}`, 'positions:']);
+      return offer;
     },
 
     /**
@@ -384,7 +410,9 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
         [encodeSymbol(offerId), encodeAddress(originatorAddress)],
         originatorAddress,
       );
-      return parseOffer(val);
+      const offer = parseOffer(val);
+      invalidateCache([`offers:${offer.invoice_id}`]);
+      return offer;
     },
 
     // ── Repayment contract ───────────────────────────────────────────────────
@@ -418,7 +446,9 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
         ],
         repayerAddress,
       );
-      return parseInvoice(val);
+      const invoice = parseInvoice(val);
+      invalidateCache(['invoices:', `offers:${invoiceId}`, 'positions:']);
+      return invoice;
     },
 
     /**
@@ -438,7 +468,9 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
         [encodeSymbol(invoiceId)],
         callerAddress,
       );
-      return parseInvoice(val);
+      const invoice = parseInvoice(val);
+      invalidateCache(['invoices:']);
+      return invoice;
     },
 
     /**
@@ -459,7 +491,9 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
         [encodeSymbol(invoiceId), encodeSymbol(offerId), encodeAddress(lenderAddress)],
         lenderAddress,
       );
-      return parseOffer(val);
+      const offer = parseOffer(val);
+      invalidateCache(['invoices:', `offers:${invoiceId}`, 'positions:']);
+      return offer;
     },
 
     // ── Position tokens (Task 7/8: SEP-41 claim tokens) ─────────────────────
@@ -528,6 +562,7 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
         [encodeAddress(fromAddress), encodeAddress(toAddress), encodeI128(amount)],
         fromAddress,
       );
+      invalidateCache([`positions:${fromAddress}`, `positions:${toAddress}`]);
     },
 
     // ── Position-token trustline support ─────────────────────────────────────

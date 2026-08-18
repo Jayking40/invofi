@@ -43,12 +43,21 @@ export class LivePortfolioEngine {
   private resyncTimer: ReturnType<typeof setInterval> | null = null;
   private yieldTimer: ReturnType<typeof setInterval> | null = null;
   private latestOffers: FinancingOffer[] = [];
+  /** Last dispatched accrual per position — unchanged ticks are skipped. */
+  private readonly lastEarned = new Map<string, bigint>();
   private started = false;
   private stopped = false;
   private degradedToPolling = false;
+  private resyncInFlight: Promise<void> | null = null;
+  private resyncGeneration = 0;
 
   constructor(options: LivePortfolioEngineOptions) {
     this.opts = options;
+  }
+
+  /** Throttle key: one coalescing slot per position per update kind. */
+  private static key(update: LivePositionUpdate): string {
+    return `${update.positionId}:${update.kind}`;
   }
 
   /** Establish the live stream. Resolves after the first positions resync. */
@@ -61,8 +70,6 @@ export class LivePortfolioEngine {
       contractIds,
       rpcUrl,
       networkPassphrase,
-      fetchPositions,
-      onPositions,
       onUpdate,
       onConnectionChange,
       throttleMs = 1_000,
@@ -70,28 +77,16 @@ export class LivePortfolioEngine {
       yieldTickMs = 1_000,
     } = this.opts;
 
-    this.throttle = createPerKeyThrottle(throttleMs, (positionId, update) => {
-      onUpdate({ ...update, positionId });
+    this.throttle = createPerKeyThrottle<LivePositionUpdate>(throttleMs, (_key, update) => {
+      onUpdate(update);
     });
-
-    const resync = async (): Promise<void> => {
-      if (this.stopped) return;
-      try {
-        const offers = await fetchPositions();
-        if (this.stopped) return;
-        this.latestOffers = offers;
-        onPositions(offers);
-      } catch {
-        // A failed resync is non-fatal — the live stream keeps the last state.
-      }
-    };
 
     if (wsUrl) {
       this.ws = createWebSocketTransport({
         url: wsUrl,
-        onUpdate: update => this.throttle?.(update.positionId, update),
+        onUpdate: update => this.throttle?.(LivePortfolioEngine.key(update), update),
         onConnectionChange: (status, detail) => onConnectionChange(status, 'websocket', detail),
-        onResync: () => void resync(),
+        onResync: () => void this.resync(),
         onGiveUp: reason => this.degradeToPolling(reason),
       });
       this.ws.start();
@@ -100,25 +95,30 @@ export class LivePortfolioEngine {
     }
 
     // Continuous accrual: recompute yields for active positions each tick.
+    // Unchanged values are skipped — a fresh updatedAt alone isn't an update.
     this.yieldTimer = setInterval(() => {
       if (this.stopped) return;
       const nowSecs = Date.now() / 1000;
       for (const offer of this.latestOffers) {
         if (!isActiveOffer(offer)) continue;
-        this.throttle?.(offer.id, {
+        const earnedToDate = yieldEarnedStroops(offer, nowSecs);
+        if (this.lastEarned.get(offer.id) === earnedToDate) continue;
+        this.lastEarned.set(offer.id, earnedToDate);
+        const update: LivePositionUpdate = {
           kind: 'yield_calculated',
           positionId: offer.id,
           apy: offerApy(offer),
-          earnedToDate: yieldEarnedStroops(offer, nowSecs),
+          earnedToDate,
           updatedAt: Date.now(),
-        });
+        };
+        this.throttle?.(LivePortfolioEngine.key(update), update);
       }
     }, yieldTickMs);
 
     // Periodic safety-net resync (both modes) so brand-new positions appear.
-    this.resyncTimer = setInterval(() => void resync(), resyncIntervalMs);
+    this.resyncTimer = setInterval(() => void this.resync(), resyncIntervalMs);
 
-    await resync();
+    await this.resync();
   }
 
   /** Switch from the relay to the polling fallback, once. */
@@ -132,32 +132,51 @@ export class LivePortfolioEngine {
       contractIds: this.opts.contractIds,
       rpcUrl: this.opts.rpcUrl,
       networkPassphrase: this.opts.networkPassphrase,
-      onUpdate: update => this.throttle?.(update.positionId, update),
+      onUpdate: update => this.throttle?.(LivePortfolioEngine.key(update), update),
       onConnectionChange: (status, detail) =>
         this.opts.onConnectionChange(status, 'polling', detail),
-      onResync: () => this.resyncNow(),
+      onResync: () => void this.resync(),
     });
     this.polling.start();
   }
 
-  /** Force an immediate full resync (used by refresh buttons + auth changes). */
-  resyncNow(): void {
-    if (this.stopped) return;
-    const { fetchPositions, onPositions } = this.opts;
-    fetchPositions()
+  /**
+   * Full-state resync. In-flight requests are shared (never concurrent), and a
+   * generation counter discards responses superseded by a newer resync so a
+   * stale response can't overwrite fresher positions.
+   */
+  private resync(): Promise<void> {
+    if (this.stopped) return Promise.resolve();
+    if (this.resyncInFlight) return this.resyncInFlight;
+    const generation = ++this.resyncGeneration;
+    this.resyncInFlight = this.opts
+      .fetchPositions()
       .then(offers => {
-        if (this.stopped) return;
+        if (this.stopped || generation !== this.resyncGeneration) return;
         this.latestOffers = offers;
-        onPositions(offers);
+        this.opts.onPositions(offers);
       })
       .catch(() => {
-        // Non-fatal — keep the last known state.
+        // A failed resync is non-fatal — the live stream keeps the last state.
+      })
+      .then(() => {
+        if (generation === this.resyncGeneration) this.resyncInFlight = null;
       });
+    return this.resyncInFlight;
   }
 
-  /** Tear down every timer and transport. */
+  /** Force an immediate full resync (used by refresh buttons + auth changes). */
+  resyncNow(): void {
+    void this.resync();
+  }
+
+  /**
+   * Tear down every timer and transport. Terminal: an engine cannot be
+   * restarted after `stop()`. Construct a new instance instead.
+   */
   stop(): void {
     this.stopped = true;
+    this.resyncGeneration += 1;
     if (this.resyncTimer) {
       clearInterval(this.resyncTimer);
       this.resyncTimer = null;
@@ -170,7 +189,10 @@ export class LivePortfolioEngine {
     this.ws = null;
     this.polling?.stop();
     this.polling = null;
+    // Deliver anything still pending before dropping the throttle.
+    this.throttle?.flush();
     this.throttle?.stop();
     this.throttle = null;
+    this.lastEarned.clear();
   }
 }

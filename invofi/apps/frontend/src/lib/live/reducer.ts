@@ -6,7 +6,7 @@
 
 import type { FinancingOffer } from '@invofi/sdk';
 import { toStroopsBigInt } from '@/lib/utils';
-import { stroopsFromWire } from './convert';
+import { safeStroopsFromWire } from './convert';
 import type { ConnectionStatus, LivePosition, LivePositionUpdate, LiveTransport } from './types';
 import { offerApy, remainingStroops, repaymentProgress, totalDueStroops, yieldEarnedStroops } from './yield';
 import { usdPriceFor } from './prices';
@@ -79,8 +79,8 @@ function applyUpdate(
         funded_at:
           update.fields.funded_at !== undefined ? Number(update.fields.funded_at) : position.funded_at,
         currency: update.fields.currency ?? position.currency,
-        amount: stroopsFromWire(update.fields.amount ?? position.amount),
-        amount_repaid: stroopsFromWire(update.fields.amount_repaid ?? position.amount_repaid),
+        amount: safeStroopsFromWire(update.fields.amount ?? position.amount),
+        amount_repaid: safeStroopsFromWire(update.fields.amount_repaid ?? position.amount_repaid),
       };
       const derived = deriveLivePosition(merged, now / 1000);
       return { ...derived, updatedAt: now };
@@ -95,9 +95,18 @@ function applyUpdate(
       };
 
     case 'repayment_received': {
+      let amountRepaid: bigint;
+      if (update.remaining !== undefined) {
+        // Cumulative outstanding claim: monotonic, so a replayed or stale
+        // delivery can never double-count a repayment.
+        const derived = totalDueStroops(position) - update.remaining;
+        amountRepaid = derived > position.amount_repaid ? derived : position.amount_repaid;
+      } else {
+        amountRepaid = position.amount_repaid + update.amountRepaid;
+      }
       const merged = {
         ...position,
-        amount_repaid: position.amount_repaid + update.amountRepaid,
+        amount_repaid: amountRepaid,
       };
       const derived = deriveLivePosition(merged, now / 1000);
       return {

@@ -380,9 +380,11 @@ export default function PortfolioPage() {
     (sum, o) => sum + stroopsToUsd(o.earnedToDate, o.currency),
     0,
   );
+  // Repaid positions may be in different currencies — never sum raw yields as
+  // if they were the same asset. Convert each to USD first.
   const totalEarned = repaid.reduce((sum, o) => {
     const yield_ = o.totalDue - o.amount;
-    return sum + Number(yield_) / STROOPS_PER_XLM;
+    return sum + stroopsToUsd(yield_, o.currency);
   }, 0);
 
   const exportOffersCsv = () => {
@@ -484,7 +486,7 @@ export default function PortfolioPage() {
               {repaid.length > 0 && (
                 <div>
                   <p className="text-sm font-semibold text-green-800 dark:text-green-300">
-                    Realized yield: {totalEarned.toFixed(4)} XLM
+                    Realized yield: ${totalEarned.toFixed(2)} USD
                   </p>
                   <p className="text-xs text-green-600 dark:text-green-500">Across {repaid.length} repaid offer{repaid.length !== 1 ? 's' : ''}</p>
                 </div>

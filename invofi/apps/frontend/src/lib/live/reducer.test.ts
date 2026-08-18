@@ -96,6 +96,83 @@ describe('livePortfolioReducer', () => {
     expect(state.positions[0].repaymentProgress).toBe(1);
   });
 
+  it('uses a cumulative remaining to keep replayed repayments idempotent', () => {
+    let state = livePortfolioReducer(INITIAL_LIVE_PORTFOLIO_STATE, {
+      type: 'positions',
+      offers: [offer],
+    });
+
+    const replay = {
+      kind: 'repayment_received' as const,
+      positionId: 'off_1',
+      amountRepaid: 2_000_000n,
+      remaining: 8_500_000n,
+      fullyRepaid: false,
+    };
+
+    state = livePortfolioReducer(state, { type: 'update', update: replay });
+    expect(state.positions[0].amount_repaid).toBe(2_000_000n);
+    expect(state.positions[0].remaining).toBe(8_500_000n);
+
+    // The same delivery replays after a reconnect — must not double-count.
+    state = livePortfolioReducer(state, { type: 'update', update: replay });
+    expect(state.positions[0].amount_repaid).toBe(2_000_000n);
+    expect(state.positions[0].remaining).toBe(8_500_000n);
+  });
+
+  it('ignores stale cumulative repayments that arrived out of order', () => {
+    let state = livePortfolioReducer(INITIAL_LIVE_PORTFOLIO_STATE, {
+      type: 'positions',
+      offers: [offer],
+    });
+
+    // A fresh delivery first...
+    state = livePortfolioReducer(state, {
+      type: 'update',
+      update: {
+        kind: 'repayment_received',
+        positionId: 'off_1',
+        amountRepaid: 2_000_000n,
+        remaining: 8_500_000n,
+        fullyRepaid: false,
+      },
+    });
+
+    // ...then an older delivery replays with a higher (staler) remaining.
+    state = livePortfolioReducer(state, {
+      type: 'update',
+      update: {
+        kind: 'repayment_received',
+        positionId: 'off_1',
+        amountRepaid: 2_000_000n,
+        remaining: 9_500_000n,
+        fullyRepaid: false,
+      },
+    });
+
+    expect(state.positions[0].amount_repaid).toBe(2_000_000n);
+    expect(state.positions[0].remaining).toBe(8_500_000n);
+  });
+
+  it('falls back to incremental amounts when no cumulative value is sent', () => {
+    let state = livePortfolioReducer(INITIAL_LIVE_PORTFOLIO_STATE, {
+      type: 'positions',
+      offers: [offer],
+    });
+
+    state = livePortfolioReducer(state, {
+      type: 'update',
+      update: {
+        kind: 'repayment_received',
+        positionId: 'off_1',
+        amountRepaid: 2_000_000n,
+        fullyRepaid: false,
+      },
+    });
+
+    expect(state.positions[0].amount_repaid).toBe(2_000_000n);
+  });
+
   it('applies a yield_calculated stream update', () => {
     let state = livePortfolioReducer(INITIAL_LIVE_PORTFOLIO_STATE, {
       type: 'positions',
@@ -133,6 +210,24 @@ describe('livePortfolioReducer', () => {
 
     expect(state.positions[0].status).toBe('Repaid');
     expect(state.positions[0].amount_repaid).toBe(10_500_000n);
+  });
+
+  it('never crashes the reducer on malformed wire amounts', () => {
+    let state = livePortfolioReducer(INITIAL_LIVE_PORTFOLIO_STATE, {
+      type: 'positions',
+      offers: [offer],
+    });
+
+    state = livePortfolioReducer(state, {
+      type: 'update',
+      update: {
+        kind: 'position_updated',
+        positionId: 'off_1',
+        fields: { amount_repaid: 'not-a-number' },
+      },
+    });
+
+    expect(state.positions[0].amount_repaid).toBe(0n);
   });
 
   it('ignores updates for positions it does not know about', () => {

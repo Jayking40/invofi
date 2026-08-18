@@ -43,6 +43,10 @@ export interface WebSocketTransportOptions extends TransportCallbacks {
   maxBackoffMs?: number;
   /** How many failed initial connect attempts before giving up to polling. */
   maxReconnectAttempts?: number;
+  /** Repeated failures after a successful connect before giving up. Default 8. */
+  maxRelayFailures?: number;
+  /** How long to wait for the handshake before treating it as failed. Default 10s. */
+  connectTimeoutMs?: number;
   /** Called once when the relay is permanently unavailable. */
   onGiveUp: (reason: string) => void;
 }
@@ -57,34 +61,53 @@ export function decodeEnvelope(raw: string): LivePositionUpdate | null {
   }
   if (!parsed || typeof parsed !== 'object' || typeof parsed.type !== 'string') return null;
 
-  switch (parsed.type) {
-    case 'position_updated':
-      if (typeof parsed.positionId !== 'string') return null;
-      return {
-        kind: 'position_updated',
-        positionId: parsed.positionId,
-        fields: parsed.fields ?? {},
-      };
-    case 'yield_calculated':
-      if (typeof parsed.positionId !== 'string' || typeof parsed.apy !== 'number') return null;
-      return {
-        kind: 'yield_calculated',
-        positionId: parsed.positionId,
-        apy: parsed.apy,
-        earnedToDate: stroopsFromWire(parsed.earnedToDate),
-      };
-    case 'repayment_received':
-      if (typeof parsed.positionId !== 'string' || typeof parsed.progress !== 'number') {
+  // Both transports stamp the same received-time shape.
+  const updatedAt = Date.now();
+  try {
+    switch (parsed.type) {
+      case 'position_updated':
+        if (typeof parsed.positionId !== 'string') return null;
+        return {
+          kind: 'position_updated',
+          positionId: parsed.positionId,
+          fields: parsed.fields ?? {},
+          updatedAt,
+        };
+      case 'yield_calculated':
+        if (typeof parsed.positionId !== 'string' || typeof parsed.apy !== 'number') return null;
+        return {
+          kind: 'yield_calculated',
+          positionId: parsed.positionId,
+          apy: parsed.apy,
+          earnedToDate: stroopsFromWire(parsed.earnedToDate),
+          updatedAt,
+        };
+      case 'repayment_received':
+        if (typeof parsed.positionId !== 'string') return null;
+        // The normalized update uses amountRepaid, not progress — accept
+        // updates that omit progress and reject malformed amounts up front.
+        if (
+          typeof parsed.amountRepaid !== 'string' &&
+          typeof parsed.amountRepaid !== 'number' &&
+          typeof parsed.amountRepaid !== 'bigint'
+        ) {
+          return null;
+        }
+        return {
+          kind: 'repayment_received',
+          positionId: parsed.positionId,
+          amountRepaid: stroopsFromWire(parsed.amountRepaid),
+          remaining:
+            parsed.remaining === undefined ? undefined : stroopsFromWire(parsed.remaining),
+          fullyRepaid: parsed.fullyRepaid === true,
+          updatedAt,
+        };
+      default:
         return null;
-      }
-      return {
-        kind: 'repayment_received',
-        positionId: parsed.positionId,
-        amountRepaid: stroopsFromWire(parsed.amountRepaid),
-        fullyRepaid: parsed.fullyRepaid === true,
-      };
-    default:
-      return null;
+    }
+  } catch {
+    // A malformed amount must never crash the message handler.
+    return null;
   }
 }
 
@@ -108,16 +131,26 @@ export function createWebSocketTransport(
     reconnectBaseMs = 1_000,
     maxBackoffMs = 30_000,
     maxReconnectAttempts = 3,
+    maxRelayFailures = 8,
+    connectTimeoutMs = 10_000,
   } = options;
 
   let socket: WebSocket | null = null;
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  let connectTimer: ReturnType<typeof setTimeout> | null = null;
   let stopped = false;
   let everConnected = false;
   let consecutiveFailures = 0;
 
   function backoffFor(attempt: number): number {
     return Math.min(maxBackoffMs, reconnectBaseMs * 2 ** Math.min(attempt, 6));
+  }
+
+  function clearConnectTimer(): void {
+    if (connectTimer) {
+      clearTimeout(connectTimer);
+      connectTimer = null;
+    }
   }
 
   function connect(): void {
@@ -133,10 +166,25 @@ export function createWebSocketTransport(
     }
     socket = ws;
 
+    // A stalled handshake fires neither onopen nor onclose — bound it.
+    connectTimer = setTimeout(() => {
+      if (stopped || socket !== ws) return;
+      socket = null;
+      try {
+        ws.close();
+      } catch {
+        // already closed
+      }
+      handleFailure('connect timed out');
+    }, connectTimeoutMs);
+
     ws.onopen = () => {
       if (stopped || socket !== ws) return;
+      clearConnectTimer();
       everConnected = true;
-      consecutiveFailures = 0;
+      // Note: the failure counter is NOT reset here. Once live, a drop counts
+      // against `maxRelayFailures` so a relay that keeps failing hands off to
+      // polling instead of reconnecting forever.
       onConnectionChange('connected');
       // The relay may have missed events while we were offline — resync.
       onResync();
@@ -154,6 +202,7 @@ export function createWebSocketTransport(
 
     ws.onclose = () => {
       if (stopped || socket !== ws) return;
+      clearConnectTimer();
       socket = null;
       handleFailure('connection closed');
     };
@@ -163,9 +212,14 @@ export function createWebSocketTransport(
     if (stopped) return;
 
     if (everConnected) {
-      // We were live and dropped — reconnect with backoff.
-      const backoff = backoffFor(consecutiveFailures);
+      // We were live and dropped — reconnect with backoff, but only so far: a
+      // relay that stays down must hand off to the polling fallback.
       consecutiveFailures += 1;
+      if (consecutiveFailures >= maxRelayFailures) {
+        onGiveUp(reason);
+        return;
+      }
+      const backoff = backoffFor(consecutiveFailures - 1);
       onConnectionChange('reconnecting', `retry in ${Math.round(backoff / 1000)}s`);
       reconnectTimer = setTimeout(connect, backoff);
       return;
@@ -183,6 +237,7 @@ export function createWebSocketTransport(
 
   function stop(): void {
     stopped = true;
+    clearConnectTimer();
     if (reconnectTimer) {
       clearTimeout(reconnectTimer);
       reconnectTimer = null;
@@ -244,6 +299,18 @@ export function createPollingTransport(
 
   let stopListening: (() => void) | null = null;
   let stopped = false;
+  let resyncPending: ReturnType<typeof setTimeout> | null = null;
+
+  // One poll cycle can deliver a batch of events — coalesce them into a single
+  // resync request (the engine's in-flight guard also dedupes concurrently).
+  function requestResync(): void {
+    if (stopped) return;
+    if (resyncPending) return;
+    resyncPending = setTimeout(() => {
+      resyncPending = null;
+      onResync();
+    }, 0);
+  }
 
   function start(): void {
     if (stopped) return;
@@ -265,18 +332,26 @@ export function createPollingTransport(
             fullyRepaid: event.data.fullyRepaid,
             updatedAt: Date.now(),
           });
+          // Instant feedback for repayments; other mutations need a resync.
+          return;
         }
-        onResync();
+        requestResync();
       },
-      onError() {
-        // Retries with back-off are handled inside the SDK; the periodic
-        // Supabase resync keeps the dashboard correct meanwhile.
+      onError(error) {
+        // The SDK retries with back-off internally; surface the failure so the
+        // UI's connection detail shows why live data may be stale.
+        if (stopped) return;
+        onConnectionChange('polling', `poll error: ${error.message}`);
       },
     });
   }
 
   function stop(): void {
     stopped = true;
+    if (resyncPending) {
+      clearTimeout(resyncPending);
+      resyncPending = null;
+    }
     if (stopListening) {
       stopListening();
       stopListening = null;

@@ -81,6 +81,12 @@ export type LivePositionUpdate =
       positionId: string;
       /** Incremental amount of this repayment, in stroops. */
       amountRepaid: bigint;
+      /**
+       * Cumulative outstanding claim (totalDue − repaid) when the relay
+       * provides it. When present the reducer derives `amount_repaid` from this
+       * monotonic value so replayed deliveries can't double-count.
+       */
+      remaining?: bigint;
       fullyRepaid: boolean;
       updatedAt?: number;
     };

@@ -84,11 +84,17 @@ export function LivePortfolioProvider({ children }: { children: React.ReactNode 
   const fetchPositions = useCallback(async (): Promise<FinancingOffer[]> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return [];
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('financing_offers')
       .select('*, invoice:invoices(*)')
       .eq('lender_id', user.id)
       .order('created_at', { ascending: false });
+    if (error) {
+      // Surface the failure in state (the engine swallows rejections), so the
+      // page shows an error banner instead of a misleading empty portfolio.
+      dispatch({ type: 'error', error: `Failed to load financing offers: ${error.message}` });
+      return [];
+    }
     const rows = (data as unknown as FinancingOffer[]) ?? [];
     // Normalize mirror strings to bigint stroops so math/display are consistent.
     return rows.map(offer => ({

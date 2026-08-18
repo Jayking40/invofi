@@ -63,8 +63,11 @@ export function yieldEarnedStroops(
   const total = totalYieldStroops(offer);
   if (total <= 0n) return 0n;
   const elapsed = Math.max(0, nowSecs - offer.funded_at);
-  const ratio = Math.min(1, elapsed / offer.duration);
-  return BigInt(Math.floor(Number(total) * ratio));
+  if (elapsed >= offer.duration) return total;
+  // Stay in bigint — Number(total) loses precision for valid large on-chain
+  // amounts, and the floor must apply to the integer ratio, not a float.
+  const elapsedSecs = BigInt(Math.floor(elapsed));
+  return (total * elapsedSecs) / BigInt(offer.duration);
 }
 
 /** Whether an offer is actively deploying capital (its yield accrues). */

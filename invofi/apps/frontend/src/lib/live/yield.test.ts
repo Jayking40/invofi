@@ -38,6 +38,20 @@ describe('yield / repayment math', () => {
     expect(yieldEarnedStroops({ ...offer, duration: 0 })).toBe(0n);
   });
 
+  it('keeps accrual arithmetic in bigint for amounts above Number.MAX_SAFE_INTEGER', () => {
+    // 3_000_000_000_000_000n stroops (~300M XLM) — Number() would round it.
+    const bigOffer = {
+      amount: 3_000_000_000_000_000n,
+      amount_repaid: 0n,
+      interest_rate: 500,
+      duration: 30 * DAY,
+      funded_at: 1_000_000,
+    };
+    // Halfway: exact bigint division, no float rounding.
+    expect(yieldEarnedStroops(bigOffer, bigOffer.funded_at + 15 * DAY)).toBe(75_000_000_000_000n);
+    expect(yieldEarnedStroops(bigOffer, bigOffer.funded_at + 30 * DAY)).toBe(150_000_000_000_000n);
+  });
+
   it('tracks remaining and repayment progress', () => {
     expect(remainingStroops(offer)).toBe(1_050_000_000n);
     expect(repaymentProgress(offer)).toBe(0);

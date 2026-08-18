@@ -5,11 +5,19 @@
 
 import { Networks } from '@invofi/sdk';
 
-export const LIVE_RPC_URL = process.env.NEXT_PUBLIC_RPC_URL ?? 'https://soroban-testnet.stellar.org';
-export const LIVE_WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? '';
 export const LIVE_NETWORK = (process.env.NEXT_PUBLIC_STELLAR_NETWORK ?? 'testnet') as
   | 'testnet'
   | 'mainnet';
+
+/** Soroban RPC endpoint, derived from the network when not explicitly set. */
+export const LIVE_RPC_URL =
+  process.env.NEXT_PUBLIC_RPC_URL ??
+  (LIVE_NETWORK === 'mainnet'
+    ? 'https://soroban-rpc.stellar.org'
+    : 'https://soroban-testnet.stellar.org');
+
+export const LIVE_WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? '';
+
 export const LIVE_NETWORK_PASSPHRASE =
   LIVE_NETWORK === 'mainnet' ? Networks.PUBLIC : Networks.TESTNET;
 

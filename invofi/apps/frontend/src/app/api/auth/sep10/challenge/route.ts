@@ -6,6 +6,10 @@ import {
   getSep10WebAuthDomain,
   getServerNetworkPassphrase,
 } from '@/lib/sep10-server';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+
+const RATE_LIMIT = 10;
+const RATE_LIMIT_WINDOW_MS = 60_000;
 
 // Route Handlers run server-only and are never shipped to the client bundle
 // — this is where the SEP-10 server signing key is used.
@@ -19,6 +23,22 @@ export const runtime = 'nodejs';
  * with their wallet.
  */
 export async function POST(request: NextRequest) {
+  const clientIp = getClientIp(request);
+  const rateLimit = checkRateLimit(`sep10-challenge:${clientIp}`, {
+    limit: RATE_LIMIT,
+    windowMs: RATE_LIMIT_WINDOW_MS,
+  });
+  if (!rateLimit.allowed) {
+    console.warn(`SEP-10 challenge rate limit exceeded for IP ${clientIp}`);
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: { 'Retry-After': String(Math.ceil((rateLimit.resetAt - Date.now()) / 1000)) },
+      },
+    );
+  }
+
   let body: unknown;
   try {
     body = await request.json();

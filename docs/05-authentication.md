@@ -23,7 +23,7 @@ Standard email/password auth backed by Supabase Auth.
 1. User visits `/auth/login`
 2. Enters email and password
 3. Frontend calls `signInWithEmail(email, password)`
-4. Supabase returns a JWT session token stored in an httpOnly cookie
+4. Supabase returns a JWT session stored in cookies managed by the `@supabase/ssr` browser client — readable by client-side JS, not `HttpOnly` (see [Security Notes](#security-notes))
 5. User is redirected to `/dashboard`
 
 ### Session persistence
@@ -86,22 +86,22 @@ Real, cryptographic proof that the signed-in user controls the private key for t
 
 ### Client signing
 
-5. `signChallenge(xdr, networkPassphrase)` (`lib/sep10.ts`) hands the XDR to `signTransactionWithActiveWallet` (`lib/walletkit.ts`) — the *same* signing primitive used for every on-chain contract call, so wallet login goes through no parallel/bespoke signing path. The connected wallet's extension (Freighter or LOBSTR) prompts the user to approve, and adds the client's own signature to the transaction. The private key never leaves the extension.
+1. `signChallenge(xdr, networkPassphrase)` (`lib/sep10.ts`) hands the XDR to `signTransactionWithActiveWallet` (`lib/walletkit.ts`) — the *same* signing primitive used for every on-chain contract call, so wallet login goes through no parallel/bespoke signing path. The connected wallet's extension (Freighter or LOBSTR) prompts the user to approve, and adds the client's own signature to the transaction. The private key never leaves the extension.
 
 ### Server verification
 
-6. `verifyChallenge(signedXdr)` (`lib/sep10.ts`) `POST`s the now-doubly-signed XDR to `POST /api/auth/sep10/verify`.
-7. The Route Handler (`src/app/api/auth/sep10/verify/route.ts`) calls `verifySep10Challenge` (`src/lib/sep10-server.ts`), which:
+1. `verifyChallenge(signedXdr)` (`lib/sep10.ts`) `POST`s the now-doubly-signed XDR to `POST /api/auth/sep10/verify`.
+2. The Route Handler (`src/app/api/auth/sep10/verify/route.ts`) calls `verifySep10Challenge` (`src/lib/sep10-server.ts`), which:
    - Runs `WebAuth.readChallengeTx`, confirming the transaction is structurally a challenge this server issued (correct source account, sequence-number-zero convention, matching home/web-auth domain) **and that it has not expired** (SEP-10's replay/expiry protection — an expired or previously-consumed-looking challenge is rejected outright, not silently accepted).
    - Runs `WebAuth.verifyChallengeTxSigners`, confirming the *claimed* client account is genuinely among the transaction's signers — i.e. the wallet that signed really does hold the private key for that address.
    - Throws on any failure. **There is no fallback path** — a failed verification always returns `401` with a generic error message; the server never falls back to trusting the claimed address unverified, and never leaks the signing secret or a stack trace in the response.
 
 ### Supabase session binding
 
-8. On success, the verify endpoint derives a deterministic identity for the wallet (`{address}@stellar.wallet`, lower-cased) and calls `admin.auth.admin.generateLink({ type: 'magiclink', email })` via the **service-role** Supabase client (`src/utils/supabase/admin.ts`) — this both creates the auth user on first login and returns a one-time `hashed_token`.
-9. The endpoint upserts `user_profiles`: get-or-create the profile row, and set `wallet_address` **and** `wallet_verified = true` (a real, signature-proven binding, distinct from Method 2's merely-linked address). See `docs/08-environment-variables.md` for the `wallet_verified` column requirement.
-10. The client receives `{ account, email, tokenHash }` and immediately redeems it: `supabase.auth.verifyOtp({ type: 'magiclink', token_hash: tokenHash })`. This establishes a **real Supabase session** — same JWT-in-secure-cookie mechanism as Method 1 — for a user whose wallet ownership was cryptographically proven, not merely claimed.
-11. `loginWithSep10(account)` (`lib/sep10.ts`) orchestrates steps 1–10 as a single call; the login page calls it from `WalletButton`'s `onConnected` callback and pushes to `/dashboard` only after it resolves.
+1. On success, the verify endpoint derives a deterministic identity for the wallet (`{address}@stellar.wallet`, lower-cased) and calls `admin.auth.admin.generateLink({ type: 'magiclink', email })` via the **service-role** Supabase client (`src/utils/supabase/admin.ts`) — this both creates the auth user on first login and returns a one-time `hashed_token`.
+2. The endpoint upserts `user_profiles`: get-or-create the profile row, and set `wallet_address` **and** `wallet_verified = true` (a real, signature-proven binding, distinct from Method 2's merely-linked address). See `docs/08-environment-variables.md` for the `wallet_verified` column requirement.
+3. The client receives `{ account, email, tokenHash }` and immediately redeems it: `supabase.auth.verifyOtp({ type: 'magiclink', token_hash: tokenHash })`. This establishes a **real Supabase session** — same cookie-based session mechanism as Method 1 (see [Security Notes](#security-notes) for the cookie details) — for a user whose wallet ownership was cryptographically proven, not merely claimed.
+4. `loginWithSep10(account)` (`lib/sep10.ts`) orchestrates the challenge, signing, and verification steps above as a single call; the login page calls it from `WalletButton`'s `onConnected` callback and pushes to `/dashboard` only after it resolves.
 
 ### Replay and expiry protection
 
@@ -165,7 +165,7 @@ export default function DashboardPage() {
 
 ## Security Notes
 
-- Supabase session tokens are managed by the Supabase JS client using secure cookies.
+- Supabase session tokens are managed by the `@supabase/ssr` client via cookies (`sameSite: 'lax'`, `httpOnly: false`) — readable by client-side JS, not `HttpOnly`. The browser client needs that access to track and refresh the session itself; this is Supabase's standard SSR cookie mechanism, not something this app opts out of.
 - Wallet private keys never leave the connected extension (Freighter or LOBSTR) — InvoFi only ever receives signed transaction XDR strings, whether that's a contract call or a SEP-10 challenge.
 - The `user_profiles` table has Row Level Security enabled: users can only read and write their own profile row. The SEP-10 verify endpoint writes with the Supabase **service-role** key precisely because it must create/update a profile the caller doesn't have a session for yet — RLS is bypassed there deliberately, server-side only, and only after signature verification has already succeeded.
 - The `wallet_address` field in `user_profiles` is informational for on-chain purposes — on-chain transactions are still validated by Soroban's `require_auth()`, not by the database — but as of Method 3, `wallet_address` **combined with `wallet_verified = true`** is a genuine, cryptographically-checked identity claim suitable for off-chain authentication/authorization decisions (e.g. minting the Supabase session itself). Do not conflate a merely-linked (`wallet_verified` false/unset) address with a verified one.

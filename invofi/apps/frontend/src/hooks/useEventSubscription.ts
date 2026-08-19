@@ -14,6 +14,9 @@ import {
 /** Connection status of the event subscription. */
 export type ConnectionStatus = 'connecting' | 'connected' | 'reconnecting' | 'disconnected';
 
+/** Stable empty array to avoid unnecessary re-renders. */
+const EMPTY_EVENT_TYPES: ProtocolEventName[] = [];
+
 /** Subset of invoice-relevant event types that trigger UI updates. */
 const INVOICE_EVENT_TYPES = [
   'inv_reg',
@@ -55,17 +58,29 @@ interface UseEventSubscriptionReturn {
 export function useEventSubscription(
   options: UseEventSubscriptionOptions = {},
 ): UseEventSubscriptionReturn {
-  const { enabled = true, additionalEventTypes = [] } = options;
+  const { enabled = true, additionalEventTypes = EMPTY_EVENT_TYPES } = options;
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<ConnectionStatus>('disconnected');
   const [eventCount, setEventCount] = useState(0);
   const [lastEvent, setLastEvent] = useState<ProtocolEvent | null>(null);
   const stopRef = useRef<StopListening | null>(null);
   const mountedRef = useRef(true);
+  const seenRef = useRef<Set<string>>(new Set());
 
   const handleEvent = useCallback(
     (event: ProtocolEvent) => {
       if (!mountedRef.current) return;
+
+      // Deduplicate by txHash + type + subjectId.
+      const key = `${event.txHash}:${event.type}:${event.subjectId ?? ''}`;
+      if (seenRef.current.has(key)) return;
+      seenRef.current.add(key);
+      // Bound the set to prevent unbounded growth.
+      if (seenRef.current.size > 1_000) {
+        const first = seenRef.current.values().next().value;
+        if (first !== undefined) seenRef.current.delete(first);
+      }
+
       setEventCount((c) => c + 1);
       setLastEvent(event);
 
@@ -94,10 +109,13 @@ export function useEventSubscription(
           }
           break;
         case 'inv_rep':
-          // Repayment — invalidate offers, invoices, and marketplace.
+          // Repayment — invalidate offers, invoices, marketplace, and related invoice detail.
           queryClient.invalidateQueries({ queryKey: ['offers'] });
           queryClient.invalidateQueries({ queryKey: ['invoices'] });
           queryClient.invalidateQueries({ queryKey: ['marketplace'] });
+          if (event.subjectId) {
+            queryClient.invalidateQueries({ queryKey: ['invoice', event.subjectId] });
+          }
           break;
         default:
           break;
@@ -109,7 +127,7 @@ export function useEventSubscription(
   const handleError = useCallback(
     (_error: Error, context: { attempt: number; nextRetryMs: number }) => {
       if (!mountedRef.current) return;
-      if (context.attempt > 1) {
+      if (context.attempt >= 1) {
         setStatus('reconnecting');
       }
     },

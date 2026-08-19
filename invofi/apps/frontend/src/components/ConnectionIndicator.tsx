@@ -22,7 +22,7 @@ export function ConnectionIndicator({ status, eventCount }: ConnectionIndicatorP
   const config = STATUS_CONFIG[status];
 
   return (
-    <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+    <div role="status" aria-live="polite" className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
       <span className="relative flex h-2.5 w-2.5">
         {config.pulse && (
           <span

@@ -602,6 +602,22 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                 </a>
             </td>
             <td align="center">
+                <a href="https://github.com/Ajibose">
+                    <img src="https://avatars.githubusercontent.com/u/99620327?v=4" width="100;" alt="Ajibose"/>
+                    <br />
+                    <sub><b>Ajibose Ibrahim</b></sub>
+                </a>
+            </td>
+            <td align="center">
+                <a href="https://github.com/KarenZita01">
+                    <img src="https://avatars.githubusercontent.com/u/261386615?v=4" width="100;" alt="KarenZita01"/>
+                    <br />
+                    <sub><b>Karen Agbo</b></sub>
+                </a>
+            </td>
+		</tr>
+		<tr>
+            <td align="center">
                 <a href="https://github.com/Damieee">
                     <img src="https://avatars.githubusercontent.com/u/115638760?v=4" width="100;" alt="Damieee"/>
                     <br />
@@ -615,8 +631,6 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                     <sub><b>Ganesh chandra</b></sub>
                 </a>
             </td>
-		</tr>
-		<tr>
             <td align="center">
                 <a href="https://github.com/Aycode01">
                     <img src="https://avatars.githubusercontent.com/u/145759024?v=4" width="100;" alt="Aycode01"/>
@@ -645,6 +659,8 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                     <sub><b>Pavel</b></sub>
                 </a>
             </td>
+		</tr>
+		<tr>
             <td align="center">
                 <a href="https://github.com/Meet-hybrid">
                     <img src="https://avatars.githubusercontent.com/u/231819661?v=4" width="100;" alt="Meet-hybrid"/>
@@ -659,8 +675,6 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                     <sub><b>Raw_Nuke</b></sub>
                 </a>
             </td>
-		</tr>
-		<tr>
             <td align="center">
                 <a href="https://github.com/Jah-yee">
                     <img src="https://avatars.githubusercontent.com/u/166608075?v=4" width="100;" alt="Jah-yee"/>

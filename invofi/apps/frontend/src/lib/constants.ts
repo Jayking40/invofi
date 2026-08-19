@@ -86,9 +86,10 @@ export const MULTISIG_TIMEOUT_SECS = Math.trunc(
 );
 
 /**
- * Optional webhook the app POSTs to when a transaction is queued or approved,
- * so an external relay can notify co-signers by email/Slack/etc. Empty by
- * default — the no-backend deployment simply skips notification.
+ * Global Horizon HTTP timeout (ms). stellar-sdk v16 has no per-`Server` timeout
+ * option, so multisig applies this via `Config.setTimeout` — a stalled node
+ * then fails fast instead of leaving approve/execute spinning indefinitely.
  */
-export const MULTISIG_NOTIFY_WEBHOOK_URL =
-  process.env.NEXT_PUBLIC_MULTISIG_NOTIFY_WEBHOOK_URL ?? '';
+export const HORIZON_TIMEOUT_MS = Math.trunc(
+  numFromEnv(process.env.NEXT_PUBLIC_HORIZON_TIMEOUT_MS, 20_000),
+);

@@ -59,10 +59,15 @@ multi-sig, and wire the high-value UX around it.
    best-effort sweep on load; an authoritative always-on sweep is a keeper
    follow-up (ADR-0005 machinery).
 
-5. **Notification.** `notifyCosigners` POSTs to an optional webhook
-   (`NEXT_PUBLIC_MULTISIG_NOTIFY_WEBHOOK_URL`). Email can't be sent from the
-   browser, so email delivery is delegated to whatever the webhook points at
-   (e.g. a Supabase Edge Function). No-op when unset.
+5. **Notification (server-side).** Email can't be sent from the browser, and a
+   `NEXT_PUBLIC_*` webhook URL is readable by anyone and callable with
+   attacker-chosen bodies — so the frontend does **not** send notifications.
+   Delivery is a **Supabase Database Webhook / Edge Function that fires on
+   `INSERT` into `pending_transactions`** (and, optionally,
+   `transaction_approvals`), running server-side under the service role. It
+   fans out to email/Slack for the configured co-signers. This keeps the
+   notification target and secrets off the client, and the approval queue polls
+   regardless, so a co-signer still sees a request even if a push is missed.
 
 ## Consequences
 
@@ -83,5 +88,18 @@ multi-sig, and wire the high-value UX around it.
   any base XDR tomorrow). **Soroban per-address multi-approval is explicitly out
   of scope** and left as a follow-up — it needs a contract-side scheme
   (e.g. an on-chain approver registry), not signature collection.
+- **Authorization is layered.** Row-Level Security requires an authenticated
+  session to read the queue, binds every approval to its author
+  (`approver_id = auth.uid()`, and the stored signature must cryptographically
+  verify under the claimed `approver_address` — see `signatureForAddress`), and
+  restricts status changes to a request's participants (initiator or an
+  approver). This is coordination-layer defense-in-depth; it is **not** the
+  authority. The authority is the account submit: stellar-core rejects any
+  envelope whose signatures don't meet the account threshold
+  (`txBAD_AUTH_EXTRA`), so a tampered Supabase row can never move funds.
+  Follow-ups that would harden the mirror further — Postgres RPCs that enforce
+  the exact status-transition state machine, and checking approver addresses
+  against the source account's actual signer set — are deferred, not required
+  for on-chain safety.
 - The queue is shared state across co-signers, so the UI polls and every
   mutation re-reads approvals.

@@ -17,7 +17,10 @@ interface ApprovalProgressProps {
  */
 export function ApprovalProgress({ received, required, className }: ApprovalProgressProps) {
   const safeRequired = Math.max(1, required);
-  const ratio = Math.min(1, received / safeRequired);
+  // Over-approval is possible (extra co-signers sign before execution); clamp so
+  // the bar and the reported aria value never exceed the max.
+  const valueNow = Math.min(received, safeRequired);
+  const ratio = valueNow / safeRequired;
   const met = received >= safeRequired;
 
   return (
@@ -35,7 +38,7 @@ export function ApprovalProgress({ received, required, className }: ApprovalProg
         role="progressbar"
         aria-valuemin={0}
         aria-valuemax={safeRequired}
-        aria-valuenow={received}
+        aria-valuenow={valueNow}
         aria-label={`${received} of ${safeRequired} approvals received`}
       >
         <div

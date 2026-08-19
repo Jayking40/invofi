@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
+import { StrKey } from '@stellar/stellar-sdk';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,15 +17,23 @@ import { formatAddress, toStroopsBigInt } from '@/lib/utils';
 import type { PendingTransactionWithApprovals } from '@/types';
 import { HighValueBanner } from './HighValueBanner';
 
-// Stellar public keys are 56-char base32 strings beginning with G.
-const STELLAR_ADDRESS = /^G[A-Z2-7]{55}$/;
+/** True for a positive human-unit amount; never throws on malformed input. */
+function isPositiveAmount(v: string): boolean {
+  try {
+    return toStroopsBigInt(v) > 0n;
+  } catch {
+    return false;
+  }
+}
 
 const initiateSchema = z.object({
-  destination: z.string().regex(STELLAR_ADDRESS, 'Enter a valid Stellar address (starts with G)'),
+  destination: z
+    .string()
+    .refine(v => StrKey.isValidEd25519PublicKey(v), 'Enter a valid Stellar address (starts with G)'),
   amount: z
     .string()
     .regex(/^\d+(\.\d{1,7})?$/, 'Enter a valid amount (e.g. 12000.00)')
-    .refine(v => toStroopsBigInt(v) > 0n, 'Amount must be greater than zero'),
+    .refine(isPositiveAmount, 'Amount must be greater than zero'),
   currency: z.enum(['XLM', 'USDC']),
 });
 
@@ -147,7 +156,7 @@ export function InitiateTransactionForm({
             </div>
           </div>
 
-          <HighValueBanner amount={amount || '0'} currency={currency} />
+          <HighValueBanner amount={amount || '0'} currency={currency} action="queue" />
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <Button type="submit" disabled={submitting}>

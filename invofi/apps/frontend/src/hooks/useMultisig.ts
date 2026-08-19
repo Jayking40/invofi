@@ -11,7 +11,7 @@ import {
   executePendingTransaction,
   expireStale,
   fetchPendingTransactions,
-  setPendingStatus,
+  rejectPendingTransaction,
   type CreatePendingTransactionInput,
 } from '@/lib/multisig';
 import type { PendingTransaction, PendingTransactionWithApprovals } from '@/types';
@@ -76,7 +76,7 @@ export function useExecuteTransaction() {
 export function useRejectTransaction() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => setPendingStatus(id, 'Rejected'),
+    mutationFn: (id: string) => rejectPendingTransaction(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: PENDING_TX_QUERY_KEY }),
   });
 }

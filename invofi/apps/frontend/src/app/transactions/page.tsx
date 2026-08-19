@@ -80,6 +80,7 @@ export default function TransactionsPage() {
   };
 
   const onReject = async (tx: PendingTransaction) => {
+    if (!publicKey) return;
     setBusyId(tx.id);
     try {
       await reject.mutateAsync(tx.id);

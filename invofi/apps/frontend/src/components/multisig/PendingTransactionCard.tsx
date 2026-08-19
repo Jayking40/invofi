@@ -67,7 +67,9 @@ export function PendingTransactionCard({
   const isPending = status === 'Pending';
   const canApprove = isPending && !!viewerAddress && !viewerApproved && !progress.thresholdMet;
   const canExecute = isPending && progress.thresholdMet;
-  const canReject = isPending;
+  // Rejection mutates shared state, so it needs a connected wallet just like
+  // approve/execute — the page also gates the handler on the connected key.
+  const canReject = isPending && !!viewerAddress;
 
   return (
     <Card>

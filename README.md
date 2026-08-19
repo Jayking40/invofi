@@ -492,17 +492,35 @@ create policy "Parties can update offers" on financing_offers for update
 
 create policy "Own profile" on user_profiles for all using (id = auth.uid());
 
--- The approval queue is shared across co-signers, so any authenticated user can
--- read it and any authenticated user can initiate/execute/expire a request.
--- Tighten these to an allow-list of signer addresses per deployment if you don't
--- want the whole org to participate.
-create policy "Read pending transactions" on pending_transactions for select using (true);
-create policy "Create pending transactions" on pending_transactions for insert with check (auth.uid() is not null);
-create policy "Update pending transactions" on pending_transactions for update using (auth.uid() is not null);
+-- The approval queue is coordination state, not the source of truth (the account
+-- submit enforces the real threshold on-chain — txBAD_AUTH_EXTRA). RLS still adds
+-- defense-in-depth: only authenticated users can read it, an approval is bound to
+-- its author, and only a request's participants (initiator or an approver) can
+-- change its status. Tighten reads to an allow-list of signer addresses per
+-- deployment if you don't want the whole org to see the queue.
+create policy "Read pending transactions" on pending_transactions for select using (auth.uid() is not null);
+create policy "Create pending transactions" on pending_transactions for insert with check (initiator_id = auth.uid());
+create policy "Participants update pending transactions" on pending_transactions for update using (
+  initiator_id = auth.uid()
+  or exists (
+    select 1 from transaction_approvals ta
+    where ta.pending_tx_id = pending_transactions.id and ta.approver_id = auth.uid()
+  )
+);
 
-create policy "Read approvals" on transaction_approvals for select using (true);
-create policy "Insert own approval" on transaction_approvals for insert with check (auth.uid() is not null);
+create policy "Read approvals" on transaction_approvals for select using (auth.uid() is not null);
+-- Bind each approval to the authenticated author. The stored signature must also
+-- verify under approver_address (checked client-side in signatureForAddress before
+-- insert); a Postgres RPC that re-checks it server-side is a follow-up.
+create policy "Insert own approval" on transaction_approvals for insert with check (approver_id = auth.uid());
 ```
+
+> **Co-signer notification is server-side.** The frontend never sends
+> notifications (a `NEXT_PUBLIC_*` webhook would be world-readable and callable
+> with forged bodies). Wire a **Supabase Database Webhook / Edge Function on
+> `insert` into `pending_transactions`** that runs under the service role and
+> emails/Slacks the configured co-signers. The queue polls regardless, so a
+> co-signer still sees a request even without a push. See ADR-0006 §5.
 
 ---
 

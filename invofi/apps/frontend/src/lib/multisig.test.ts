@@ -27,6 +27,7 @@ import {
   isExpired,
   requiresMultisig,
   secondsUntilExpiry,
+  signatureForAddress,
   thresholdStroops,
 } from './multisig';
 import type { PendingTransaction, TransactionApproval } from '@/types';
@@ -82,6 +83,15 @@ describe('threshold logic', () => {
   it('accepts stroops as a bigint', () => {
     expect(requiresMultisig(100_000_000_000n, 'XLM')).toBe(false);
     expect(requiresMultisig(100_000_000_001n, 'XLM')).toBe(true);
+  });
+
+  it('treats a malformed amount as not high-value instead of throwing', () => {
+    // These reach the banner on every keystroke (e.g. "12." mid-typing); the
+    // guard must never let toStroopsBigInt's throw escape.
+    for (const bad of ['', '12.', '1e5', 'abc', '.', '-5']) {
+      expect(() => requiresMultisig(bad, 'XLM')).not.toThrow();
+      expect(requiresMultisig(bad, 'XLM')).toBe(false);
+    }
   });
 
   it('formats a human-readable threshold', () => {
@@ -216,5 +226,57 @@ describe('signature extraction and combination', () => {
       expect(match).toBeDefined();
       expect(kp.verify(hash, match!.signature())).toBe(true);
     }
+  });
+});
+
+describe('signatureForAddress (approval → approver binding)', () => {
+  it('returns the newly-added signature that verifies under the address', () => {
+    const kp = Keypair.random();
+    const base = buildBaseXdr(kp);
+    const signed = signWith(base, kp);
+
+    const sig = signatureForAddress(base, signed, kp.publicKey(), PASSPHRASE);
+    expect(sig).not.toBeNull();
+    // It is exactly the signature the wallet added.
+    expect(sig).toBe(extractNewSignatures(base, signed, PASSPHRASE)[0]);
+  });
+
+  it('rejects a signature that belongs to a different key than claimed', () => {
+    const kp1 = Keypair.random();
+    const kp2 = Keypair.random();
+    const base = buildBaseXdr(kp1);
+    const signedByKp2 = signWith(base, kp2);
+
+    // The envelope carries kp2's signature, but the caller claims kp1 → no match.
+    expect(signatureForAddress(base, signedByKp2, kp1.publicKey(), PASSPHRASE)).toBeNull();
+    // …and kp2 is correctly matched.
+    expect(signatureForAddress(base, signedByKp2, kp2.publicKey(), PASSPHRASE)).not.toBeNull();
+  });
+
+  it('ignores signatures already present on the base envelope', () => {
+    const kp1 = Keypair.random();
+    const kp2 = Keypair.random();
+    const base = buildBaseXdr(kp1);
+    const singleSigned = signWith(base, kp1); // base + kp1
+    const doubleSigned = signWith(singleSigned, kp2); // base + kp1 + kp2
+
+    // Relative to the kp1-signed envelope, only kp2's signature is "new".
+    expect(signatureForAddress(singleSigned, doubleSigned, kp1.publicKey(), PASSPHRASE)).toBeNull();
+    expect(
+      signatureForAddress(singleSigned, doubleSigned, kp2.publicKey(), PASSPHRASE),
+    ).not.toBeNull();
+  });
+
+  it('returns null for an address that is not a valid ed25519 public key', () => {
+    const kp = Keypair.random();
+    const base = buildBaseXdr(kp);
+    const signed = signWith(base, kp);
+    expect(signatureForAddress(base, signed, 'not-a-stellar-key', PASSPHRASE)).toBeNull();
+  });
+
+  it('returns null when the wallet added no signature at all', () => {
+    const kp = Keypair.random();
+    const base = buildBaseXdr(kp);
+    expect(signatureForAddress(base, base, kp.publicKey(), PASSPHRASE)).toBeNull();
   });
 });

@@ -14,8 +14,11 @@
 // (Soroban per-address auth is a separate, larger effort) and the trade-offs.
 import {
   Asset,
+  Config,
   Horizon,
+  Keypair,
   Operation,
+  StrKey,
   Transaction,
   TransactionBuilder,
   xdr,
@@ -23,8 +26,8 @@ import {
 import { supabase } from './supabase';
 import { NETWORK_PASSPHRASE, signTransactionWithActiveWallet } from './walletkit';
 import {
+  HORIZON_TIMEOUT_MS,
   HORIZON_URL,
-  MULTISIG_NOTIFY_WEBHOOK_URL,
   MULTISIG_REQUIRED_SIGNATURES,
   MULTISIG_THRESHOLDS,
   MULTISIG_TIMEOUT_SECS,
@@ -41,6 +44,17 @@ import type {
 
 const BASE_FEE = '100';
 
+/**
+ * A Horizon client with a bounded HTTP timeout. `Config.setTimeout` is global
+ * in stellar-sdk v16 (there is no per-`Server` timeout option), so we set it on
+ * every construction — otherwise a stalled Horizon node leaves the approve /
+ * execute buttons spinning forever. Idempotent and cheap to re-apply.
+ */
+function horizonServer(): Horizon.Server {
+  Config.setTimeout(HORIZON_TIMEOUT_MS);
+  return new Horizon.Server(HORIZON_URL);
+}
+
 // ── Threshold logic (pure) ───────────────────────────────────────────────────
 
 /** The multi-sig threshold for `currency`, in stroops. */
@@ -52,9 +66,19 @@ export function thresholdStroops(currency: Currency): bigint {
  * True when `amount` strictly exceeds the configured multi-sig threshold for
  * its currency. Accepts stroops (bigint) or a human-unit string/number — the
  * same dual convention as the rest of the app (see toStroopsBigInt).
+ *
+ * Parse-safe: a malformed amount (e.g. `"12."`, `"1e5"`, `""` mid-typing) is
+ * treated as *not* high-value rather than throwing, so callers on a live form
+ * value — {@link HighValueBanner} renders on every keystroke — never crash.
  */
 export function requiresMultisig(amount: string | bigint | number, currency: Currency): boolean {
-  return toStroopsBigInt(amount) > thresholdStroops(currency);
+  let stroops: bigint;
+  try {
+    stroops = toStroopsBigInt(amount);
+  } catch {
+    return false;
+  }
+  return stroops > thresholdStroops(currency);
 }
 
 /** Human-readable threshold for a currency, e.g. "10,000 XLM". */
@@ -178,6 +202,48 @@ export function combineSignatures(
   return tx.toXDR();
 }
 
+/** Constant-length byte-array equality (Buffer or Uint8Array, browser-safe). */
+function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
+
+/**
+ * Of the signatures the wallet just added to `signedXdr`, the base64
+ * DecoratedSignature that provably belongs to `address` — i.e. whose hint
+ * matches `address` *and* which cryptographically verifies against the
+ * transaction hash under `address`'s public key. Returns `null` when none do.
+ *
+ * This binds a stored approval to the claimed approver: without it a client
+ * could record any `approver_address` it likes against a signature produced by
+ * a different key. Verifying the signature (not just trusting the caller's
+ * address field) is what makes the on-chain threshold check meaningful before
+ * the account submit ultimately re-checks it (`txBAD_AUTH_EXTRA`).
+ */
+export function signatureForAddress(
+  baseXdr: string,
+  signedXdr: string,
+  address: string,
+  passphrase: string,
+): string | null {
+  if (!StrKey.isValidEd25519PublicKey(address)) return null;
+  const base = asTransaction(baseXdr, passphrase);
+  const signed = asTransaction(signedXdr, passphrase);
+  const seen = new Set(base.signatures.map(s => s.toXDR('base64')));
+  const hash = signed.hash(); // signatures don't affect the hash — base ≡ signed
+  const kp = Keypair.fromPublicKey(address);
+  const hint = kp.signatureHint();
+
+  for (const sig of signed.signatures) {
+    const b64 = sig.toXDR('base64');
+    if (seen.has(b64)) continue; // already on the base envelope — not newly added
+    if (!bytesEqual(sig.hint(), hint)) continue; // not this address's key
+    if (kp.verify(hash, sig.signature())) return b64; // …and it verifies
+  }
+  return null;
+}
+
 // ── Building a base transaction (treasury payment) ───────────────────────────
 
 function assetFor(currency: Currency): Asset {
@@ -203,7 +269,7 @@ export interface BuildPaymentInput {
  * (see ADR-0006).
  */
 export async function buildPaymentTransaction(input: BuildPaymentInput): Promise<string> {
-  const horizon = new Horizon.Server(HORIZON_URL);
+  const horizon = horizonServer();
   const account = await horizon.loadAccount(input.source);
   const tx = new TransactionBuilder(account, {
     fee: BASE_FEE,
@@ -266,7 +332,9 @@ export async function createPendingTransaction(
 
   const row = data as unknown as PendingTransactionWithApprovals;
   row.transaction_approvals ??= [];
-  void notifyCosigners(row, 'created');
+  // Co-signer notification is delivered server-side (a Supabase trigger on
+  // INSERT), not from the browser — see ADR-0006 §5 and the README. The queue
+  // itself polls, so a co-signer sees the request even without a push.
   return row;
 }
 
@@ -292,21 +360,34 @@ export async function getPendingTransaction(
   return (data as unknown as PendingTransactionWithApprovals) ?? null;
 }
 
+/**
+ * Move a queued transaction to a new status. When `opts.expectedStatus` is
+ * given the update is conditional on the row still being in that status, so two
+ * co-signers racing to reject/expire the same request can't both "win" — the
+ * loser's update matches no row and throws. The post-submit `Executed` write
+ * deliberately omits the guard: it records an authoritative on-chain outcome
+ * regardless of what the row drifted to meanwhile.
+ */
 export async function setPendingStatus(
   id: string,
   status: PendingTransactionStatus,
-  txHash?: string,
+  opts: { txHash?: string; expectedStatus?: PendingTransactionStatus } = {},
 ): Promise<PendingTransaction> {
   const patch: Record<string, unknown> = { status, updated_at: new Date().toISOString() };
-  if (txHash !== undefined) patch.tx_hash = txHash;
-  const { data, error } = await supabase
-    .from('pending_transactions')
-    .update(patch)
-    .eq('id', id)
-    .select()
-    .single();
+  if (opts.txHash !== undefined) patch.tx_hash = opts.txHash;
+  let query = supabase.from('pending_transactions').update(patch).eq('id', id);
+  if (opts.expectedStatus) query = query.eq('status', opts.expectedStatus);
+  const { data, error } = await query.select().maybeSingle();
   if (error) throw error;
+  if (!data) {
+    throw new Error('This transaction was already resolved by another co-signer.');
+  }
   return data as unknown as PendingTransaction;
+}
+
+/** Reject a pending request. Fails cleanly if it's already been resolved. */
+export async function rejectPendingTransaction(id: string): Promise<PendingTransaction> {
+  return setPendingStatus(id, 'Rejected', { expectedStatus: 'Pending' });
 }
 
 /**
@@ -327,9 +408,15 @@ export async function approvePendingTransaction(
   }
 
   const signedXdr = await signTransactionWithActiveWallet(tx.xdr, tx.network_passphrase);
-  const newSignatures = extractNewSignatures(tx.xdr, signedXdr, tx.network_passphrase);
-  if (newSignatures.length === 0) {
-    throw new Error('Your wallet did not add a signature — approval was not recorded.');
+  // Bind the stored approval to the claimed approver: keep only a signature
+  // that actually verifies under `approverAddress`. A wallet signing with a
+  // different key than it reports (or adding nothing) is rejected here rather
+  // than recording a mislabelled or useless approval.
+  const signature = signatureForAddress(tx.xdr, signedXdr, approverAddress, tx.network_passphrase);
+  if (!signature) {
+    throw new Error(
+      'Your wallet did not add a valid signature for this address — approval was not recorded.',
+    );
   }
 
   const { data, error } = await supabase
@@ -338,7 +425,7 @@ export async function approvePendingTransaction(
       pending_tx_id: tx.id,
       approver_address: approverAddress,
       approver_id: approverId,
-      signature: newSignatures[0],
+      signature,
     })
     .select()
     .single();
@@ -350,7 +437,6 @@ export async function approvePendingTransaction(
     throw error;
   }
 
-  void notifyCosigners(tx, 'approved');
   return data as unknown as TransactionApproval;
 }
 
@@ -379,69 +465,35 @@ export async function executePendingTransaction(
   );
   const finalTx = asTransaction(signedXdr, tx.network_passphrase);
 
-  const horizon = new Horizon.Server(HORIZON_URL);
+  const horizon = horizonServer();
   const result = await horizon.submitTransaction(finalTx);
   const hash = (result as { hash?: string }).hash ?? '';
-  return setPendingStatus(tx.id, 'Executed', hash);
+  return setPendingStatus(tx.id, 'Executed', { txHash: hash });
 }
 
 /**
- * Best-effort timeout sweep: mark any `Pending` row past its deadline as
- * `Expired`. Runs whenever a client loads the queue. The authoritative,
- * always-on sweep belongs in the keeper (a scheduled GitHub Action) — until
- * then {@link effectiveStatus} already hides expired rows from every action,
- * so a missed sweep never lets a stale transaction execute.
+ * Best-effort timeout sweep: mark every `Pending` row past its deadline as
+ * `Expired` in a single conditional update. Runs whenever a client loads the
+ * queue. The authoritative, always-on sweep belongs in the keeper (a scheduled
+ * GitHub Action) — until then {@link effectiveStatus} already hides expired
+ * rows from every action, so a missed sweep never lets a stale transaction
+ * execute. Returns the ids actually flipped (empty if the client lacks update
+ * rights, which is fine — the viewer still reads them as Expired).
  */
 export async function expireStale(rows: PendingTransaction[]): Promise<string[]> {
   const now = Date.now();
-  const stale = rows.filter(r => r.status === 'Pending' && isExpired(r, now));
-  const expired: string[] = [];
-  for (const row of stale) {
-    try {
-      await setPendingStatus(row.id, 'Expired');
-      expired.push(row.id);
-    } catch {
-      // A client without update rights simply sees Expired via effectiveStatus().
-    }
-  }
-  return expired;
-}
-
-// ── Co-signer notification ───────────────────────────────────────────────────
-
-/**
- * Notify co-signers a transaction was queued or approved by POSTing to a
- * configured webhook. No-op when unset (the default no-backend deployment).
- *
- * Email can't be sent from the browser, so delivery lives behind this webhook:
- * point it at a Supabase Edge Function that fans out to email/Slack. The
- * webhook origin must also be allowlisted in `connect-src` (next.config.mjs).
- * Always best-effort — a notification failure never blocks the on-chain flow.
- */
-export async function notifyCosigners(
-  tx: PendingTransaction,
-  event: 'created' | 'approved',
-): Promise<void> {
-  if (!MULTISIG_NOTIFY_WEBHOOK_URL) return;
+  const ids = rows.filter(r => r.status === 'Pending' && isExpired(r, now)).map(r => r.id);
+  if (ids.length === 0) return [];
   try {
-    await fetch(MULTISIG_NOTIFY_WEBHOOK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        event,
-        transaction: {
-          id: tx.id,
-          title: tx.title,
-          operation: tx.operation,
-          amount: tx.amount,
-          currency: tx.currency,
-          initiator: tx.initiator,
-          required_signatures: tx.required_signatures,
-          expires_at: tx.expires_at,
-        },
-      }),
-    });
+    const { data, error } = await supabase
+      .from('pending_transactions')
+      .update({ status: 'Expired', updated_at: new Date().toISOString() })
+      .in('id', ids)
+      .eq('status', 'Pending') // don't clobber a row a co-signer just resolved
+      .select('id');
+    if (error) throw error;
+    return ((data as { id: string }[] | null) ?? []).map(r => r.id);
   } catch {
-    // Best-effort only.
+    return [];
   }
 }

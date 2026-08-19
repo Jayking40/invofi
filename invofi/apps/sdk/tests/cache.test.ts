@@ -7,22 +7,17 @@
  *   polyfill it via `fake-indexeddb/auto`, which installs `indexedDB` plus
  *   the full IDBRequest/IDBCursor/IDBKeyRange/etc. constructor set that
  *   `idb` (the wrapper `src/cache.ts` uses) needs for its instanceof checks.
- * - `src/cache.ts` opens ONE memoized connection for the module's lifetime
- *   (a realistic long-lived app connection). We import it once, statically,
- *   and reuse that same connection across every test — NOT
- *   `vi.resetModules()` + a fresh `indexedDB.deleteDatabase()` per test.
- *   That combination deadlocks: `deleteDatabase()` blocks forever on the
- *   still-open connection from the previous test (nothing ever closes it),
- *   and — because IndexedDB processes requests against a given database in
- *   order — every `open()` issued afterwards queues up behind that stuck
- *   `delete()` and never resolves either. Instead, `beforeEach` clears the
- *   object store's contents via a short-lived side connection (opening the
- *   same DB/version alongside the long-lived one is fine; no version change,
- *   no blocking).
- * - The "no indexedDB" tests delete/restore `globalThis.indexedDB` directly.
- *   This works without any module reset because every exported function in
- *   `src/cache.ts` checks `isIndexedDbAvailable()` fresh on *every call*,
- *   before ever touching the memoized connection promise.
+ * - The cache is instance-scoped (PR #236 review): `createCache(scope)`
+ *   returns a handle with its own private, memoized IndexedDB connection,
+ *   keyed by `scope`. Rather than sharing one connection across tests and
+ *   manually clearing its contents in `beforeEach` (the old module-global
+ *   design needed this to avoid cross-test pollution), each test just uses
+ *   `uniqueScope()` to get its own never-before-seen scope — a fresh,
+ *   isolated database per test, no shared state, no cleanup dance.
+ * - The "no indexedDB" tests delete/restore `globalThis.indexedDB`. This
+ *   works without any module reset because every method re-checks
+ *   `isIndexedDbAvailable()` fresh on every call, before ever touching the
+ *   memoized connection promise.
  *
  * Coverage
  * --------
@@ -33,73 +28,42 @@
  * 5. Prefix-based invalidate() — exact key and prefix-family deletion
  * 6. LRU eviction — least-recently-accessed entries evicted first over budget
  * 7. Environment guard — safe no-op when indexedDB is unavailable
- * 8. Cache scoping — setCacheScope/getCacheScope isolate databases per
- *    network+account (PR #236 review)
- * 9. clearCache — wipes the active scope's store (disconnect hygiene)
+ * 8. Scoping — createCache(scope) isolates databases per network+account
+ * 9. clearCache — wipes one instance's store without affecting others
+ * 10. Concurrent clients — two instances for different scopes never cross-talk
+ * 11. Distinct scope strings — collision-free encoding (no shared "_" sanitizing)
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 // Installs indexedDB + IDBRequest/IDBCursor/IDBKeyRange/etc. as globals —
 // `idb` (the wrapper `src/cache.ts` uses) needs the full constructor set,
 // not just `indexedDB` itself, to build its promise-based instanceof checks.
 import 'fake-indexeddb/auto';
 
-import * as cache from '../src/cache';
+import { createCache, CACHE_TTL_MS, isIndexedDbAvailable, type CacheScope } from '../src/cache';
 
-const STORE_NAME = 'invofi-cache';
-const META_STORE_NAME = 'invofi-cache-meta';
-// Matches cache.ts's dbNameFor({}) for the default (unscoped) CacheScope.
-const DEFAULT_DB_NAME = 'invofi-cache:unscoped:anon';
-
-/**
- * Clears a scoped database's contents via a short-lived side connection,
- * without ever closing (or blocking on) the cache module's own long-lived
- * connection. Creates the stores first if they don't exist yet (first run).
- */
-function clearStore(dbName: string = DEFAULT_DB_NAME): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const openReq = indexedDB.open(dbName, 1);
-    openReq.onupgradeneeded = () => {
-      const db = openReq.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        const store = db.createObjectStore(STORE_NAME, { keyPath: 'key' });
-        store.createIndex('lastAccessed', 'lastAccessed');
-      }
-      if (!db.objectStoreNames.contains(META_STORE_NAME)) {
-        db.createObjectStore(META_STORE_NAME, { keyPath: 'key' });
-      }
-    };
-    openReq.onsuccess = () => {
-      const db = openReq.result;
-      const tx = db.transaction([STORE_NAME, META_STORE_NAME], 'readwrite');
-      tx.objectStore(STORE_NAME).clear();
-      tx.objectStore(META_STORE_NAME).clear();
-      tx.oncomplete = () => {
-        db.close();
-        resolve();
-      };
-      tx.onerror = () => {
-        db.close();
-        reject(tx.error);
-      };
-    };
-    openReq.onerror = () => reject(openReq.error);
-  });
+let scopeCounter = 0;
+/** A never-before-used id, for building a scope that no other test can collide with. */
+function uniqueId(label = 'test'): string {
+  scopeCounter += 1;
+  return `${label}-${scopeCounter}`;
 }
 
-beforeEach(async () => {
-  cache.setCacheScope({});
-  await clearStore();
-});
+/** A never-before-used scope, so each test gets its own isolated database. */
+function uniqueScope(label = 'test'): CacheScope {
+  return { network: 'unit-test-net', accountAddress: uniqueId(label) };
+}
 
 // ── 1. Basic get/set round-trip ───────────────────────────────────────────────
 
 describe('cache — get/set round-trip', () => {
   it('returns null for a missing key', async () => {
+    const cache = createCache(uniqueScope());
     expect(await cache.getCached('invoices:Pending:1')).toBeNull();
   });
 
   it('round-trips data with the correct schema fields', async () => {
+    const cache = createCache(uniqueScope());
     const before = Date.now();
     await cache.setCached('offers:inv_001', { foo: 'bar' }, 3);
     const entry = await cache.getCached<{ foo: string }>('offers:inv_001');
@@ -113,12 +77,14 @@ describe('cache — get/set round-trip', () => {
   });
 
   it('defaults version to 1 when not supplied', async () => {
+    const cache = createCache(uniqueScope());
     await cache.setCached('positions:GLENDER123', { balance: 100n });
     const entry = await cache.getCached('positions:GLENDER123');
     expect(entry!.version).toBe(1);
   });
 
   it('overwrites an existing entry on a second setCached for the same key', async () => {
+    const cache = createCache(uniqueScope());
     await cache.setCached('offers:inv_001', { v: 1 });
     await cache.setCached('offers:inv_001', { v: 2 });
     const entry = await cache.getCached<{ v: number }>('offers:inv_001');
@@ -126,6 +92,7 @@ describe('cache — get/set round-trip', () => {
   });
 
   it('handles bigint fields in cached data (Invoice/FinancingOffer shapes)', async () => {
+    const cache = createCache(uniqueScope());
     await cache.setCached('invoices:Pending:1', { amount: 5_000_000n });
     const entry = await cache.getCached<{ amount: bigint }>('invoices:Pending:1');
     expect(entry!.data.amount).toBe(5_000_000n);
@@ -136,9 +103,9 @@ describe('cache — get/set round-trip', () => {
 
 describe('cache — CACHE_TTL_MS config', () => {
   it('defines the required per-type TTLs', () => {
-    expect(cache.CACHE_TTL_MS.invoices).toBe(5 * 60_000);
-    expect(cache.CACHE_TTL_MS.offers).toBe(2 * 60_000);
-    expect(cache.CACHE_TTL_MS.positions).toBe(60_000);
+    expect(CACHE_TTL_MS.invoices).toBe(5 * 60_000);
+    expect(CACHE_TTL_MS.offers).toBe(2 * 60_000);
+    expect(CACHE_TTL_MS.positions).toBe(60_000);
   });
 });
 
@@ -146,6 +113,7 @@ describe('cache — CACHE_TTL_MS config', () => {
 
 describe('cache — staleWhileRevalidate', () => {
   it('returns null data and isStale=true on a cold cache, then updates the cache in the background', async () => {
+    const cache = createCache(uniqueScope());
     const fetcher = vi.fn().mockResolvedValue({ id: 'inv_1' });
 
     const result = await cache.staleWhileRevalidate('invoices:Pending:1', 5_000, fetcher);
@@ -161,6 +129,7 @@ describe('cache — staleWhileRevalidate', () => {
   });
 
   it('returns cached data immediately (isStale=false) while still refreshing in the background', async () => {
+    const cache = createCache(uniqueScope());
     await cache.setCached('offers:inv_002', { id: 'off_1', v: 1 });
 
     const fetcher = vi.fn().mockResolvedValue({ id: 'off_1', v: 2 });
@@ -176,6 +145,7 @@ describe('cache — staleWhileRevalidate', () => {
   });
 
   it('marks an entry older than the TTL as stale', async () => {
+    const cache = createCache(uniqueScope());
     // Real (short) delay rather than fake timers — fake-indexeddb schedules
     // its request callbacks via real timers/microtasks internally, so
     // vi.useFakeTimers() here would starve `idb`'s promises and hang the test.
@@ -192,6 +162,7 @@ describe('cache — staleWhileRevalidate', () => {
   // ── 4. Promise.allSettled graceful degradation ──────────────────────────────
 
   it('keeps the stale cache entry intact and does not throw when the background fetch rejects', async () => {
+    const cache = createCache(uniqueScope());
     await cache.setCached('invoices:Financed:1', { id: 'inv_9' });
 
     const fetcher = vi.fn().mockRejectedValue(new Error('network down'));
@@ -205,6 +176,7 @@ describe('cache — staleWhileRevalidate', () => {
   });
 
   it('never throws even with no prior cache entry and a rejecting fetcher', async () => {
+    const cache = createCache(uniqueScope());
     const fetcher = vi.fn().mockRejectedValue(new Error('boom'));
     const result = await cache.staleWhileRevalidate('offers:inv_none', 60_000, fetcher);
     expect(result.data).toBeNull();
@@ -216,12 +188,14 @@ describe('cache — staleWhileRevalidate', () => {
 
 describe('cache — invalidate', () => {
   it('deletes an exact key', async () => {
+    const cache = createCache(uniqueScope());
     await cache.setCached('offers:inv_001', { a: 1 });
     await cache.invalidate('offers:inv_001');
     expect(await cache.getCached('offers:inv_001')).toBeNull();
   });
 
   it('deletes every key sharing a prefix, leaving unrelated keys untouched', async () => {
+    const cache = createCache(uniqueScope());
     await cache.setCached('invoices:Pending:1', { p: 1 });
     await cache.setCached('invoices:Pending:2', { p: 2 });
     await cache.setCached('invoices:Financed:1', { p: 3 });
@@ -236,6 +210,7 @@ describe('cache — invalidate', () => {
   });
 
   it('is a no-op (does not throw) for a key/prefix that matches nothing', async () => {
+    const cache = createCache(uniqueScope());
     await expect(cache.invalidate('nonexistent:')).resolves.toBeUndefined();
   });
 });
@@ -246,6 +221,7 @@ const MAX_CACHE_SIZE_BYTES_FOR_TEST = 50 * 1024 * 1024;
 
 describe('cache — LRU eviction', () => {
   it('evicts least-recently-accessed entries once the size threshold is exceeded', async () => {
+    const cache = createCache(uniqueScope());
     // Small threshold so the test doesn't need to write anywhere near 50MB.
     // Sized to fit exactly two of these ~equal-size entries (plus slack) so
     // adding the third forces exactly one eviction — the least-recently-used
@@ -285,6 +261,7 @@ describe('cache — LRU eviction', () => {
   });
 
   it('does not evict anything when under the size threshold', async () => {
+    const cache = createCache(uniqueScope());
     await cache.setCached('positions:A', { small: 1 }, 1, MAX_CACHE_SIZE_BYTES_FOR_TEST);
     await cache.setCached('positions:B', { small: 2 }, 1, MAX_CACHE_SIZE_BYTES_FOR_TEST);
     expect(await cache.getCached('positions:A')).not.toBeNull();
@@ -297,97 +274,112 @@ describe('cache — LRU eviction', () => {
 describe('cache — environment guard (no IndexedDB)', () => {
   // fake-indexeddb/auto installs `globalThis.indexedDB` once for the whole
   // file; these tests temporarily remove it to exercise the SSR/Node path,
-  // then restore it so later tests (and other describe blocks) are unaffected.
-  // No module reset is needed: every exported function re-checks
-  // `isIndexedDbAvailable()` on each call before touching the memoized
-  // connection, so flipping the global directly is sufficient.
-  let savedIndexedDb: typeof indexedDB;
-
-  beforeEach(() => {
-    savedIndexedDb = globalThis.indexedDB;
+  // then restore it so later tests are unaffected. No module reset is
+  // needed: every method re-checks `isIndexedDbAvailable()` on each call
+  // before touching the memoized connection promise.
+  async function withoutIndexedDb<T>(fn: () => Promise<T> | T): Promise<T> {
+    const saved = globalThis.indexedDB;
     // @ts-expect-error — simulating an environment with no indexedDB global
     delete globalThis.indexedDB;
-  });
+    try {
+      return await fn();
+    } finally {
+      globalThis.indexedDB = saved;
+    }
+  }
 
-  afterEach(() => {
-    globalThis.indexedDB = savedIndexedDb;
-  });
-
-  it('isIndexedDbAvailable() reflects the current globalThis.indexedDB', () => {
-    expect(cache.isIndexedDbAvailable()).toBe(false);
-
-    globalThis.indexedDB = savedIndexedDb;
-    expect(cache.isIndexedDbAvailable()).toBe(true);
+  it('isIndexedDbAvailable() reflects the current globalThis.indexedDB', async () => {
+    await withoutIndexedDb(() => {
+      expect(isIndexedDbAvailable()).toBe(false);
+    });
+    expect(isIndexedDbAvailable()).toBe(true);
   });
 
   it('getCached resolves null (never throws) when indexedDB is unavailable', async () => {
-    await expect(cache.getCached('invoices:Pending:1')).resolves.toBeNull();
+    await withoutIndexedDb(async () => {
+      const cache = createCache(uniqueScope('no-idb'));
+      await expect(cache.getCached('invoices:Pending:1')).resolves.toBeNull();
+    });
   });
 
   it('setCached resolves without effect (never throws) when indexedDB is unavailable', async () => {
-    await expect(cache.setCached('invoices:Pending:1', { a: 1 })).resolves.toBeUndefined();
+    await withoutIndexedDb(async () => {
+      const cache = createCache(uniqueScope('no-idb'));
+      await expect(cache.setCached('invoices:Pending:1', { a: 1 })).resolves.toBeUndefined();
+    });
   });
 
   it('invalidate resolves without effect (never throws) when indexedDB is unavailable', async () => {
-    await expect(cache.invalidate('invoices:')).resolves.toBeUndefined();
+    await withoutIndexedDb(async () => {
+      const cache = createCache(uniqueScope('no-idb'));
+      await expect(cache.invalidate('invoices:')).resolves.toBeUndefined();
+    });
   });
 
   it('staleWhileRevalidate still calls the fetcher and resolves gracefully with no cache backing', async () => {
-    const fetcher = vi.fn().mockResolvedValue({ id: 'inv_x' });
+    await withoutIndexedDb(async () => {
+      const cache = createCache(uniqueScope('no-idb'));
+      const fetcher = vi.fn().mockResolvedValue({ id: 'inv_x' });
 
-    const result = await cache.staleWhileRevalidate('invoices:Pending:1', 5_000, fetcher);
-    expect(result.data).toBeNull();
-    expect(result.isStale).toBe(true);
-    await expect(result.refresh).resolves.toEqual({ id: 'inv_x' });
+      const result = await cache.staleWhileRevalidate('invoices:Pending:1', 5_000, fetcher);
+      expect(result.data).toBeNull();
+      expect(result.isStale).toBe(true);
+      await expect(result.refresh).resolves.toEqual({ id: 'inv_x' });
+    });
   });
 });
 
-// ── 8. Cache scoping ───────────────────────────────────────────────────────────
+// ── 8. Scoping ───────────────────────────────────────────────────────────────
 
 describe('cache — scoping', () => {
-  afterEach(() => {
-    cache.setCacheScope({});
+  it('createCache() with no scope defaults to an unscoped/anonymous database', () => {
+    const cache = createCache();
+    expect(cache.scope).toEqual({});
   });
 
-  it('defaults to an unscoped/anonymous scope', () => {
-    expect(cache.getCacheScope()).toEqual({});
+  it('exposes the scope it was created with', () => {
+    const scope = { network: 'testnet', accountAddress: 'GALICE' };
+    const cache = createCache(scope);
+    expect(cache.scope).toEqual(scope);
   });
 
-  it('reflects the scope passed to setCacheScope', () => {
-    cache.setCacheScope({ network: 'testnet', accountAddress: 'GALICE' });
-    expect(cache.getCacheScope()).toEqual({ network: 'testnet', accountAddress: 'GALICE' });
+  it('mutating the scope object passed in has no effect on an existing instance', () => {
+    const scope = { network: 'testnet', accountAddress: 'GALICE' };
+    const cache = createCache(scope);
+    scope.accountAddress = 'GBOB';
+    expect(cache.scope.accountAddress).toBe('GALICE');
   });
 
   it('isolates data between two different accounts on the same network', async () => {
-    cache.setCacheScope({ network: 'testnet', accountAddress: 'GALICE' });
-    await cache.setCached('positions:GALICE', { balance: 100 });
+    const alice = createCache({ network: 'testnet', accountAddress: uniqueId('alice') });
+    const bob = createCache({ network: 'testnet', accountAddress: uniqueId('bob') });
 
-    cache.setCacheScope({ network: 'testnet', accountAddress: 'GBOB' });
-    expect(await cache.getCached('positions:GALICE')).toBeNull();
-    await cache.setCached('positions:GBOB', { balance: 5 });
+    await alice.setCached('positions:me', { balance: 100 });
+    await bob.setCached('positions:me', { balance: 5 });
 
-    cache.setCacheScope({ network: 'testnet', accountAddress: 'GALICE' });
-    const aliceEntry = await cache.getCached<{ balance: number }>('positions:GALICE');
+    const aliceEntry = await alice.getCached<{ balance: number }>('positions:me');
+    const bobEntry = await bob.getCached<{ balance: number }>('positions:me');
     expect(aliceEntry?.data).toEqual({ balance: 100 });
-    // Bob's write is invisible from Alice's scope, even under the same key shape.
-    expect(await cache.getCached('positions:GBOB')).toBeNull();
+    expect(bobEntry?.data).toEqual({ balance: 5 });
   });
 
   it('isolates data between two different networks for the same account', async () => {
-    cache.setCacheScope({ network: 'testnet', accountAddress: 'GALICE' });
-    await cache.setCached('invoices:Pending:1', { network: 'testnet' });
+    const account = uniqueId('shared-account');
+    const testnet = createCache({ network: 'testnet', accountAddress: account });
+    const mainnet = createCache({ network: 'mainnet', accountAddress: account });
 
-    cache.setCacheScope({ network: 'mainnet', accountAddress: 'GALICE' });
-    expect(await cache.getCached('invoices:Pending:1')).toBeNull();
+    await testnet.setCached('invoices:Pending:1', { network: 'testnet' });
+
+    expect(await mainnet.getCached('invoices:Pending:1')).toBeNull();
   });
 
-  it('persists a scope\'s data across repeated setCacheScope calls with the same value', async () => {
-    const scope = { network: 'testnet', accountAddress: 'GALICE' };
-    cache.setCacheScope(scope);
-    await cache.setCached('offers:inv_1', { id: 'off_1' });
+  it('two instances created with the same scope share the same database', async () => {
+    const scope = uniqueScope('shared');
+    const first = createCache(scope);
+    await first.setCached('offers:inv_1', { id: 'off_1' });
 
-    cache.setCacheScope({ ...scope });
-    const entry = await cache.getCached('offers:inv_1');
+    const second = createCache({ ...scope });
+    const entry = await second.getCached('offers:inv_1');
     expect(entry).not.toBeNull();
   });
 });
@@ -395,54 +387,142 @@ describe('cache — scoping', () => {
 // ── 9. clearCache ────────────────────────────────────────────────────────────
 
 describe('cache — clearCache', () => {
-  afterEach(() => {
-    cache.setCacheScope({});
-  });
+  it('wipes every entry in this instance and does not affect other scopes', async () => {
+    const carl = createCache(uniqueScope('carl'));
+    const dave = createCache(uniqueScope('dave'));
 
-  it('wipes every entry in the active scope', async () => {
-    cache.setCacheScope({ network: 'testnet', accountAddress: 'GCARL' });
-    await cache.setCached('invoices:Pending:1', { a: 1 });
-    await cache.setCached('offers:inv_1', { b: 2 });
+    await carl.setCached('invoices:Pending:1', { a: 1 });
+    await dave.setCached('invoices:Pending:1', { a: 2 });
 
-    await cache.clearCache();
+    await carl.clearCache();
 
-    expect(await cache.getCached('invoices:Pending:1')).toBeNull();
-    expect(await cache.getCached('offers:inv_1')).toBeNull();
-  });
-
-  it('does not affect other scopes', async () => {
-    cache.setCacheScope({ network: 'testnet', accountAddress: 'GCARL' });
-    await cache.setCached('invoices:Pending:1', { a: 1 });
-
-    cache.setCacheScope({ network: 'testnet', accountAddress: 'GDAVE' });
-    await cache.setCached('invoices:Pending:1', { a: 2 });
-    await cache.clearCache();
-
-    cache.setCacheScope({ network: 'testnet', accountAddress: 'GCARL' });
-    const entry = await cache.getCached<{ a: number }>('invoices:Pending:1');
-    expect(entry?.data).toEqual({ a: 1 });
+    expect(await carl.getCached('invoices:Pending:1')).toBeNull();
+    const daveEntry = await dave.getCached<{ a: number }>('invoices:Pending:1');
+    expect(daveEntry?.data).toEqual({ a: 2 });
   });
 
   it('resets the tracked size so subsequent writes are not evicted prematurely', async () => {
-    cache.setCacheScope({ network: 'testnet', accountAddress: 'GERIN' });
-    await cache.setCached('positions:GERIN', { blob: 'x'.repeat(50) });
+    const cache = createCache(uniqueScope());
+    await cache.setCached('positions:me', { blob: 'x'.repeat(50) });
     await cache.clearCache();
 
     // A tiny maxSizeBytes would immediately trigger eviction if the size
     // counter still reflected the pre-clear total instead of resetting to 0.
-    await cache.setCached('positions:GERIN', { blob: 'y'.repeat(10) }, 1, 1_000);
-    const entry = await cache.getCached('positions:GERIN');
-    expect(entry).not.toBeNull();
+    await cache.setCached('positions:me', { blob: 'y'.repeat(10) }, 1, 1_000);
+    expect(await cache.getCached('positions:me')).not.toBeNull();
   });
 
   it('resolves without effect (never throws) when indexedDB is unavailable', async () => {
-    const savedIndexedDb = globalThis.indexedDB;
+    const saved = globalThis.indexedDB;
     // @ts-expect-error — simulating an environment with no indexedDB global
     delete globalThis.indexedDB;
     try {
+      const cache = createCache(uniqueScope('no-idb'));
       await expect(cache.clearCache()).resolves.toBeUndefined();
     } finally {
-      globalThis.indexedDB = savedIndexedDb;
+      globalThis.indexedDB = saved;
     }
+  });
+});
+
+// ── 10. Concurrent clients ───────────────────────────────────────────────────
+// The module-global `currentScope`/`dbPromise` design this replaced would
+// have let one client's `setCacheScope` call redirect another's in-flight
+// operations to the wrong database. These tests interleave two
+// differently-scoped instances' operations to prove that can't happen now
+// that each instance owns its own connection.
+
+describe('cache — concurrent clients', () => {
+  it('interleaved writes from two differently-scoped instances never cross-contaminate', async () => {
+    const alice = createCache(uniqueScope('concurrent-alice'));
+    const bob = createCache(uniqueScope('concurrent-bob'));
+
+    // Interleave: both instances' operations are in flight at the same time,
+    // constructed in an order that would trip up any shared "current scope"
+    // pointer (bob's writes start before alice's finish).
+    await Promise.all([
+      alice.setCached('invoices:Pending:1', { owner: 'alice', n: 1 }),
+      bob.setCached('invoices:Pending:1', { owner: 'bob', n: 1 }),
+      alice.setCached('offers:o1', { owner: 'alice', n: 2 }),
+      bob.setCached('offers:o1', { owner: 'bob', n: 2 }),
+    ]);
+
+    const [aliceInvoice, bobInvoice, aliceOffer, bobOffer] = await Promise.all([
+      alice.getCached<{ owner: string }>('invoices:Pending:1'),
+      bob.getCached<{ owner: string }>('invoices:Pending:1'),
+      alice.getCached<{ owner: string }>('offers:o1'),
+      bob.getCached<{ owner: string }>('offers:o1'),
+    ]);
+
+    expect(aliceInvoice?.data.owner).toBe('alice');
+    expect(bobInvoice?.data.owner).toBe('bob');
+    expect(aliceOffer?.data.owner).toBe('alice');
+    expect(bobOffer?.data.owner).toBe('bob');
+  });
+
+  it('creating a new scoped instance mid-flight does not affect an existing instance\'s in-flight operations', async () => {
+    const first = createCache(uniqueScope('mid-flight-first'));
+
+    const writePromise = first.setCached('positions:me', { balance: 1 });
+    // Simulate another part of the app switching accounts concurrently —
+    // this used to mutate module-global state (`setCacheScope`) that
+    // `first`'s in-flight write would have read from.
+    const second = createCache(uniqueScope('mid-flight-second'));
+    await second.setCached('positions:me', { balance: 2 });
+    await writePromise;
+
+    const firstEntry = await first.getCached<{ balance: number }>('positions:me');
+    const secondEntry = await second.getCached<{ balance: number }>('positions:me');
+    expect(firstEntry?.data).toEqual({ balance: 1 });
+    expect(secondEntry?.data).toEqual({ balance: 2 });
+  });
+});
+
+// ── 11. Distinct scope strings (collision-free encoding) ────────────────────
+// The previous implementation sanitized each scope segment by replacing any
+// character outside [a-zA-Z0-9_.:-] with "_" — so e.g. accountAddress
+// "acct/1" and "acct?1" both sanitized to "acct_1" and collided onto the
+// *same* database. encodeURIComponent is injective (distinct inputs never
+// produce the same output) and reversible (decodeURIComponent undoes it),
+// which is what these tests exercise via observable isolation.
+
+describe('cache — distinct scope strings', () => {
+  it('scope strings that would have collided under naive "_" substitution stay isolated', async () => {
+    const a = createCache({ network: 'testnet', accountAddress: 'acct/1' });
+    const b = createCache({ network: 'testnet', accountAddress: 'acct?1' });
+
+    await a.setCached('offers:x', { from: 'slash' });
+    await b.setCached('offers:x', { from: 'question' });
+
+    const aEntry = await a.getCached<{ from: string }>('offers:x');
+    const bEntry = await b.getCached<{ from: string }>('offers:x');
+    expect(aEntry?.data).toEqual({ from: 'slash' });
+    expect(bEntry?.data).toEqual({ from: 'question' });
+  });
+
+  it('a scope value containing a literal ":" cannot be confused with the segment separator', async () => {
+    // Old behavior allowed ':' through unsanitized, so a crafted address
+    // could inject an extra segment boundary. A colon is now always
+    // percent-encoded, so this can't collide with a differently-shaped scope.
+    const withColon = createCache({ network: 'testnet', accountAddress: 'evil:anon' });
+    const plain = createCache({ network: 'testnet', accountAddress: 'evil' });
+
+    await withColon.setCached('offers:x', { tag: 'colon' });
+
+    // 'plain' must not see 'withColon''s data even though a naive ':' split
+    // of the resulting database name could otherwise line them up.
+    expect(await plain.getCached('offers:x')).toBeNull();
+  });
+
+  it('many distinct raw scope strings each get their own isolated database', async () => {
+    const rawValues = ['a b', 'a+b', 'a=b', 'a&b', 'a%b', 'a#b', 'ab', 'a_b'];
+    const caches = rawValues.map(v => createCache({ network: 'testnet', accountAddress: v }));
+
+    await Promise.all(caches.map((c, i) => c.setCached('offers:x', { i })));
+
+    const entries = await Promise.all(caches.map(c => c.getCached<{ i: number }>('offers:x')));
+    entries.forEach((entry, i) => {
+      expect(entry?.data).toEqual({ i });
+    });
   });
 });

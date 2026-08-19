@@ -31,21 +31,22 @@ import {
   validateAssetString,
   validateConfigField,
 } from './validation';
-import { invalidate, setCacheScope } from './cache';
+import { createCache, type CacheHandle } from './cache';
 
 export { SdkValidationError, ErrorCode };
 
 /**
  * Invalidates the offline-cache (Task 218) key prefixes affected by a
- * state-changing contract call, once it has succeeded. Best-effort and
- * side-effect-only: `invalidate()` never throws (see cache.ts), so this
- * never affects the caller's return value. Fire-and-forget is intentional —
- * callers already have the fresh on-chain result; invalidation just makes
- * sure a subsequent cached read doesn't serve stale data.
+ * state-changing contract call, once it has succeeded, against this
+ * client's own `CacheHandle`. Best-effort and side-effect-only:
+ * `cache.invalidate()` never throws (see cache.ts), so this never affects
+ * the caller's return value. Fire-and-forget is intentional — callers
+ * already have the fresh on-chain result; invalidation just makes sure a
+ * subsequent cached read doesn't serve stale data.
  */
-function invalidateCache(prefixes: string[]): void {
+function invalidateCache(cache: CacheHandle, prefixes: string[]): void {
   for (const prefix of prefixes) {
-    void invalidate(prefix);
+    void cache.invalidate(prefix);
   }
 }
 
@@ -105,12 +106,14 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
     validateAssetString(cfg.positionTokenAsset, 'cfg.positionTokenAsset');
   }
 
-  // Scope the offline cache (Task 218) to this network + connected account
-  // so a client built for one wallet/network never reads another's cached
-  // data (PR #236 review). Re-scoping on every construction means a caller
-  // that rebuilds the client on wallet/account change (the normal React
-  // pattern) gets correct isolation for free.
-  setCacheScope({ network: cfg.networkPassphrase, accountAddress: cfg.accountAddress });
+  // A cache handle scoped to this network + connected account (Task 218),
+  // owned by this client instance — not module-global state — so a client
+  // built for one wallet/network never reads another's cached data, and
+  // concurrent clients for different accounts never race over which
+  // database is "current" (PR #236 review). A caller that rebuilds the
+  // client on wallet/account change (the normal React pattern) gets a
+  // freshly-scoped cache for free.
+  const cache = createCache({ network: cfg.networkPassphrase, accountAddress: cfg.accountAddress });
 
   const server = () => new SorobanRpc.Server(cfg.rpcUrl, { allowHttp: false });
   const horizon = () => new Horizon.Server(cfg.horizonUrl);
@@ -242,6 +245,15 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
   }
 
   return {
+    /**
+     * This client's offline-cache handle (Task 218), scoped to
+     * `cfg.networkPassphrase`/`cfg.accountAddress`. State-changing methods
+     * below already invalidate the affected prefixes on success; consumers
+     * only need this directly for reads (`cache.staleWhileRevalidate(...)`)
+     * or to clear it on an explicit wallet disconnect (`cache.clearCache()`).
+     */
+    cache,
+
     // ── Registry contract ────────────────────────────────────────────────────
 
     /**
@@ -275,7 +287,7 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
         originatorAddress,
       );
       const invoice = parseInvoice(val);
-      invalidateCache(['invoices:']);
+      invalidateCache(cache, ['invoices:']);
       return invoice;
     },
 
@@ -310,7 +322,7 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
         originatorAddress,
       );
       const invoice = parseInvoice(val);
-      invalidateCache(['invoices:', `offers:${invoiceId}`]);
+      invalidateCache(cache, ['invoices:', `offers:${invoiceId}`]);
       return invoice;
     },
 
@@ -358,7 +370,7 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
         lenderAddress,
       );
       const offer = parseOffer(val);
-      invalidateCache([`offers:${params.invoiceId}`]);
+      invalidateCache(cache, [`offers:${params.invoiceId}`]);
       return offer;
     },
 
@@ -396,7 +408,7 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
       // Accepting an offer moves the invoice to Financed, mints a position
       // token to the lender, and settles this offer — all three cache
       // families are affected.
-      invalidateCache(['invoices:', `offers:${offer.invoice_id}`, 'positions:']);
+      invalidateCache(cache, ['invoices:', `offers:${offer.invoice_id}`, 'positions:']);
       return offer;
     },
 
@@ -418,7 +430,7 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
         originatorAddress,
       );
       const offer = parseOffer(val);
-      invalidateCache([`offers:${offer.invoice_id}`]);
+      invalidateCache(cache, [`offers:${offer.invoice_id}`]);
       return offer;
     },
 
@@ -454,7 +466,7 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
         repayerAddress,
       );
       const invoice = parseInvoice(val);
-      invalidateCache(['invoices:', `offers:${invoiceId}`, 'positions:']);
+      invalidateCache(cache, ['invoices:', `offers:${invoiceId}`, 'positions:']);
       return invoice;
     },
 
@@ -476,7 +488,7 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
         callerAddress,
       );
       const invoice = parseInvoice(val);
-      invalidateCache(['invoices:']);
+      invalidateCache(cache, ['invoices:']);
       return invoice;
     },
 
@@ -499,7 +511,7 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
         lenderAddress,
       );
       const offer = parseOffer(val);
-      invalidateCache(['invoices:', `offers:${invoiceId}`, 'positions:']);
+      invalidateCache(cache, ['invoices:', `offers:${invoiceId}`, 'positions:']);
       return offer;
     },
 
@@ -569,7 +581,7 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
         [encodeAddress(fromAddress), encodeAddress(toAddress), encodeI128(amount)],
         fromAddress,
       );
-      invalidateCache([`positions:${fromAddress}`, `positions:${toAddress}`]);
+      invalidateCache(cache, [`positions:${fromAddress}`, `positions:${toAddress}`]);
     },
 
     // ── Position-token trustline support ─────────────────────────────────────

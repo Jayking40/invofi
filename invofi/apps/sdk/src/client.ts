@@ -32,6 +32,7 @@ import {
   validateConfigField,
 } from './validation';
 import { parseContractError } from './errors';
+import { createCache, type CacheHandle } from './cache';
 
 export { SdkValidationError, ErrorCode };
 

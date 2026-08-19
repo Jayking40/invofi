@@ -33,6 +33,9 @@
  * 5. Prefix-based invalidate() — exact key and prefix-family deletion
  * 6. LRU eviction — least-recently-accessed entries evicted first over budget
  * 7. Environment guard — safe no-op when indexedDB is unavailable
+ * 8. Cache scoping — setCacheScope/getCacheScope isolate databases per
+ *    network+account (PR #236 review)
+ * 9. clearCache — wipes the active scope's store (disconnect hygiene)
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
@@ -43,28 +46,34 @@ import 'fake-indexeddb/auto';
 
 import * as cache from '../src/cache';
 
-const DB_NAME = 'invofi-cache';
 const STORE_NAME = 'invofi-cache';
+const META_STORE_NAME = 'invofi-cache-meta';
+// Matches cache.ts's dbNameFor({}) for the default (unscoped) CacheScope.
+const DEFAULT_DB_NAME = 'invofi-cache:unscoped:anon';
 
 /**
- * Clears the object store's contents via a short-lived side connection,
+ * Clears a scoped database's contents via a short-lived side connection,
  * without ever closing (or blocking on) the cache module's own long-lived
- * connection. Creates the store first if it doesn't exist yet (first run).
+ * connection. Creates the stores first if they don't exist yet (first run).
  */
-function clearStore(): Promise<void> {
+function clearStore(dbName: string = DEFAULT_DB_NAME): Promise<void> {
   return new Promise((resolve, reject) => {
-    const openReq = indexedDB.open(DB_NAME, 1);
+    const openReq = indexedDB.open(dbName, 1);
     openReq.onupgradeneeded = () => {
       const db = openReq.result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         const store = db.createObjectStore(STORE_NAME, { keyPath: 'key' });
         store.createIndex('lastAccessed', 'lastAccessed');
       }
+      if (!db.objectStoreNames.contains(META_STORE_NAME)) {
+        db.createObjectStore(META_STORE_NAME, { keyPath: 'key' });
+      }
     };
     openReq.onsuccess = () => {
       const db = openReq.result;
-      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const tx = db.transaction([STORE_NAME, META_STORE_NAME], 'readwrite');
       tx.objectStore(STORE_NAME).clear();
+      tx.objectStore(META_STORE_NAME).clear();
       tx.oncomplete = () => {
         db.close();
         resolve();
@@ -79,6 +88,7 @@ function clearStore(): Promise<void> {
 }
 
 beforeEach(async () => {
+  cache.setCacheScope({});
   await clearStore();
 });
 
@@ -329,5 +339,110 @@ describe('cache — environment guard (no IndexedDB)', () => {
     expect(result.data).toBeNull();
     expect(result.isStale).toBe(true);
     await expect(result.refresh).resolves.toEqual({ id: 'inv_x' });
+  });
+});
+
+// ── 8. Cache scoping ───────────────────────────────────────────────────────────
+
+describe('cache — scoping', () => {
+  afterEach(() => {
+    cache.setCacheScope({});
+  });
+
+  it('defaults to an unscoped/anonymous scope', () => {
+    expect(cache.getCacheScope()).toEqual({});
+  });
+
+  it('reflects the scope passed to setCacheScope', () => {
+    cache.setCacheScope({ network: 'testnet', accountAddress: 'GALICE' });
+    expect(cache.getCacheScope()).toEqual({ network: 'testnet', accountAddress: 'GALICE' });
+  });
+
+  it('isolates data between two different accounts on the same network', async () => {
+    cache.setCacheScope({ network: 'testnet', accountAddress: 'GALICE' });
+    await cache.setCached('positions:GALICE', { balance: 100 });
+
+    cache.setCacheScope({ network: 'testnet', accountAddress: 'GBOB' });
+    expect(await cache.getCached('positions:GALICE')).toBeNull();
+    await cache.setCached('positions:GBOB', { balance: 5 });
+
+    cache.setCacheScope({ network: 'testnet', accountAddress: 'GALICE' });
+    const aliceEntry = await cache.getCached<{ balance: number }>('positions:GALICE');
+    expect(aliceEntry?.data).toEqual({ balance: 100 });
+    // Bob's write is invisible from Alice's scope, even under the same key shape.
+    expect(await cache.getCached('positions:GBOB')).toBeNull();
+  });
+
+  it('isolates data between two different networks for the same account', async () => {
+    cache.setCacheScope({ network: 'testnet', accountAddress: 'GALICE' });
+    await cache.setCached('invoices:Pending:1', { network: 'testnet' });
+
+    cache.setCacheScope({ network: 'mainnet', accountAddress: 'GALICE' });
+    expect(await cache.getCached('invoices:Pending:1')).toBeNull();
+  });
+
+  it('persists a scope\'s data across repeated setCacheScope calls with the same value', async () => {
+    const scope = { network: 'testnet', accountAddress: 'GALICE' };
+    cache.setCacheScope(scope);
+    await cache.setCached('offers:inv_1', { id: 'off_1' });
+
+    cache.setCacheScope({ ...scope });
+    const entry = await cache.getCached('offers:inv_1');
+    expect(entry).not.toBeNull();
+  });
+});
+
+// ── 9. clearCache ────────────────────────────────────────────────────────────
+
+describe('cache — clearCache', () => {
+  afterEach(() => {
+    cache.setCacheScope({});
+  });
+
+  it('wipes every entry in the active scope', async () => {
+    cache.setCacheScope({ network: 'testnet', accountAddress: 'GCARL' });
+    await cache.setCached('invoices:Pending:1', { a: 1 });
+    await cache.setCached('offers:inv_1', { b: 2 });
+
+    await cache.clearCache();
+
+    expect(await cache.getCached('invoices:Pending:1')).toBeNull();
+    expect(await cache.getCached('offers:inv_1')).toBeNull();
+  });
+
+  it('does not affect other scopes', async () => {
+    cache.setCacheScope({ network: 'testnet', accountAddress: 'GCARL' });
+    await cache.setCached('invoices:Pending:1', { a: 1 });
+
+    cache.setCacheScope({ network: 'testnet', accountAddress: 'GDAVE' });
+    await cache.setCached('invoices:Pending:1', { a: 2 });
+    await cache.clearCache();
+
+    cache.setCacheScope({ network: 'testnet', accountAddress: 'GCARL' });
+    const entry = await cache.getCached<{ a: number }>('invoices:Pending:1');
+    expect(entry?.data).toEqual({ a: 1 });
+  });
+
+  it('resets the tracked size so subsequent writes are not evicted prematurely', async () => {
+    cache.setCacheScope({ network: 'testnet', accountAddress: 'GERIN' });
+    await cache.setCached('positions:GERIN', { blob: 'x'.repeat(50) });
+    await cache.clearCache();
+
+    // A tiny maxSizeBytes would immediately trigger eviction if the size
+    // counter still reflected the pre-clear total instead of resetting to 0.
+    await cache.setCached('positions:GERIN', { blob: 'y'.repeat(10) }, 1, 1_000);
+    const entry = await cache.getCached('positions:GERIN');
+    expect(entry).not.toBeNull();
+  });
+
+  it('resolves without effect (never throws) when indexedDB is unavailable', async () => {
+    const savedIndexedDb = globalThis.indexedDB;
+    // @ts-expect-error — simulating an environment with no indexedDB global
+    delete globalThis.indexedDB;
+    try {
+      await expect(cache.clearCache()).resolves.toBeUndefined();
+    } finally {
+      globalThis.indexedDB = savedIndexedDb;
+    }
   });
 });

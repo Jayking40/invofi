@@ -12,6 +12,17 @@
 // writes) rather than throwing when `indexedDB` is unavailable — this is a
 // load-bearing guarantee for SSR/Node callers, not an incidental detail.
 //
+// Scoping (PR #236 review): the cache is namespaced by network + connected
+// account (see `CacheScope`/`setCacheScope`) so switching wallets or networks
+// never serves one identity's cached data to another — each scope gets its
+// own IndexedDB database. `createInvofiClient` (client.ts) calls
+// `setCacheScope` automatically from `cfg.networkPassphrase` /
+// `cfg.accountAddress`. On an explicit wallet disconnect, callers should
+// invoke `clearCache()` to wipe the departing account's store rather than
+// leaving it sitting in IndexedDB indefinitely (frontend wiring of that call
+// site is a follow-up, same as the rest of the frontend integration — see
+// the PR description).
+//
 // Usage:
 //   import { staleWhileRevalidate, invalidate, CACHE_TTL_MS } from './cache';
 //   const { data, isStale, refresh } = await staleWhileRevalidate(
@@ -20,7 +31,7 @@
 //     () => fetchInvoicesFromChain(status, page),
 //   );
 
-import { openDB, type IDBPDatabase } from 'idb';
+import { openDB, type IDBPDatabase, type IDBPTransaction } from 'idb';
 
 // ── Schema ────────────────────────────────────────────────────────────────────
 
@@ -42,9 +53,30 @@ interface StoredEntry<T> extends CacheEntry<T> {
   lastAccessed: number;
 }
 
-const DB_NAME = 'invofi-cache';
+/** Single-row running total in `META_STORE_NAME`, kept in sync incrementally. */
+interface MetaRecord {
+  key: typeof META_KEY;
+  totalBytes: number;
+}
+
+/**
+ * Identifies which account/network the active cache database belongs to.
+ * Both fields are free-form identifiers (e.g. `networkPassphrase` and a
+ * Stellar `G...` address) — the cache only uses them to build a database
+ * name, never to validate their format.
+ */
+export interface CacheScope {
+  /** e.g. `Networks.PUBLIC` / `Networks.TESTNET`. Omit to share one scope across networks. */
+  network?: string;
+  /** The connected wallet's address. Omit while no wallet is connected. */
+  accountAddress?: string;
+}
+
+const DB_NAME_PREFIX = 'invofi-cache';
 const DB_VERSION = 1;
 const STORE_NAME = 'invofi-cache';
+const META_STORE_NAME = 'invofi-cache-meta';
+const META_KEY = 'size';
 const LAST_ACCESSED_INDEX = 'lastAccessed';
 
 // ── TTL config (per cache-key prefix) ────────────────────────────────────────
@@ -60,9 +92,10 @@ export const CACHE_TTL_MS: Record<'invoices' | 'offers' | 'positions', number> =
 };
 
 /**
- * Total estimated cache size (sum of `JSON.stringify(entry).length` across
- * all entries) above which the LRU sweep evicts least-recently-accessed
- * entries. 50 MB per the Task 218 storage-limit requirement.
+ * Total estimated cache size (tracked incrementally in `META_STORE_NAME`,
+ * not recomputed from a full scan on every write — see `adjustMetaSize`)
+ * above which the LRU sweep evicts least-recently-accessed entries.
+ * 50 MB per the Task 218 storage-limit requirement.
  */
 export const MAX_CACHE_SIZE_BYTES = 50 * 1024 * 1024;
 
@@ -83,25 +116,94 @@ function safeStringify(value: unknown): string {
   return JSON.stringify(value, (_k, v) => (typeof v === 'bigint' ? v.toString() : v));
 }
 
+// ── Scope / connection management ───────────────────────────────────────────
+
+let currentScope: CacheScope = {};
 let dbPromise: Promise<IDBPDatabase> | null = null;
 
+function scopeSegment(value: string | undefined, fallback: string): string {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed.replace(/[^a-zA-Z0-9_.:-]/g, '_') : fallback;
+}
+
+function dbNameFor(scope: CacheScope): string {
+  const network = scopeSegment(scope.network, 'unscoped');
+  const account = scopeSegment(scope.accountAddress, 'anon');
+  return `${DB_NAME_PREFIX}:${network}:${account}`;
+}
+
 /**
- * Lazily opens (and memoizes) the cache database. Returns `null` when
- * IndexedDB is unavailable — callers must treat that as "no-op".
+ * Points the cache at the database for `scope` (network + connected
+ * account). Different scopes never share a database, so switching wallets or
+ * networks can never serve one identity's cached data to another. Safe to
+ * call redundantly — a no-op when `scope` matches the currently active one.
+ *
+ * Does not clear any data — each scope's store persists across reconnects of
+ * the same account, which is the point of an offline-first cache. To wipe a
+ * departing account's data (e.g. on explicit wallet disconnect), call
+ * `clearCache()` before or after switching scope.
+ */
+export function setCacheScope(scope: CacheScope): void {
+  const nextName = dbNameFor(scope);
+  if (nextName === dbNameFor(currentScope)) {
+    currentScope = { ...scope };
+    return;
+  }
+  currentScope = { ...scope };
+  const previousDb = dbPromise;
+  dbPromise = null;
+  if (previousDb) {
+    // Best-effort close of the old connection so it doesn't leak — failures
+    // here (already closed, never resolved, etc.) are not actionable.
+    void previousDb.then(db => db.close()).catch(() => {});
+  }
+}
+
+/** Returns the scope the cache is currently reading/writing against. */
+export function getCacheScope(): CacheScope {
+  return { ...currentScope };
+}
+
+/**
+ * Lazily opens (and memoizes) the cache database for the current scope.
+ * Returns `null` when IndexedDB is unavailable — callers must treat that as
+ * "no-op".
  */
 function getDb(): Promise<IDBPDatabase> | null {
   if (!isIndexedDbAvailable()) return null;
   if (!dbPromise) {
-    dbPromise = openDB(DB_NAME, DB_VERSION, {
+    dbPromise = openDB(dbNameFor(currentScope), DB_VERSION, {
       upgrade(db) {
         if (!db.objectStoreNames.contains(STORE_NAME)) {
           const store = db.createObjectStore(STORE_NAME, { keyPath: 'key' });
           store.createIndex(LAST_ACCESSED_INDEX, 'lastAccessed');
         }
+        if (!db.objectStoreNames.contains(META_STORE_NAME)) {
+          db.createObjectStore(META_STORE_NAME, { keyPath: 'key' });
+        }
       },
     });
   }
   return dbPromise;
+}
+
+// ── Incremental size tracking ───────────────────────────────────────────────
+// Avoids the `getAll()` + stringify-everything full scan on every write: a
+// single-row running total is read/written in the same transaction as the
+// entry mutation that changed it.
+
+async function readMetaSize(
+  tx: IDBPTransaction<unknown, string[], 'readwrite'>,
+): Promise<number> {
+  const meta = (await tx.objectStore(META_STORE_NAME).get(META_KEY)) as MetaRecord | undefined;
+  return meta?.totalBytes ?? 0;
+}
+
+async function writeMetaSize(
+  tx: IDBPTransaction<unknown, string[], 'readwrite'>,
+  totalBytes: number,
+): Promise<void> {
+  await tx.objectStore(META_STORE_NAME).put({ key: META_KEY, totalBytes: Math.max(0, totalBytes) });
 }
 
 // ── Reads ─────────────────────────────────────────────────────────────────────
@@ -160,8 +262,21 @@ export async function setCached<T>(
     const conn = await db;
     const now = Date.now();
     const entry: StoredEntry<T> = { key, data, timestamp: now, version, lastAccessed: now };
-    await conn.put(STORE_NAME, entry);
-    await evictLru(conn, maxSizeBytes);
+    const newSize = safeStringify(entry).length;
+
+    const tx = conn.transaction([STORE_NAME, META_STORE_NAME], 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    const previous = (await store.get(key)) as StoredEntry<T> | undefined;
+    const previousSize = previous ? safeStringify(previous).length : 0;
+
+    await store.put(entry);
+    const totalBytes = (await readMetaSize(tx)) - previousSize + newSize;
+    await writeMetaSize(tx, totalBytes);
+    await tx.done;
+
+    if (totalBytes > maxSizeBytes) {
+      await evictLru(conn, maxSizeBytes);
+    }
   } catch {
     // Write failures (quota exceeded, blocked, etc.) must not throw or
     // interrupt the caller — the cache is best-effort.
@@ -169,23 +284,30 @@ export async function setCached<T>(
 }
 
 /**
- * Evicts least-recently-accessed entries (oldest `lastAccessed` first) until
- * the estimated total store size is back under `maxSizeBytes`.
+ * Evicts least-recently-accessed entries (oldest `lastAccessed` first),
+ * walking the `lastAccessed` index via a cursor, until the tracked total
+ * size is back under `maxSizeBytes`. Unlike a `getAll()` scan, this only
+ * touches as many entries as actually need evicting.
  */
 async function evictLru(conn: IDBPDatabase, maxSizeBytes: number): Promise<void> {
   try {
-    const all = (await conn.getAll(STORE_NAME)) as StoredEntry<unknown>[];
-    let totalBytes = all.reduce((sum, e) => sum + safeStringify(e).length, 0);
-    if (totalBytes <= maxSizeBytes) return;
-
-    const oldestFirst = [...all].sort((a, b) => a.lastAccessed - b.lastAccessed);
-    const tx = conn.transaction(STORE_NAME, 'readwrite');
+    const tx = conn.transaction([STORE_NAME, META_STORE_NAME], 'readwrite');
     const store = tx.objectStore(STORE_NAME);
-    for (const entry of oldestFirst) {
-      if (totalBytes <= maxSizeBytes) break;
-      await store.delete(entry.key);
-      totalBytes -= safeStringify(entry).length;
+    let totalBytes = await readMetaSize(tx);
+    if (totalBytes <= maxSizeBytes) {
+      await tx.done;
+      return;
     }
+
+    let cursor = await store.index(LAST_ACCESSED_INDEX).openCursor();
+    while (cursor && totalBytes > maxSizeBytes) {
+      const entrySize = safeStringify(cursor.value).length;
+      await cursor.delete();
+      totalBytes -= entrySize;
+      cursor = await cursor.continue();
+    }
+
+    await writeMetaSize(tx, totalBytes);
     await tx.done;
   } catch {
     // Eviction is best-effort cleanup — a failure here must not surface to
@@ -209,20 +331,47 @@ export async function invalidate(keyOrPrefix: string): Promise<void> {
   if (!db) return;
   try {
     const conn = await db;
-    const tx = conn.transaction(STORE_NAME, 'readwrite');
+    const tx = conn.transaction([STORE_NAME, META_STORE_NAME], 'readwrite');
     const store = tx.objectStore(STORE_NAME);
+    let totalBytes = await readMetaSize(tx);
     let cursor = await store.openCursor();
     while (cursor) {
       const k = cursor.key;
       if (typeof k === 'string' && (k === keyOrPrefix || k.startsWith(keyOrPrefix))) {
+        totalBytes -= safeStringify(cursor.value).length;
         await cursor.delete();
       }
       cursor = await cursor.continue();
     }
+    await writeMetaSize(tx, totalBytes);
     await tx.done;
   } catch {
     // Best-effort — an invalidation failure should not throw into the
     // caller's mutation flow (the on-chain write already succeeded).
+  }
+}
+
+/**
+ * Wipes every entry in the *current* scope's store (see `setCacheScope`) and
+ * resets its tracked size back to zero. Intended for an explicit wallet
+ * disconnect / account change: unlike switching scope (which just points at
+ * a different, untouched database), this clears the store the caller is
+ * leaving so a departing account's cached data doesn't linger in IndexedDB
+ * after logout.
+ *
+ * Resolves without effect when IndexedDB is unavailable — never throws.
+ */
+export async function clearCache(): Promise<void> {
+  const db = getDb();
+  if (!db) return;
+  try {
+    const conn = await db;
+    const tx = conn.transaction([STORE_NAME, META_STORE_NAME], 'readwrite');
+    await tx.objectStore(STORE_NAME).clear();
+    await writeMetaSize(tx, 0);
+    await tx.done;
+  } catch {
+    // Best-effort — clearing must not throw into a disconnect handler.
   }
 }
 

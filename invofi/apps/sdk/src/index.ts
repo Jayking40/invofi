@@ -87,6 +87,12 @@ export type {
 // repay/etc.) call `invalidate()` internally on success, so consumers only
 // need this surface for reads.
 //
+// The cache is namespaced per network + connected account (`CacheScope`) —
+// `createInvofiClient` calls `setCacheScope` automatically from
+// `cfg.networkPassphrase`/`cfg.accountAddress`, so switching wallets never
+// serves one identity's cached data to another. On an explicit wallet
+// disconnect, call `clearCache()` to wipe the departing account's store.
+//
 // @example
 // ```ts
 // import { staleWhileRevalidate, CACHE_TTL_MS } from '@invofi/sdk';
@@ -98,14 +104,20 @@ export type {
 // );
 // // Render `data` immediately (may be null/stale); `refresh` resolves once
 // // the background re-fetch has silently updated the cache.
+//
+// // On wallet disconnect:
+// await clearCache();
 // ```
 export {
   getCached,
   setCached,
   invalidate,
+  clearCache,
+  setCacheScope,
+  getCacheScope,
   staleWhileRevalidate,
   isIndexedDbAvailable,
   CACHE_TTL_MS,
   MAX_CACHE_SIZE_BYTES,
 } from './cache';
-export type { CacheEntry, StaleWhileRevalidateResult } from './cache';
+export type { CacheEntry, CacheScope, StaleWhileRevalidateResult } from './cache';

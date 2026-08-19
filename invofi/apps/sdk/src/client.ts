@@ -31,7 +31,7 @@ import {
   validateAssetString,
   validateConfigField,
 } from './validation';
-import { invalidate } from './cache';
+import { invalidate, setCacheScope } from './cache';
 
 export { SdkValidationError, ErrorCode };
 
@@ -104,6 +104,13 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
   if (cfg.positionTokenAsset !== undefined) {
     validateAssetString(cfg.positionTokenAsset, 'cfg.positionTokenAsset');
   }
+
+  // Scope the offline cache (Task 218) to this network + connected account
+  // so a client built for one wallet/network never reads another's cached
+  // data (PR #236 review). Re-scoping on every construction means a caller
+  // that rebuilds the client on wallet/account change (the normal React
+  // pattern) gets correct isolation for free.
+  setCacheScope({ network: cfg.networkPassphrase, accountAddress: cfg.accountAddress });
 
   const server = () => new SorobanRpc.Server(cfg.rpcUrl, { allowHttp: false });
   const horizon = () => new Horizon.Server(cfg.horizonUrl);

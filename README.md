@@ -184,12 +184,18 @@ invofi/
 │           │   ├── invoices/         InvoiceCard, InvoiceForm, InvoiceTable,
 │           │   │                     OfferList
 │           │   ├── layout/           Navbar (dark mode + a11y), Footer
+│           │   ├── marketplace/      MarketplaceCard, PositionListingCard, etc.
+│           │   ├── portfolio/        LivePortfolioProvider, ConnectionStatus,
+│           │   │                     RepaymentProgress (live dashboard, issue #221)
 │           │   └── ui/               shadcn/ui — button, dialog, table,
 │           │                         badge, card, input, tabs, toast...
 │           ├── hooks/                useInvoices, useOffers, useMarketplace,
 │           │                         useLocalStorage, useDebounce, useMediaQuery
 │           └── lib/
 │               ├── contract.ts       Soroban contract call helpers (3 contracts)
+│               ├── live/             Live portfolio engine (issue #221): WebSocket
+│               │                     + Soroban-event polling transports, per-position
+│               │                     throttle, yield/APY math, USD pricing, reducer
 │               ├── approved-wallets.ts  Approved-wallet allowlist (extension point)
 │               ├── walletkit.ts      stellar-wallets-kit init + active-wallet signing
 │               ├── horizon.ts        Stellar Horizon API helpers
@@ -540,6 +546,8 @@ create policy "Insert own approval" on transaction_approvals for insert with che
 | `NEXT_PUBLIC_STELLAR_NETWORK` | `testnet` |
 | `NEXT_PUBLIC_RPC_URL` | `https://soroban-testnet.stellar.org` |
 | `NEXT_PUBLIC_HORIZON_URL` | `https://horizon-testnet.stellar.org` |
+| `NEXT_PUBLIC_WS_URL` | *(optional)* WebSocket relay for the live portfolio dashboard — omit to use the polling fallback |
+| `NEXT_PUBLIC_XLM_USD_PRICE` | *(optional)* Fallback XLM/USD price for live USD position values |
 
 ---
 
@@ -604,6 +612,7 @@ Both identities are auto-funded via Friendbot on testnet. See
 - [x] Architecture Decision Records — ADR index in both repos
 - [x] Deployer-bound initialization — `__constructor` on all contracts, no front-runnable `initialize()` (issue #75)
 - [x] Compliance posture documented — KYC/SEP-12 roadmap, jurisdictions, securities-by-design
+- [x] Live portfolio dashboard — WebSocket streaming (position/yield/repayment) with reconnection + polling fallback (issue #221)
 - [ ] Mainnet deployment
 - [ ] Oracle-based invoice verification and risk scoring
 - [ ] Multi-signature treasury and escrow
@@ -667,6 +676,22 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                 </a>
             </td>
             <td align="center">
+                <a href="https://github.com/Ajibose">
+                    <img src="https://avatars.githubusercontent.com/u/99620327?v=4" width="100;" alt="Ajibose"/>
+                    <br />
+                    <sub><b>Ajibose Ibrahim</b></sub>
+                </a>
+            </td>
+            <td align="center">
+                <a href="https://github.com/KarenZita01">
+                    <img src="https://avatars.githubusercontent.com/u/261386615?v=4" width="100;" alt="KarenZita01"/>
+                    <br />
+                    <sub><b>Karen Agbo</b></sub>
+                </a>
+            </td>
+		</tr>
+		<tr>
+            <td align="center">
                 <a href="https://github.com/Damieee">
                     <img src="https://avatars.githubusercontent.com/u/115638760?v=4" width="100;" alt="Damieee"/>
                     <br />
@@ -680,8 +705,6 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                     <sub><b>Ganesh chandra</b></sub>
                 </a>
             </td>
-		</tr>
-		<tr>
             <td align="center">
                 <a href="https://github.com/Aycode01">
                     <img src="https://avatars.githubusercontent.com/u/145759024?v=4" width="100;" alt="Aycode01"/>
@@ -710,6 +733,8 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                     <sub><b>Pavel</b></sub>
                 </a>
             </td>
+		</tr>
+		<tr>
             <td align="center">
                 <a href="https://github.com/Meet-hybrid">
                     <img src="https://avatars.githubusercontent.com/u/231819661?v=4" width="100;" alt="Meet-hybrid"/>
@@ -724,8 +749,6 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                     <sub><b>Raw_Nuke</b></sub>
                 </a>
             </td>
-		</tr>
-		<tr>
             <td align="center">
                 <a href="https://github.com/Jah-yee">
                     <img src="https://avatars.githubusercontent.com/u/166608075?v=4" width="100;" alt="Jah-yee"/>

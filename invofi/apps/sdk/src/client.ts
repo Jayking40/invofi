@@ -31,8 +31,25 @@ import {
   validateAssetString,
   validateConfigField,
 } from './validation';
+import { parseContractError } from './errors';
+import { createCache, type CacheHandle } from './cache';
 
 export { SdkValidationError, ErrorCode };
+
+/**
+ * Invalidates the offline-cache (Task 218) key prefixes affected by a
+ * state-changing contract call, once it has succeeded, against this
+ * client's own `CacheHandle`. Best-effort and side-effect-only:
+ * `cache.invalidate()` never throws (see cache.ts), so this never affects
+ * the caller's return value. Fire-and-forget is intentional — callers
+ * already have the fresh on-chain result; invalidation just makes sure a
+ * subsequent cached read doesn't serve stale data.
+ */
+function invalidateCache(cache: CacheHandle, prefixes: string[]): void {
+  for (const prefix of prefixes) {
+    void cache.invalidate(prefix);
+  }
+}
 
 const BASE_FEE = '100';
 
@@ -90,6 +107,15 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
     validateAssetString(cfg.positionTokenAsset, 'cfg.positionTokenAsset');
   }
 
+  // A cache handle scoped to this network + connected account (Task 218),
+  // owned by this client instance — not module-global state — so a client
+  // built for one wallet/network never reads another's cached data, and
+  // concurrent clients for different accounts never race over which
+  // database is "current" (PR #236 review). A caller that rebuilds the
+  // client on wallet/account change (the normal React pattern) gets a
+  // freshly-scoped cache for free.
+  const cache = createCache({ network: cfg.networkPassphrase, accountAddress: cfg.accountAddress });
+
   const server = () => new SorobanRpc.Server(cfg.rpcUrl, { allowHttp: false });
   const horizon = () => new Horizon.Server(cfg.horizonUrl);
 
@@ -145,7 +171,7 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
 
     const simResult = await rpc.simulateTransaction(tx);
     if (SorobanRpc.Api.isSimulationError(simResult)) {
-      throw new Error(`Simulation failed: ${simResult.error}`);
+      throw parseContractError(simResult.error, 'Simulation failed');
     }
 
     tx = SorobanRpc.assembleTransaction(tx, simResult).build();
@@ -154,7 +180,7 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
 
     const sendResult = await rpc.sendTransaction(signedTx);
     if (sendResult.status === 'ERROR') {
-      throw new Error(`Transaction failed: ${JSON.stringify(sendResult.errorResult)}`);
+      throw parseContractError(sendResult.errorResult, 'Transaction failed');
     }
 
     let getResult = await rpc.getTransaction(sendResult.hash);
@@ -164,7 +190,7 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
     }
 
     if (getResult.status !== 'SUCCESS') {
-      throw new Error(`Transaction did not succeed: ${getResult.status}`);
+      throw parseContractError(getResult, `Transaction did not succeed (status: ${getResult.status})`);
     }
 
     return getResult.returnValue ?? xdr.ScVal.scvVoid();
@@ -203,7 +229,7 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
 
     const sim = await rpc.simulateTransaction(tx);
     if (SorobanRpc.Api.isSimulationError(sim)) {
-      throw new Error(`Read failed: ${sim.error}`);
+      throw parseContractError(sim.error, 'Read failed');
     }
     if (!SorobanRpc.Api.isSimulationSuccess(sim) || !sim.result) {
       throw new Error('Read simulation returned no result');
@@ -220,6 +246,15 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
   }
 
   return {
+    /**
+     * This client's offline-cache handle (Task 218), scoped to
+     * `cfg.networkPassphrase`/`cfg.accountAddress`. State-changing methods
+     * below already invalidate the affected prefixes on success; consumers
+     * only need this directly for reads (`cache.staleWhileRevalidate(...)`)
+     * or to clear it on an explicit wallet disconnect (`cache.clearCache()`).
+     */
+    cache,
+
     // ── Registry contract ────────────────────────────────────────────────────
 
     /**
@@ -252,7 +287,9 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
         ],
         originatorAddress,
       );
-      return parseInvoice(val);
+      const invoice = parseInvoice(val);
+      invalidateCache(cache, ['invoices:']);
+      return invoice;
     },
 
     /**
@@ -285,7 +322,9 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
         [encodeSymbol(invoiceId), encodeAddress(originatorAddress)],
         originatorAddress,
       );
-      return parseInvoice(val);
+      const invoice = parseInvoice(val);
+      invalidateCache(cache, ['invoices:', `offers:${invoiceId}`]);
+      return invoice;
     },
 
     // ── Financing contract ───────────────────────────────────────────────────
@@ -331,7 +370,9 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
         ],
         lenderAddress,
       );
-      return parseOffer(val);
+      const offer = parseOffer(val);
+      invalidateCache(cache, [`offers:${params.invoiceId}`]);
+      return offer;
     },
 
     /**
@@ -364,7 +405,12 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
         [encodeSymbol(offerId), encodeAddress(originatorAddress)],
         originatorAddress,
       );
-      return parseOffer(val);
+      const offer = parseOffer(val);
+      // Accepting an offer moves the invoice to Financed, mints a position
+      // token to the lender, and settles this offer — all three cache
+      // families are affected.
+      invalidateCache(cache, ['invoices:', `offers:${offer.invoice_id}`, 'positions:']);
+      return offer;
     },
 
     /**
@@ -384,7 +430,9 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
         [encodeSymbol(offerId), encodeAddress(originatorAddress)],
         originatorAddress,
       );
-      return parseOffer(val);
+      const offer = parseOffer(val);
+      invalidateCache(cache, [`offers:${offer.invoice_id}`]);
+      return offer;
     },
 
     // ── Repayment contract ───────────────────────────────────────────────────
@@ -418,7 +466,9 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
         ],
         repayerAddress,
       );
-      return parseInvoice(val);
+      const invoice = parseInvoice(val);
+      invalidateCache(cache, ['invoices:', `offers:${invoiceId}`, 'positions:']);
+      return invoice;
     },
 
     /**
@@ -438,7 +488,9 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
         [encodeSymbol(invoiceId)],
         callerAddress,
       );
-      return parseInvoice(val);
+      const invoice = parseInvoice(val);
+      invalidateCache(cache, ['invoices:']);
+      return invoice;
     },
 
     /**
@@ -459,7 +511,9 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
         [encodeSymbol(invoiceId), encodeSymbol(offerId), encodeAddress(lenderAddress)],
         lenderAddress,
       );
-      return parseOffer(val);
+      const offer = parseOffer(val);
+      invalidateCache(cache, ['invoices:', `offers:${invoiceId}`, 'positions:']);
+      return offer;
     },
 
     // ── Position tokens (Task 7/8: SEP-41 claim tokens) ─────────────────────
@@ -528,6 +582,7 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
         [encodeAddress(fromAddress), encodeAddress(toAddress), encodeI128(amount)],
         fromAddress,
       );
+      invalidateCache(cache, [`positions:${fromAddress}`, `positions:${toAddress}`]);
     },
 
     // ── Position-token trustline support ─────────────────────────────────────

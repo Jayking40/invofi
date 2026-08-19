@@ -21,6 +21,7 @@ import { WalletButton } from "@/components/auth/WalletButton";
 import { useWallet } from "@/components/auth/WalletProvider";
 import { supabase } from "@/lib/supabase";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { NavbarEventIndicator } from "@/components/NavbarEventIndicator";
 
 import { useTranslations } from 'next-intl';
 
@@ -120,6 +121,8 @@ export function Navbar() {
 
           {/* Right side */}
           <div className="flex items-center gap-3">
+            <NavbarEventIndicator />
+
             <button
               onClick={toggleTheme}
               className="p-2 rounded-md text-muted-foreground hover:bg-accent transition-colors"

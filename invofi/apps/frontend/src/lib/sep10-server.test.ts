@@ -61,6 +61,73 @@ describe('sep10-server', () => {
     });
 
     expect(result.clientAccountId).toBe(clientKeypair.publicKey());
+    expect(result.transactionHash).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it('returns the same transactionHash for repeated verification of the same signed challenge', () => {
+    // The replay guard (sep10-replay-guard.ts) relies on this hash being
+    // stable across calls for the *same* challenge — it's what gets recorded
+    // as "used" and checked on a resubmission.
+    const serverKeypair = Keypair.random();
+    const clientKeypair = Keypair.random();
+
+    const { transaction } = buildSep10Challenge({
+      serverSecret: serverKeypair.secret(),
+      clientAccountId: clientKeypair.publicKey(),
+      homeDomain: HOME_DOMAIN,
+      webAuthDomain: WEB_AUTH_DOMAIN,
+      networkPassphrase: NETWORK_PASSPHRASE,
+    });
+    const signedXdr = signAsClient(transaction, clientKeypair);
+
+    const params = {
+      signedTransactionXdr: signedXdr,
+      serverSecret: serverKeypair.secret(),
+      homeDomain: HOME_DOMAIN,
+      webAuthDomain: WEB_AUTH_DOMAIN,
+      networkPassphrase: NETWORK_PASSPHRASE,
+    };
+    const first = verifySep10Challenge(params);
+    const second = verifySep10Challenge(params);
+
+    expect(second.transactionHash).toBe(first.transactionHash);
+  });
+
+  it('returns different transactionHashes for two distinct challenges', () => {
+    const serverKeypair = Keypair.random();
+    const clientKeypair = Keypair.random();
+
+    const challengeA = buildSep10Challenge({
+      serverSecret: serverKeypair.secret(),
+      clientAccountId: clientKeypair.publicKey(),
+      homeDomain: HOME_DOMAIN,
+      webAuthDomain: WEB_AUTH_DOMAIN,
+      networkPassphrase: NETWORK_PASSPHRASE,
+    });
+    const challengeB = buildSep10Challenge({
+      serverSecret: serverKeypair.secret(),
+      clientAccountId: clientKeypair.publicKey(),
+      homeDomain: HOME_DOMAIN,
+      webAuthDomain: WEB_AUTH_DOMAIN,
+      networkPassphrase: NETWORK_PASSPHRASE,
+    });
+
+    const resultA = verifySep10Challenge({
+      signedTransactionXdr: signAsClient(challengeA.transaction, clientKeypair),
+      serverSecret: serverKeypair.secret(),
+      homeDomain: HOME_DOMAIN,
+      webAuthDomain: WEB_AUTH_DOMAIN,
+      networkPassphrase: NETWORK_PASSPHRASE,
+    });
+    const resultB = verifySep10Challenge({
+      signedTransactionXdr: signAsClient(challengeB.transaction, clientKeypair),
+      serverSecret: serverKeypair.secret(),
+      homeDomain: HOME_DOMAIN,
+      webAuthDomain: WEB_AUTH_DOMAIN,
+      networkPassphrase: NETWORK_PASSPHRASE,
+    });
+
+    expect(resultA.transactionHash).not.toBe(resultB.transactionHash);
   });
 
   it('rejects an unrecognized clientAccountId', () => {

@@ -7,6 +7,7 @@ import {
 } from '@/lib/sep10-server';
 import { createAdminClient } from '@/utils/supabase/admin';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import { claimSep10ChallengeHash } from '@/lib/sep10-replay-guard';
 
 export const runtime = 'nodejs';
 
@@ -80,6 +81,7 @@ export async function POST(request: NextRequest) {
   }
 
   let clientAccountId: string;
+  let transactionHash: string;
   try {
     const result = verifySep10Challenge({
       signedTransactionXdr: transaction,
@@ -89,6 +91,7 @@ export async function POST(request: NextRequest) {
       networkPassphrase: getServerNetworkPassphrase(),
     });
     clientAccountId = result.clientAccountId;
+    transactionHash = result.transactionHash;
   } catch (err) {
     // Log the real reason server-side only; the client only learns "failed".
     console.error('SEP-10 challenge verification failed:', err);
@@ -106,6 +109,29 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: 'Wallet sign-in is not configured on this server.' },
       { status: 500 },
+    );
+  }
+
+  // Single-use enforcement (Task 103 review): a validly-signed challenge
+  // must still be rejected on a second submission — otherwise a captured
+  // signed challenge (e.g. from a compromised network hop before TLS, or a
+  // browser history/log leak) stays replayable for its entire validity
+  // window. This must happen before minting anything below.
+  let isFirstUse: boolean;
+  try {
+    isFirstUse = await claimSep10ChallengeHash(admin, transactionHash);
+  } catch (err) {
+    console.error('Failed to record SEP-10 challenge usage:', err);
+    return NextResponse.json(
+      { error: 'Could not verify the wallet signature.' },
+      { status: 500 },
+    );
+  }
+  if (!isFirstUse) {
+    console.warn('SEP-10 challenge replay detected for account', clientAccountId);
+    return NextResponse.json(
+      { error: 'Wallet signature verification failed.' },
+      { status: 401 },
     );
   }
 

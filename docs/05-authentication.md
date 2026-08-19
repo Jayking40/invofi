@@ -92,9 +92,11 @@ Real, cryptographic proof that the signed-in user controls the private key for t
 
 1. `verifyChallenge(signedXdr)` (`lib/sep10.ts`) `POST`s the now-doubly-signed XDR to `POST /api/auth/sep10/verify`.
 2. The Route Handler (`src/app/api/auth/sep10/verify/route.ts`) calls `verifySep10Challenge` (`src/lib/sep10-server.ts`), which:
-   - Runs `WebAuth.readChallengeTx`, confirming the transaction is structurally a challenge this server issued (correct source account, sequence-number-zero convention, matching home/web-auth domain) **and that it has not expired** (SEP-10's replay/expiry protection — an expired or previously-consumed-looking challenge is rejected outright, not silently accepted).
+   - Runs `WebAuth.readChallengeTx`, confirming the transaction is structurally a challenge this server issued (correct source account, sequence-number-zero convention, matching home/web-auth domain) **and that it has not expired** (SEP-10's expiry protection — an expired challenge is rejected outright, not silently accepted).
    - Runs `WebAuth.verifyChallengeTxSigners`, confirming the *claimed* client account is genuinely among the transaction's signers — i.e. the wallet that signed really does hold the private key for that address.
+   - Returns a hex-encoded hash of the transaction alongside the client account ID — a stable digest of *this specific challenge* (see [Replay and expiry protection](#replay-and-expiry-protection)).
    - Throws on any failure. **There is no fallback path** — a failed verification always returns `401` with a generic error message; the server never falls back to trusting the claimed address unverified, and never leaks the signing secret or a stack trace in the response.
+3. The Route Handler then calls `claimSep10ChallengeHash` (`src/lib/sep10-replay-guard.ts`) with that hash **before** doing anything else — this is what enforces single-use (see below). A signature that passed step 2 but whose hash was already claimed is still rejected with the same generic `401`.
 
 ### Supabase session binding
 
@@ -106,6 +108,7 @@ Real, cryptographic proof that the signed-in user controls the private key for t
 ### Replay and expiry protection
 
 - **Expiry**: challenges default to a 300-second validity window (`SEP10_DEFAULT_TIMEOUT_SECONDS` in `lib/sep10-server.ts`); `WebAuth.readChallengeTx` rejects anything presented after its timebound.
+- **Single-use**: expiry alone only bounds *how long* a captured signed challenge stays replayable — it doesn't stop it being replayed once, or twice, within that window. `verifySep10Challenge` also returns a hex-encoded hash of the transaction (its signature base — stable regardless of which/how many signatures are attached, so the same challenge always hashes the same way), and the verify Route Handler atomically claims that hash via `claimSep10ChallengeHash` (`src/lib/sep10-replay-guard.ts`) in a `sep10_used_challenges` table with a `UNIQUE` constraint on `tx_hash` (see `docs/08-environment-variables.md`) **before** minting anything. The `INSERT`'s unique-constraint violation is the atomicity boundary — concurrent verify requests for the same challenge race on the database's index, not on any in-process state — so a second submission of the exact same signed challenge is rejected even if it arrives concurrently with the first, and even across multiple server instances.
 - **Sequence number zero**: SEP-10 challenges always use sequence number `0`, which is invalid for real submission — this is what makes the challenge transaction structurally distinguishable from a "real" transaction and guarantees it can never be broadcast to move funds, even if captured in transit.
 - **Domain binding**: the home/web-auth domain is baked into the challenge and re-checked on verify (`NEXT_PUBLIC_SEP10_HOME_DOMAIN` / `NEXT_PUBLIC_SEP10_WEB_AUTH_DOMAIN`), so a challenge issued for one deployment cannot be replayed against another.
 - The server never sees a private key at any step — only public keys and signed XDR blobs.

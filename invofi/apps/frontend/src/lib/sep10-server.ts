@@ -109,6 +109,14 @@ export interface Sep10VerifyParams {
 export interface Sep10VerifyResult {
   /** The Stellar account (G...) proven to control the signing key. */
   clientAccountId: string;
+  /**
+   * Hex-encoded hash of the challenge transaction (its signature base —
+   * stable regardless of which/how many signatures are attached). Callers
+   * use this to enforce single-use: see `claimSep10ChallengeHash` in
+   * `sep10-replay-guard.ts`. This module stays network-free, so it only
+   * computes the hash — it does not check or record anything.
+   */
+  transactionHash: string;
 }
 
 /**
@@ -134,7 +142,7 @@ export function verifySep10Challenge(params: Sep10VerifyParams): Sep10VerifyResu
 
   // Validates challenge shape, sequence-number-zero convention, expiry, and
   // home/web-auth domain — and that the server itself signed it.
-  const { clientAccountID } = WebAuth.readChallengeTx(
+  const { tx, clientAccountID } = WebAuth.readChallengeTx(
     signedTransactionXdr,
     serverAccountId,
     networkPassphrase,
@@ -157,5 +165,5 @@ export function verifySep10Challenge(params: Sep10VerifyParams): Sep10VerifyResu
     throw new Error('Challenge transaction was not signed by the claimed Stellar account.');
   }
 
-  return { clientAccountId: clientAccountID };
+  return { clientAccountId: clientAccountID, transactionHash: tx.hash().toString('hex') };
 }

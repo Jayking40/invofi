@@ -57,6 +57,17 @@ alter table public.user_profiles
   add column if not exists wallet_verified boolean not null default false;
 ```
 
+**Schema requirement (single-use challenges)**: the verify endpoint also requires a `sep10_used_challenges` table with a `tx_hash` column that is `UNIQUE` (or the primary key) — this is what `claimSep10ChallengeHash` (`src/lib/sep10-replay-guard.ts`) relies on to atomically reject a replayed challenge. Add it the same way:
+
+```sql
+create table if not exists public.sep10_used_challenges (
+  tx_hash text primary key,
+  created_at timestamptz not null default now()
+);
+```
+
+No RLS policy is needed — this table is only ever written via the service-role admin client.
+
 ---
 
 ## Network Endpoints

@@ -66,6 +66,45 @@ describe('checkRateLimit', () => {
     }
     expect(checkRateLimit(key).allowed).toBe(false);
   });
+
+  it('rejects a brand-new key once the active-key cap is reached, without disturbing existing keys', () => {
+    const opts = { limit: 10, windowMs: 60_000, maxTrackedKeys: 2 };
+    expect(checkRateLimit('cap:a', opts).allowed).toBe(true);
+    expect(checkRateLimit('cap:b', opts).allowed).toBe(true);
+
+    // Table is full of active keys — a third, never-seen key is rejected
+    // rather than evicting 'a' or 'b' or growing past the cap.
+    const rejected = checkRateLimit('cap:c', opts);
+    expect(rejected.allowed).toBe(false);
+
+    // Existing keys are unaffected by the cap and keep working normally.
+    const a = checkRateLimit('cap:a', opts);
+    expect(a.allowed).toBe(true);
+    expect(a.remaining).toBe(8);
+  });
+
+  it('reclaims capacity from expired buckets before rejecting a new key', () => {
+    vi.useFakeTimers();
+    const opts = { limit: 10, windowMs: 1_000, maxTrackedKeys: 1 };
+    expect(checkRateLimit('sweep:a', opts).allowed).toBe(true);
+
+    vi.advanceTimersByTime(1_001);
+
+    // 'sweep:a' has since expired — the cap check sweeps it out first,
+    // making room for the new key instead of rejecting it outright.
+    const result = checkRateLimit('sweep:b', opts);
+    expect(result.allowed).toBe(true);
+  });
+
+  it('keeps rejecting new keys past the cap even as different unseen keys are tried', () => {
+    const opts = { limit: 10, windowMs: 60_000, maxTrackedKeys: 1 };
+    expect(checkRateLimit('flood:seed', opts).allowed).toBe(true);
+    for (let i = 0; i < 20; i++) {
+      expect(checkRateLimit(`flood:${i}`, opts).allowed).toBe(false);
+    }
+    // The map never grew past the cap despite 20 distinct rejected keys.
+    expect(checkRateLimit('flood:seed', opts).allowed).toBe(true);
+  });
 });
 
 describe('getClientIp', () => {

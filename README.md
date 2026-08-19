@@ -521,6 +521,12 @@ create policy "Read approvals" on transaction_approvals for select using (auth.u
 create policy "Insert own approval" on transaction_approvals for insert with check (approver_id = auth.uid());
 ```
 
+The `pending_transactions` and `transaction_approvals` tables above ship as a
+runnable, idempotent migration at
+`invofi/apps/frontend/src/lib/migrations/002_multisig_transactions.sql` (with the
+supporting indexes and triggers), mirroring `001_lender_preferences.sql` — apply it
+in the Supabase SQL Editor.
+
 > **Co-signer notification is server-side.** The frontend never sends
 > notifications (a `NEXT_PUBLIC_*` webhook would be world-readable and callable
 > with forged bodies). Wire a **Supabase Database Webhook / Edge Function on

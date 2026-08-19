@@ -12,7 +12,11 @@
  * Requires a `sep10_used_challenges` table with a UNIQUE (or PRIMARY KEY)
  * constraint on `tx_hash` (see docs/05-authentication.md) — there is no
  * migrations directory in this repo, so it must be created by hand, same as
- * the `wallet_verified` column requirement.
+ * the `wallet_verified` column requirement. Old rows are pruned by a
+ * `pg_cron` schedule (see docs/08-environment-variables.md), not by this
+ * module — a row past the challenge's own expiry window serves no further
+ * replay-protection purpose, since `readChallengeTx` already rejects an
+ * expired challenge before this module's check is ever reached.
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
 

@@ -68,6 +68,18 @@ create table if not exists public.sep10_used_challenges (
 
 No RLS policy is needed — this table is only ever written via the service-role admin client.
 
+**Retention**: a challenge can never be validly re-verified once its timebound plus `WebAuth.readChallengeTx`'s fixed 5-minute grace period has elapsed — `readChallengeTx` rejects it as expired before the single-use check in `claimSep10ChallengeHash` is ever reached. With `SEP10_DEFAULT_TIMEOUT_SECONDS = 300` (`src/lib/sep10-server.ts`) that's a 10-minute maximum window, so a row older than that serves no further replay-protection purpose. Rather than a new scheduled job/service, this repo uses Postgres's own `pg_cron` (enable the extension once under Supabase Dashboard → Database → Extensions) to delete stale rows in place:
+
+```sql
+select cron.schedule(
+  'sep10-used-challenges-cleanup',
+  '*/15 * * * *', -- every 15 minutes
+  $$ delete from public.sep10_used_challenges where created_at < now() - interval '1 hour' $$
+);
+```
+
+The 1-hour cutoff (well past the 10-minute maximum validity window) is headroom for clock skew and cron cadence, not a security boundary.
+
 ---
 
 ## Network Endpoints

@@ -11,6 +11,25 @@ export { createInvofiClient, type InvofiClient, SdkValidationError, ErrorCode } 
 export type { InvofiClientConfig } from './config';
 export type { Currency, FinancingOffer, Invoice, InvoiceStatus, OfferStatus } from './types';
 
+// ── Offline mock client (#177) ──────────────────────────────────────────────
+// `createMockClient` is a drop-in replacement for `createInvofiClient` backed
+// by in-memory state — no RPC, Horizon, wallet, or testnet required. It is for
+// UI development only (no crypto/signing simulation). Deterministic fixtures
+// cover every invoice status, offers, and position-token balances.
+export {
+  createMockClient,
+  type MockClient,
+  type MockClientOptions,
+  // Deterministic mock identities + fixtures (shared with the frontend mock).
+  MOCK_WALLET_ADDRESS,
+  MOCK_BUSINESS_A,
+  MOCK_BUSINESS_B,
+  MOCK_BUSINESS_C,
+  MOCK_LENDER_B,
+  MOCK_POSITION_TOKEN_ID,
+  MOCK_POSITION_BALANCE,
+} from './mock';
+
 // Validation helpers re-exported for consumers who want to pre-validate
 // before calling SDK methods (e.g. form-level validation in the frontend).
 export { validate, type ErrorCode as ValidationErrorCode } from './validation';

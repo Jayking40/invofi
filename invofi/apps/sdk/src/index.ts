@@ -99,3 +99,38 @@ export type {
   PoolPayoutData,
   ReputationRecordedData,
 } from './events';
+
+// ── Offline cache (IndexedDB, stale-while-revalidate) ───────────────────────
+// Browser-only, gracefully no-ops under SSR/Node (see cache.ts). Caches
+// invoice/offer/position reads with configurable per-type TTLs and evicts
+// least-recently-used entries once total cached size exceeds 50 MB.
+//
+// Instance-scoped, not module-global (PR #236 review): `createCache(scope)`
+// returns a handle bound to one immutable network+account `CacheScope`, each
+// with its own private IndexedDB connection, so concurrent handles never
+// race over which database is "current" and switching wallets never serves
+// one identity's cached data to another. `createInvofiClient` builds one
+// automatically from `cfg.networkPassphrase`/`cfg.accountAddress` and
+// exposes it as `client.cache` — its state-changing methods
+// (register/accept/reject/repay/etc.) already call `cache.invalidate()`
+// internally on success. On an explicit wallet disconnect, call
+// `client.cache.clearCache()` to wipe the departing account's store.
+//
+// @example
+// ```ts
+// import { createCache, CACHE_TTL_MS } from '@invofi/sdk';
+//
+// // Usually just `client.cache` from createInvofiClient — shown standalone
+// // here for a caller that wants a cache without a full client.
+// const cache = createCache({ network: cfg.networkPassphrase, accountAddress });
+//
+// const { data, isStale, refresh } = await cache.staleWhileRevalidate(
+//   `invoices:${status}:${page}`,
+//   CACHE_TTL_MS.invoices,
+//   () => client.listInvoices(status, page),
+// );
+// // Render `data` immediately (may be null/stale); `refresh` resolves once
+// // the background re-fetch has silently updated the cache.
+// ```
+export { createCache, isIndexedDbAvailable, CACHE_TTL_MS, MAX_CACHE_SIZE_BYTES } from './cache';
+export type { CacheEntry, CacheHandle, CacheScope, StaleWhileRevalidateResult } from './cache';

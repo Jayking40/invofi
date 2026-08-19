@@ -13,6 +13,7 @@
 
 import type { InvofiClient } from './client';
 import type { Currency, FinancingOffer, Invoice } from './types';
+import type { CacheHandle, CacheScope, CacheEntry, StaleWhileRevalidateResult } from './cache';
 import {
   validateStellarAddress,
   validatePositiveI128,
@@ -168,7 +169,29 @@ export function createMockClient(options: MockClientOptions = {}): InvofiClient 
     return offer;
   };
 
+  // ── No-op cache handle (satisfies CacheHandle interface for offline mock)
+  const mockCache: CacheHandle = {
+    scope: {} as CacheScope,
+    async getCached<T>(_key: string): Promise<CacheEntry<T> | null> {
+      return null;
+    },
+    async setCached<T>(_key: string, _data: T, _version?: number, _maxSizeBytes?: number): Promise<void> {},
+    async invalidate(_keyOrPrefix: string): Promise<void> {},
+    async clearCache(): Promise<void> {},
+    async staleWhileRevalidate<T>(
+      _key: string,
+      _ttlMs: number,
+      fetcher: () => Promise<T>,
+    ): Promise<StaleWhileRevalidateResult<T>> {
+      const data = await fetcher();
+      return { data, isStale: false, refresh: Promise.resolve(data) };
+    },
+  };
+
   const client: InvofiClient = {
+    // ── Cache (no-op for offline mock) ──────────────────────────────────────
+    cache: mockCache,
+
     // ── Registry ────────────────────────────────────────────────────────────
     async registerInvoice(params, originatorAddress) {
       validateStellarAddress(originatorAddress, 'originatorAddress');

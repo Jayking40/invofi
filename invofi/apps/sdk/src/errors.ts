@@ -7,19 +7,16 @@
 // original failure preserved as `.cause` — instead of a plain `new Error(...)`
 // with an interpolated string that can only be handled by matching text.
 //
-// ⚠️  IMPORTANT — PLACEHOLDER ERROR CODES ⚠️
-// The numeric codes in `CONTRACT_ERROR_MAP` below are illustrative starter
-// values inferred from this SDK's own method surface (client.ts) and
-// validation constants (validation.ts). They are NOT sourced from the real
-// `common/src/errors.rs` enum in the `Stellar-VaultLink/invofi-contracts`
-// repository — that repo is a separate codebase not available in this
-// workspace. The numeric ordering of a Rust `#[contracterror]` enum is
-// whatever `common/src/errors.rs` declares, and Soroban error codes are
-// positional (first variant = 1, second = 2, ...), so a mismatch here would
-// silently mislabel real on-chain errors. Before this ships against a
-// network where the real contracts are live, a maintainer MUST reconcile
-// every entry in `CONTRACT_ERROR_MAP` against `common/src/errors.rs` and
-// correct the numeric codes (and add any missing variants) accordingly.
+// Error codes 1–8 in `CONTRACT_ERROR_MAP` are the canonical, shared
+// `common/src/errors.rs` discriminants from `Stellar-VaultLink/invofi-contracts`
+// (positional Soroban `#[contracterror]` ordering: first variant = 1, second
+// = 2, ...): Unauthorized, NotFound, InvalidTransition, Paused,
+// InsufficientBalance, InvalidInput, AlreadyExists, Blacklisted. These are
+// cross-cutting, contract-agnostic discriminants — e.g. code 2 (`NotFound`)
+// covers a missing invoice, offer, or any other by-ID lookup, not a
+// per-resource variant. If `common/src/errors.rs` gains variants beyond 8,
+// they are not yet mapped here and fall back to `ContractErrorType.UNKNOWN`
+// until added.
 //
 // Usage:
 //   import { parseContractError, ContractError, ContractErrorType } from './errors';
@@ -75,47 +72,27 @@ export class SdkError extends Error {
 // UNKNOWN for anything not (yet) in CONTRACT_ERROR_MAP.
 
 export const ContractErrorType = {
-  // ── Invoice lifecycle (registry contract) ──────────────────────────────────
-  INVOICE_NOT_FOUND:          'INVOICE_NOT_FOUND',
-  INVOICE_ALREADY_CANCELLED:  'INVOICE_ALREADY_CANCELLED',
-  INVALID_STATUS_TRANSITION:  'INVALID_STATUS_TRANSITION',
+  // ── common/src/errors.rs canonical discriminants (codes 1–8) ───────────────
+  UNAUTHORIZED:          'UNAUTHORIZED',
+  NOT_FOUND:              'NOT_FOUND',
+  INVALID_TRANSITION:     'INVALID_TRANSITION',
+  PAUSED:                 'PAUSED',
+  INSUFFICIENT_BALANCE:   'INSUFFICIENT_BALANCE',
+  INVALID_INPUT:          'INVALID_INPUT',
+  ALREADY_EXISTS:         'ALREADY_EXISTS',
+  BLACKLISTED:            'BLACKLISTED',
 
-  // ── Financing offers (financing contract) ──────────────────────────────────
-  OFFER_NOT_FOUND:            'OFFER_NOT_FOUND',
-  OFFER_EXPIRED:               'OFFER_EXPIRED',
-  OFFER_ALREADY_ACCEPTED:      'OFFER_ALREADY_ACCEPTED',
-  OFFER_ALREADY_REJECTED:      'OFFER_ALREADY_REJECTED',
-  INTEREST_RATE_OUT_OF_RANGE:  'INTEREST_RATE_OUT_OF_RANGE',
-  DURATION_OUT_OF_RANGE:       'DURATION_OUT_OF_RANGE',
-
-  // ── Repayment / reclaim (repayment contract) ────────────────────────────────
-  ALREADY_REPAID:              'ALREADY_REPAID',
-  INSUFFICIENT_BALANCE:        'INSUFFICIENT_BALANCE',
-  NOT_YET_OVERDUE:              'NOT_YET_OVERDUE',
-  GRACE_PERIOD_NOT_ELAPSED:    'GRACE_PERIOD_NOT_ELAPSED',
-
-  // ── Position tokens ──────────────────────────────────────────────────────────
-  NO_TRUSTLINE:                 'NO_TRUSTLINE',
-
-  // ── Cross-cutting ─────────────────────────────────────────────────────────────
-  UNAUTHORIZED:                 'UNAUTHORIZED',
-
-  // ── Fallback ───────────────────────────────────────────────────────────────────
-  UNKNOWN:                      'UNKNOWN',
+  // ── Fallback ─────────────────────────────────────────────────────────────────
+  UNKNOWN:                'UNKNOWN',
 } as const;
 
 export type ContractErrorType = typeof ContractErrorType[keyof typeof ContractErrorType];
 
 // ── Contract error → typed mapping table ─────────────────────────────────────
 //
-// ⚠️  PLACEHOLDER / STARTER SET — see the file-level banner above. The
-// numeric `code` values here are illustrative guesses at positional
-// `#[contracterror]` ordering and MUST be reconciled against the real
-// `common/src/errors.rs` in `Stellar-VaultLink/invofi-contracts` before
-// relying on them against live contracts. Treat this table as the single
-// place to update once the real codes are known — it is trivially
-// extensible: add a `{ type, message, recovery }` entry keyed by the real
-// numeric code.
+// Codes 1–8 are the canonical `common/src/errors.rs` discriminants — see the
+// file-level banner above. This table is the single place to extend if
+// `common/src/errors.rs` ever gains variants beyond 8.
 
 interface ContractErrorEntry {
   type: ContractErrorType;
@@ -125,82 +102,44 @@ interface ContractErrorEntry {
 
 export const CONTRACT_ERROR_MAP: Record<number, ContractErrorEntry> = {
   1: {
-    type: ContractErrorType.INVOICE_NOT_FOUND,
-    message: 'No invoice was found with the given ID.',
-    recovery: { message: 'Double-check the invoice ID and that it was registered successfully.' },
+    type: ContractErrorType.UNAUTHORIZED,
+    message: 'The calling address is not authorized to perform this action.',
+    recovery: { message: 'Sign this transaction with the address that owns/originated this resource.' },
   },
   2: {
-    type: ContractErrorType.INVOICE_ALREADY_CANCELLED,
-    message: 'This invoice has already been cancelled and cannot be modified.',
-    recovery: { message: 'Register a new invoice if you need to submit these terms again.' },
+    type: ContractErrorType.NOT_FOUND,
+    message: 'No resource was found with the given ID.',
+    recovery: { message: 'Double-check the ID and that it was created successfully.' },
   },
   3: {
-    type: ContractErrorType.INVALID_STATUS_TRANSITION,
-    message: 'This action is not valid for the invoice/offer in its current status.',
-    recovery: { message: 'Refresh the invoice/offer status and confirm the action is still applicable.' },
+    type: ContractErrorType.INVALID_TRANSITION,
+    message: 'This action is not valid for the resource in its current status.',
+    recovery: { message: 'Refresh the resource’s status and confirm the action is still applicable.' },
   },
   4: {
-    type: ContractErrorType.OFFER_NOT_FOUND,
-    message: 'No financing offer was found with the given ID.',
-    recovery: { message: 'Double-check the offer ID and that it was created successfully.' },
+    type: ContractErrorType.PAUSED,
+    message: 'This contract is currently paused and not accepting this action.',
+    recovery: { message: 'Try again later, or check protocol announcements for details.' },
   },
   5: {
-    type: ContractErrorType.OFFER_EXPIRED,
-    message: 'This financing offer has expired and can no longer be accepted.',
-    recovery: { message: 'Ask the lender to submit a new offer.' },
-  },
-  6: {
-    type: ContractErrorType.OFFER_ALREADY_ACCEPTED,
-    message: 'This financing offer has already been accepted.',
-    recovery: { message: 'Refresh the offer status — no further action is needed.' },
-  },
-  7: {
-    type: ContractErrorType.OFFER_ALREADY_REJECTED,
-    message: 'This financing offer has already been rejected.',
-    recovery: { message: 'Ask the lender to submit a new offer if terms are still needed.' },
-  },
-  8: {
-    type: ContractErrorType.INTEREST_RATE_OUT_OF_RANGE,
-    message: 'The requested interest rate is outside the protocol-allowed range.',
-    recovery: { message: 'Use an interest rate between 1 and 10,000 basis points (0.01%–100%).' },
-  },
-  9: {
-    type: ContractErrorType.DURATION_OUT_OF_RANGE,
-    message: 'The requested offer duration is outside the protocol-allowed range.',
-    recovery: { message: 'Use a duration between 1 second and 365 days.' },
-  },
-  10: {
-    type: ContractErrorType.ALREADY_REPAID,
-    message: 'This invoice has already been fully repaid.',
-    recovery: { message: 'Refresh the invoice status — no further repayment is needed.' },
-  },
-  11: {
     type: ContractErrorType.INSUFFICIENT_BALANCE,
     message: 'The account does not have sufficient balance to complete this transaction.',
     recovery: { message: 'Add funds to your wallet and try again.', action: 'Add funds' },
   },
-  12: {
-    type: ContractErrorType.NOT_YET_OVERDUE,
-    message: 'This invoice is not yet past its due date and cannot be marked overdue.',
-    recovery: { message: 'Wait until the due date has passed before calling this again.' },
+  6: {
+    type: ContractErrorType.INVALID_INPUT,
+    message: 'One or more input values were invalid.',
+    recovery: { message: 'Check the submitted values and try again.' },
   },
-  13: {
-    type: ContractErrorType.GRACE_PERIOD_NOT_ELAPSED,
-    message: 'The overdue grace period has not yet elapsed, so this invoice cannot be reclaimed.',
-    recovery: { message: 'Wait for the grace period to elapse before reclaiming.' },
+  7: {
+    type: ContractErrorType.ALREADY_EXISTS,
+    message: 'A resource with this ID already exists.',
+    recovery: { message: 'Use a different ID, or look up the existing resource instead.' },
   },
-  14: {
-    type: ContractErrorType.NO_TRUSTLINE,
-    message: 'The recipient does not have a trustline for the position token.',
-    recovery: {
-      message: 'Add a trustline for the position token asset before this transfer/mint can succeed.',
-      action: 'Add trustline',
-    },
-  },
-  15: {
-    type: ContractErrorType.UNAUTHORIZED,
-    message: 'The calling address is not authorized to perform this action.',
-    recovery: { message: 'Sign this transaction with the address that owns/originated this resource.' },
+  8: {
+    type: ContractErrorType.BLACKLISTED,
+    message: 'This address has been blacklisted and cannot perform this action.',
+    recovery: { message: 'Contact support if you believe this is a mistake.' },
   },
 };
 

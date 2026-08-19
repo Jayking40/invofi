@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { ContractError, ContractErrorType } from '@invofi/sdk';
@@ -27,7 +28,7 @@ describe('SdkErrorBoundary', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
 
     const err = new ContractError(
-      11,
+      5,
       ContractErrorType.INSUFFICIENT_BALANCE,
       'The account does not have sufficient balance to complete this transaction.',
       { message: 'Add funds to your wallet and try again.', action: 'Add funds' },
@@ -47,10 +48,10 @@ describe('SdkErrorBoundary', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
 
     const err = new ContractError(
-      14,
-      ContractErrorType.NO_TRUSTLINE,
-      'The recipient does not have a trustline for the position token.',
-      { message: 'Add a trustline first.', action: 'Add trustline', url: 'https://example.com/trustlines' },
+      7,
+      ContractErrorType.ALREADY_EXISTS,
+      'A resource with this ID already exists.',
+      { message: 'Use a different ID.', action: 'View existing', url: 'https://example.com/lookup' },
     );
 
     render(
@@ -59,8 +60,8 @@ describe('SdkErrorBoundary', () => {
       </SdkErrorBoundary>,
     );
 
-    const link = screen.getByRole('link', { name: 'Add trustline' });
-    expect(link).toHaveAttribute('href', 'https://example.com/trustlines');
+    const link = screen.getByRole('link', { name: 'View existing' });
+    expect(link).toHaveAttribute('href', 'https://example.com/lookup');
   });
 
   it('falls back to the error message when a ContractError has no recovery suggestion', () => {
@@ -91,29 +92,44 @@ describe('SdkErrorBoundary', () => {
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
   });
 
-  it('calls onReset and clears the error state when "Try again" is clicked', () => {
+  it('calls onReset and shows recovered content when "Try again" is clicked after a real error', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const onReset = vi.fn();
 
+    // Bomb throws on its first render; clicking "Try again" must call
+    // onReset (which flips shouldThrow to false here, simulating a caller
+    // that clears whatever caused the error) and then re-render children
+    // instead of the fallback.
     function Wrapper() {
+      const [shouldThrow, setShouldThrow] = useState(true);
       return (
-        <SdkErrorBoundary onReset={onReset}>
-          <Bomb error={new Error('one-time failure')} shouldThrow={false} />
+        <SdkErrorBoundary
+          onReset={() => {
+            onReset();
+            setShouldThrow(false);
+          }}
+        >
+          <Bomb error={new Error('one-time failure')} shouldThrow={shouldThrow} />
         </SdkErrorBoundary>
       );
     }
 
     render(<Wrapper />);
-    // Force the boundary into an error state via a custom fallback-free bomb
-    // is awkward without remounting, so this test instead verifies the reset
-    // wiring directly: render already-recovered content and ensure no crash.
+
+    expect(screen.getByText('Something went wrong')).toBeInTheDocument();
+    expect(screen.queryByText('recovered')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+
+    expect(onReset).toHaveBeenCalledOnce();
     expect(screen.getByText('recovered')).toBeInTheDocument();
+    expect(screen.queryByText('Something went wrong')).not.toBeInTheDocument();
   });
 
   it('supports a custom fallback render prop', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    const err = new ContractError(1, ContractErrorType.INVOICE_NOT_FOUND, 'No invoice found.');
+    const err = new ContractError(2, ContractErrorType.NOT_FOUND, 'No invoice found.');
 
     render(
       <SdkErrorBoundary fallback={(error, reset) => (

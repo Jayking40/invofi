@@ -30,25 +30,60 @@ afterEach(() => {
 
 describe('parseContractError', () => {
   it('extracts a mapped code from a realistic `Error(Contract, #N)` string and returns the typed error', () => {
-    // Code 1 is mapped to INVOICE_NOT_FOUND in CONTRACT_ERROR_MAP.
+    // Code 1 is the canonical common/src/errors.rs discriminant for Unauthorized.
     const raw = 'HostError: Error(Contract, #1)\n\nEvent log (newest first):...';
     const err = parseContractError(raw);
 
     expect(err).toBeInstanceOf(ContractError);
     expect(err.rawCode).toBe(1);
-    expect(err.errorType).toBe(ContractErrorType.INVOICE_NOT_FOUND);
+    expect(err.errorType).toBe(ContractErrorType.UNAUTHORIZED);
     expect(err.message).toContain(CONTRACT_ERROR_MAP[1].message);
     expect(err.recovery).toBeDefined();
     expect(err.recovery?.message).toBe(CONTRACT_ERROR_MAP[1].recovery?.message);
   });
 
-  it('extracts a different mapped code correctly (INSUFFICIENT_BALANCE, code 11)', () => {
-    const raw = 'Error(Contract, #11)';
+  it('extracts a different mapped code correctly (NotFound, code 2)', () => {
+    const raw = 'Error(Contract, #2)';
     const err = parseContractError(raw);
 
-    expect(err.rawCode).toBe(11);
+    expect(err.rawCode).toBe(2);
+    expect(err.errorType).toBe(ContractErrorType.NOT_FOUND);
+  });
+
+  it('extracts InsufficientBalance (code 5), which carries an actionable recovery', () => {
+    const raw = 'Error(Contract, #5)';
+    const err = parseContractError(raw);
+
+    expect(err.rawCode).toBe(5);
     expect(err.errorType).toBe(ContractErrorType.INSUFFICIENT_BALANCE);
     expect(err.recovery?.action).toBe('Add funds');
+  });
+
+  it('maps all eight canonical codes (1-8) to their expected discriminant', () => {
+    const expected: Record<number, string> = {
+      1: ContractErrorType.UNAUTHORIZED,
+      2: ContractErrorType.NOT_FOUND,
+      3: ContractErrorType.INVALID_TRANSITION,
+      4: ContractErrorType.PAUSED,
+      5: ContractErrorType.INSUFFICIENT_BALANCE,
+      6: ContractErrorType.INVALID_INPUT,
+      7: ContractErrorType.ALREADY_EXISTS,
+      8: ContractErrorType.BLACKLISTED,
+    };
+
+    for (const [code, type] of Object.entries(expected)) {
+      const err = parseContractError(`Error(Contract, #${code})`);
+      expect(err.errorType).toBe(type);
+    }
+  });
+
+  it('does not map code 9 or above — those fall back to UNKNOWN', () => {
+    expect(CONTRACT_ERROR_MAP[9]).toBeUndefined();
+    expect(CONTRACT_ERROR_MAP[15]).toBeUndefined();
+
+    const err = parseContractError('Error(Contract, #9)');
+    expect(err.errorType).toBe(ContractErrorType.UNKNOWN);
+    expect(err.rawCode).toBe(9);
   });
 
   it('prefixes the mapped message with an optional context message', () => {
@@ -82,7 +117,7 @@ describe('parseContractError', () => {
   it('handles a plain Error instance as input and preserves its message', () => {
     const original = new Error('Error(Contract, #1)');
     const err = parseContractError(original);
-    expect(err.errorType).toBe(ContractErrorType.INVOICE_NOT_FOUND);
+    expect(err.errorType).toBe(ContractErrorType.UNAUTHORIZED);
   });
 
   it('handles a non-string, non-Error object payload (e.g. sendResult.errorResult-shaped)', () => {

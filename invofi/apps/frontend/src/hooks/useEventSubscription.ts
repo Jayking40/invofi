@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { listenToEvents, type ProtocolEvent, type StopListening } from '@invofi/sdk';
+import { listenToEvents, type ProtocolEvent, type ProtocolEventName, type StopListening } from '@invofi/sdk';
 import {
   RPC_URL,
   NETWORK_PASSPHRASE,
@@ -33,7 +33,7 @@ interface UseEventSubscriptionOptions {
   /** If false, subscription is paused. Defaults to true. */
   enabled?: boolean;
   /** Additional event types beyond the invoice defaults. */
-  additionalEventTypes?: string[];
+  additionalEventTypes?: ProtocolEventName[];
 }
 
 interface UseEventSubscriptionReturn {
@@ -136,7 +136,7 @@ export function useEventSubscription(
       return;
     }
 
-    const eventTypes = [...INVOICE_EVENT_TYPES, ...additionalEventTypes] as string[];
+    const eventTypes: ProtocolEventName[] = [...INVOICE_EVENT_TYPES, ...additionalEventTypes];
 
     try {
       stopRef.current = listenToEvents({

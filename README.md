@@ -440,9 +440,45 @@ create table financing_offers (
   created_at timestamptz default now()
 );
 
+-- Multi-signature approval queue for high-value operations (issue #219).
+-- One row per pending transaction; the base envelope is stored as XDR and each
+-- co-signer's signature lands in transaction_approvals. Signatures authorize
+-- this one envelope only, so storing them here is safe (never in localStorage).
+create table pending_transactions (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  operation text not null,
+  initiator text not null,
+  initiator_id uuid references auth.users(id),
+  xdr text not null,
+  network_passphrase text not null,
+  amount text not null,
+  currency text not null,
+  required_signatures integer not null default 3,
+  status text not null default 'Pending'
+    check (status in ('Pending', 'Executed', 'Rejected', 'Expired')),
+  tx_hash text,
+  expires_at timestamptz not null,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create table transaction_approvals (
+  id uuid primary key default gen_random_uuid(),
+  pending_tx_id uuid not null references pending_transactions(id) on delete cascade,
+  approver_address text not null,
+  approver_id uuid references auth.users(id),
+  signature text not null,
+  created_at timestamptz default now(),
+  -- One approval per co-signer per transaction (enforces distinct-approver count).
+  unique (pending_tx_id, approver_address)
+);
+
 alter table user_profiles enable row level security;
 alter table invoices enable row level security;
 alter table financing_offers enable row level security;
+alter table pending_transactions enable row level security;
+alter table transaction_approvals enable row level security;
 
 create policy "Anyone can read invoices" on invoices for select using (true);
 create policy "Owner can insert invoices" on invoices for insert with check (originator_id = auth.uid());
@@ -455,6 +491,17 @@ create policy "Parties can update offers" on financing_offers for update
     exists (select 1 from invoices where id = invoice_id and originator_id = auth.uid()));
 
 create policy "Own profile" on user_profiles for all using (id = auth.uid());
+
+-- The approval queue is shared across co-signers, so any authenticated user can
+-- read it and any authenticated user can initiate/execute/expire a request.
+-- Tighten these to an allow-list of signer addresses per deployment if you don't
+-- want the whole org to participate.
+create policy "Read pending transactions" on pending_transactions for select using (true);
+create policy "Create pending transactions" on pending_transactions for insert with check (auth.uid() is not null);
+create policy "Update pending transactions" on pending_transactions for update using (auth.uid() is not null);
+
+create policy "Read approvals" on transaction_approvals for select using (true);
+create policy "Insert own approval" on transaction_approvals for insert with check (auth.uid() is not null);
 ```
 
 ---

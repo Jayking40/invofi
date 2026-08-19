@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Store,
   Briefcase,
+  ShieldCheck,
   Settings,
   LogOut,
   Sun,
@@ -38,6 +39,7 @@ export function Navbar() {
     { href: "/dashboard", label: t("dashboard"), icon: LayoutDashboard },
     { href: "/marketplace", label: t("marketplace"), icon: Store },
     { href: "/portfolio", label: t("portfolio"), icon: Briefcase },
+    { href: "/transactions", label: t("approvals"), icon: ShieldCheck },
   ];
 
   const [mounted, setMounted] = useState(false);

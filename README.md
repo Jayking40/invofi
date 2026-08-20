@@ -742,6 +742,13 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
 		</tr>
 		<tr>
             <td align="center">
+                <a href="https://github.com/JinadJay">
+                    <img src="https://avatars.githubusercontent.com/u/103272555?v=4" width="100;" alt="JinadJay"/>
+                    <br />
+                    <sub><b>JinadJay</b></sub>
+                </a>
+            </td>
+            <td align="center">
                 <a href="https://github.com/Jayking40">
                     <img src="https://avatars.githubusercontent.com/u/101714779?v=4" width="100;" alt="Jayking40"/>
                     <br />
@@ -776,6 +783,8 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                     <sub><b>RoomWithOutRoof</b></sub>
                 </a>
             </td>
+		</tr>
+		<tr>
             <td align="center">
                 <a href="https://github.com/wagmiiii">
                     <img src="https://avatars.githubusercontent.com/u/130152505?v=4" width="100;" alt="wagmiiii"/>

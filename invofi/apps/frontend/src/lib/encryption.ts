@@ -17,6 +17,20 @@
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
+/**
+ * Convert a Uint8Array into a value that SubtleCrypto accepts as BufferSource.
+ *
+ * Returns a fresh Uint8Array copy so that Node.js's SubtleCrypto
+ * implementation sees a properly realm-crossed ArrayBuffer.  The return type
+ * is `any` because TypeScript 5.6+ generified Uint8Array so that
+ * `Uint8Array<ArrayBufferLike>` is no longer assignable to `BufferSource`
+ * (see microsoft/TypeScript#61055).  At runtime SubtleCrypto *does* accept
+ * Uint8Array — the mismatch is purely a type-level issue.
+ */
+function toBufferSource(view: Uint8Array): any {
+  return new Uint8Array(view);
+}
+
 /** Encode an ArrayBuffer to a base64 string. */
 export function arrayBufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
@@ -62,7 +76,7 @@ export async function deriveEncryptionKey(sharedSecret: string): Promise<CryptoK
   // Import the raw secret as a PBKDF2 key-derivation key.
   const baseKey = await subtle.importKey(
     'raw',
-    enc.encode(sharedSecret).buffer as ArrayBuffer,
+    toBufferSource(enc.encode(sharedSecret)),
     { name: 'PBKDF2' },
     false,
     ['deriveKey'],
@@ -101,7 +115,7 @@ export async function encryptMessage(key: CryptoKey, plaintext: string): Promise
   const ciphertext = await subtle.encrypt(
     { name: 'AES-GCM', iv },
     key,
-    enc.encode(plaintext).buffer as ArrayBuffer,
+    toBufferSource(enc.encode(plaintext)),
   );
 
   // Concatenate: iv (12 bytes) + ciphertext.
@@ -129,7 +143,7 @@ export async function decryptMessage(key: CryptoKey, ciphertext: string): Promis
   const plainBuffer = await subtle.decrypt(
     { name: 'AES-GCM', iv },
     key,
-    encrypted.buffer as ArrayBuffer,
+    toBufferSource(encrypted),
   );
 
   return dec.decode(plainBuffer);

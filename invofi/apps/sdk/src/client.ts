@@ -36,6 +36,13 @@ import { createCache, type CacheHandle } from './cache';
 
 export { SdkValidationError, ErrorCode };
 
+/** A single contract-call entry for the `batch()` method. */
+export interface BatchCall {
+  contractId: string;
+  method: string;
+  args: xdr.ScVal[];
+}
+
 /**
  * Invalidates the offline-cache (Task 218) key prefixes affected by a
  * state-changing contract call, once it has succeeded, against this
@@ -583,6 +590,89 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
         fromAddress,
       );
       invalidateCache(cache, [`positions:${fromAddress}`, `positions:${toAddress}`]);
+    },
+
+    // ── Batch transaction builder (atomic multi-op) ──────────────────────────
+
+    /**
+     * Build, sign, and submit a single Soroban transaction containing
+     * multiple contract-call operations. All calls succeed or fail atomically
+     * (all-or-nothing).
+     *
+     * @param calls  Array of `{ contractId, method, args }` — each entry
+     *               becomes one `contract.call()` operation inside the
+     *               transaction, in order.
+     * @param sourceAddress  The Stellar account that signs and pays for
+     *                       the transaction.
+     * @returns Array of `xdr.ScVal` return values, one per call, in the
+     *          same order as the input array.
+     *
+     * @throws {SdkValidationError} when `calls` is empty or inputs are invalid.
+     * @throws {ContractError}       when simulation, signing, or submission
+     *                               fails.
+     */
+    batch: async (
+      calls: BatchCall[],
+      sourceAddress: string,
+    ): Promise<xdr.ScVal[]> => {
+      if (!Array.isArray(calls) || calls.length === 0) {
+        throw new SdkValidationError(
+          ErrorCode.INVALID_AMOUNT,
+          'calls',
+          'batch() requires at least one call in the array',
+        );
+      }
+      validateStellarAddress(sourceAddress, 'sourceAddress');
+
+      const rpc = server();
+      await ensureAccount(rpc, sourceAddress);
+      const account = await rpc.getAccount(sourceAddress);
+
+      let tx = new TransactionBuilder(account, {
+        fee: String(BASE_FEE * calls.length),
+        networkPassphrase: cfg.networkPassphrase,
+      });
+      for (const call of calls) {
+        const contract = new Contract(call.contractId);
+        tx = tx.addOperation(contract.call(call.method, ...call.args));
+      }
+      tx = tx.setTimeout(30).build();
+
+      const simResult = await rpc.simulateTransaction(tx);
+      if (SorobanRpc.Api.isSimulationError(simResult)) {
+        throw parseContractError(simResult.error, 'Batch simulation failed');
+      }
+
+      tx = SorobanRpc.assembleTransaction(tx, simResult).build();
+      const signedXdr = await cfg.signTransaction(tx.toXDR(), cfg.networkPassphrase);
+      const signedTx = new Transaction(signedXdr, cfg.networkPassphrase);
+
+      const sendResult = await rpc.sendTransaction(signedTx);
+      if (sendResult.status === 'ERROR') {
+        throw parseContractError(sendResult.errorResult, 'Batch transaction failed');
+      }
+
+      let getResult = await rpc.getTransaction(sendResult.hash);
+      for (let attempts = 0; attempts < 20 && getResult.status === 'NOT_FOUND'; attempts++) {
+        await new Promise(r => setTimeout(r, 1000));
+        getResult = await rpc.getTransaction(sendResult.hash);
+      }
+
+      if (getResult.status !== 'SUCCESS') {
+        throw parseContractError(getResult, `Batch transaction did not succeed (status: ${getResult.status})`);
+      }
+
+      // Extract per-operation return values from the Soroban transaction
+      // result meta. Each operation result lives in
+      // `resultMetaV3.sorobanMeta.returnedValues[i]`.
+      const sorobanMeta = getResult.resultMetaV3?.sorobanMeta;
+      if (!sorobanMeta?.returnedValues || sorobanMeta.returnedValues.length !== calls.length) {
+        throw new Error(
+          `Batch result mismatch: expected ${calls.length} return values, got ${sorobanMeta?.returnedValues?.length ?? 0}`,
+        );
+      }
+
+      return sorobanMeta.returnedValues.map(rv => rv.val);
     },
 
     // ── Position-token trustline support ─────────────────────────────────────

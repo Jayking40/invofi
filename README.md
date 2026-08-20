@@ -689,19 +689,19 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                 </a>
             </td>
             <td align="center">
-                <a href="https://github.com/Aycode01">
-                    <img src="https://avatars.githubusercontent.com/u/145759024?v=4" width="100;" alt="Aycode01"/>
+                <a href="https://github.com/KarenZita01">
+                    <img src="https://avatars.githubusercontent.com/u/261386615?v=4" width="100;" alt="KarenZita01"/>
                     <br />
-                    <sub><b>Omitogun Ayobami</b></sub>
+                    <sub><b>Karen Agbo</b></sub>
                 </a>
             </td>
 		</tr>
 		<tr>
             <td align="center">
-                <a href="https://github.com/KarenZita01">
-                    <img src="https://avatars.githubusercontent.com/u/261386615?v=4" width="100;" alt="KarenZita01"/>
+                <a href="https://github.com/Aycode01">
+                    <img src="https://avatars.githubusercontent.com/u/145759024?v=4" width="100;" alt="Aycode01"/>
                     <br />
-                    <sub><b>Karen Agbo</b></sub>
+                    <sub><b>Omitogun Ayobami</b></sub>
                 </a>
             </td>
             <td align="center">
@@ -719,10 +719,10 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                 </a>
             </td>
             <td align="center">
-                <a href="https://github.com/fadesany">
-                    <img src="https://avatars.githubusercontent.com/u/285033142?v=4" width="100;" alt="fadesany"/>
+                <a href="https://github.com/ganeshchandra111">
+                    <img src="https://avatars.githubusercontent.com/u/166985591?v=4" width="100;" alt="ganeshchandra111"/>
                     <br />
-                    <sub><b>fadesany</b></sub>
+                    <sub><b>Ganesh chandra</b></sub>
                 </a>
             </td>
             <td align="center">
@@ -733,10 +733,10 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                 </a>
             </td>
             <td align="center">
-                <a href="https://github.com/ganeshchandra111">
-                    <img src="https://avatars.githubusercontent.com/u/166985591?v=4" width="100;" alt="ganeshchandra111"/>
+                <a href="https://github.com/fadesany">
+                    <img src="https://avatars.githubusercontent.com/u/285033142?v=4" width="100;" alt="fadesany"/>
                     <br />
-                    <sub><b>Ganesh chandra</b></sub>
+                    <sub><b>fadesany</b></sub>
                 </a>
             </td>
 		</tr>

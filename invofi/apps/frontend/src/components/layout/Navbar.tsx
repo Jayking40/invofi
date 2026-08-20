@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Store,
   Briefcase,
+  ShieldCheck,
   Settings,
   LogOut,
   Sun,
@@ -20,22 +21,27 @@ import { WalletButton } from "@/components/auth/WalletButton";
 import { useWallet } from "@/components/auth/WalletProvider";
 import { supabase } from "@/lib/supabase";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { NavbarEventIndicator } from "@/components/NavbarEventIndicator";
+
+import { useTranslations } from 'next-intl';
 
 const NETWORK = (
   process.env.NEXT_PUBLIC_STELLAR_NETWORK ?? "testnet"
 ).toLowerCase();
 const IS_MAINNET = NETWORK === "mainnet" || NETWORK === "public";
 
-const NAV_LINKS = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/marketplace", label: "Marketplace", icon: Store },
-  { href: "/portfolio", label: "Portfolio", icon: Briefcase },
-];
-
 export function Navbar() {
+  const t = useTranslations('Navbar');
   const pathname = usePathname();
   const router = useRouter();
   const { networkMismatch } = useWallet();
+
+  const NAV_LINKS = [
+    { href: "/dashboard", label: t("dashboard"), icon: LayoutDashboard },
+    { href: "/marketplace", label: t("marketplace"), icon: Store },
+    { href: "/portfolio", label: t("portfolio"), icon: Briefcase },
+    { href: "/transactions", label: t("approvals"), icon: ShieldCheck },
+  ];
 
   const [mounted, setMounted] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -87,7 +93,7 @@ export function Navbar() {
                     : "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
               )}
             >
-              {networkMismatch ? "wrong network" : NETWORK}
+              {networkMismatch ? t("wrongNetwork") : NETWORK}
             </span>
           </Link>
 
@@ -115,11 +121,13 @@ export function Navbar() {
 
           {/* Right side */}
           <div className="flex items-center gap-3">
+            <NavbarEventIndicator />
+
             <button
               onClick={toggleTheme}
               className="p-2 rounded-md text-muted-foreground hover:bg-accent transition-colors"
-              title="Toggle theme"
-              aria-label="Toggle dark mode"
+              title={t("toggleTheme")}
+              aria-label={t("toggleTheme")}
             >
               {theme === "light" ? (
                 <Moon className="h-5 w-5" />
@@ -136,9 +144,9 @@ export function Navbar() {
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800 hover:bg-amber-200 dark:hover:bg-amber-900/60 transition-colors shrink-0"
-                title="View smart contract addresses"
+                title={t("viewContracts")}
               >
-                Testnet
+                {t("testnet")}
               </Link>
             )}
 
@@ -149,8 +157,8 @@ export function Navbar() {
                 pathname.startsWith("/settings") &&
                   "text-blue-700 dark:text-blue-400",
               )}
-              title="Settings"
-              aria-label="Settings"
+              title={t("settings")}
+              aria-label={t("settings")}
             >
               <Settings className="h-4 w-4" />
             </Link>
@@ -158,8 +166,8 @@ export function Navbar() {
             <button
               onClick={handleSignOut}
               className="hidden md:flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-              title="Sign out"
-              aria-label="Sign out"
+              title={t("signOut")}
+              aria-label={t("signOut")}
             >
               <LogOut className="h-4 w-4" />
             </button>
@@ -222,7 +230,7 @@ export function Navbar() {
             )}
           >
             <Settings className="h-4 w-4 shrink-0" />
-            Settings
+            {t("settings")}
           </Link>
         </nav>
 
@@ -232,7 +240,7 @@ export function Navbar() {
             className="flex items-center gap-2 w-full px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
           >
             <LogOut className="h-4 w-4" />
-            Sign out
+            {t("signOut")}
           </button>
         </div>
       </div>

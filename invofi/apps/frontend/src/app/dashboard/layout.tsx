@@ -1,9 +1,13 @@
 import type { Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
 
-export const metadata: Metadata = {
-  title: 'Dashboard',
-  description: 'Manage your registered invoices, track financing offers, and monitor repayment status.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('DashboardLayout');
+  return {
+    title: t('title'),
+    description: t('description'),
+  };
+}
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return <>{children}</>;

@@ -81,6 +81,34 @@ npm install
 npm run dev
 ```
 
+### Frontend setup — offline demo mode (no testnet, no Supabase)
+
+For UI work you don't need testnet access, seeded accounts, or a Supabase
+project. The frontend ships an in-memory mock harness ([#177](https://github.com/Stellar-VaultLink/invofi/issues/177))
+that serves deterministic fixtures — invoices in every status, financing
+offers, position-token balances, protocol stats — and auto-connects a mock
+demo wallet:
+
+```bash
+cd invofi/apps/frontend
+npm install
+NEXT_PUBLIC_USE_MOCK=1 npm run dev
+```
+
+- **Only the mock flag is required.** No `.env.local`, Supabase keys, RPC URL,
+  or contract IDs are needed; the app runs fully offline.
+- On-chain calls route through `@invofi/sdk`'s `createMockClient`
+  (`apps/sdk/src/mock.ts`); Supabase reads/writes route through the in-memory
+  mock client in `apps/frontend/src/lib/mock.ts`.
+- With the flag set, `/dashboard`, `/marketplace`, and `/portfolio` render the
+  seeded data immediately — a visitor reaches a populated portfolio without
+  creating an account.
+- It is **UI development only**: there is no crypto, signing, or account
+  funding simulation, and state resets when the process restarts.
+
+To return to the real (testnet + Supabase) app, unset the flag and follow the
+[Frontend setup](#frontend-setup) instructions above.
+
 ### Contract setup
 
 Contracts live in the dedicated [invofi-contracts](https://github.com/Stellar-VaultLink/invofi-contracts) repo:
@@ -199,6 +227,13 @@ cargo clippy -- -D warnings
 - Forms must use `react-hook-form` + `zod` for validation.
 - New pages must be wrapped in `<AuthGuard>` if they require authentication.
 - Run the type checker before pushing.
+
+### Adding a Translation
+
+To add a new locale to the frontend app:
+1. Create a new JSON file in `invofi/apps/frontend/messages/{locale}.json` (e.g. `es.json` for Spanish), copying the structure from `en.json`.
+2. Translate all strings within the file.
+3. Update `src/i18n/request.ts` to support the new locale if the locale routing strategy has evolved, or open a PR with just the JSON file. Note: The app currently uses a single default locale strategy, so adding the JSON file is the first step toward full localization.
 
 ```bash
 cd invofi/apps/frontend

@@ -1,8 +1,18 @@
 import { createClient } from '@/utils/supabase/client';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { UserProfile, UserRole } from '@/types';
 
-// Singleton browser client — safe to use in 'use client' components
-export const supabase = createClient();
+// Singleton browser client — lazy initialization to avoid build-time errors during static generation
+let _supabase: SupabaseClient | null = null;
+
+export function getSupabaseClient(): SupabaseClient {
+  if (!_supabase) {
+    _supabase = createClient();
+  }
+  return _supabase;
+}
+
+export const supabase: SupabaseClient = getSupabaseClient(); // For backward compatibility
 
 export async function signUpWithEmail(
   email: string,
@@ -137,13 +147,22 @@ export async function signInWithWallet(walletAddress: string): Promise<void> {
   }
 
   // Path 3: password-based fallback — anonymous auth is disabled on this project.
-  // We derive a stable "email" from the wallet address and store a random password
-  // in localStorage so the same account is recovered on page reload.
+  // We derive a stable "email" from the wallet address and store a random device
+  // password so the same account is recovered on page reload.
+  //
+  // Security (issue #187): the device password is a credential and must never
+  // live in localStorage — it is readable by any XSS and persists across
+  // sessions. sessionStorage keeps the same-tab reload recovery the original
+  // localStorage approach provided (it survives page refreshes) without
+  // persisting the secret to other tabs or browser restarts. The primary
+  // persistence mechanism remains the Supabase session cookie, which is shared
+  // across tabs, so the device password is only consulted when no session
+  // exists (e.g. after session expiry).
   if (typeof window === 'undefined') return;
 
   const walletEmail = `${walletAddress.slice(0, 32).toLowerCase()}@stellar.wallet`;
   const pwKey = `invofi_wlt_${walletAddress}`;
-  let devicePw = localStorage.getItem(pwKey);
+  let devicePw = sessionStorage.getItem(pwKey);
 
   if (!devicePw) {
     devicePw = Array.from(crypto.getRandomValues(new Uint8Array(24)))
@@ -156,7 +175,7 @@ export async function signInWithWallet(walletAddress: string): Promise<void> {
     });
 
     if (!signUpError && signUpData.user && signUpData.session) {
-      localStorage.setItem(pwKey, devicePw);
+      sessionStorage.setItem(pwKey, devicePw);
       await supabase.from('user_profiles').upsert({
         id: signUpData.user.id,
         email: walletEmail,

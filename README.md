@@ -689,14 +689,21 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                 </a>
             </td>
             <td align="center">
-                <a href="https://github.com/KarenZita01">
-                    <img src="https://avatars.githubusercontent.com/u/261386615?v=4" width="100;" alt="KarenZita01"/>
+                <a href="https://github.com/Aycode01">
+                    <img src="https://avatars.githubusercontent.com/u/145759024?v=4" width="100;" alt="Aycode01"/>
                     <br />
-                    <sub><b>Karen Agbo</b></sub>
+                    <sub><b>Omitogun Ayobami</b></sub>
                 </a>
             </td>
 		</tr>
 		<tr>
+            <td align="center">
+                <a href="https://github.com/Babigdk">
+                    <img src="https://avatars.githubusercontent.com/u/29020286?v=4" width="100;" alt="Babigdk"/>
+                    <br />
+                    <sub><b>Abdulrazaq Isa Babi</b></sub>
+                </a>
+            </td>
             <td align="center">
                 <a href="https://github.com/Damieee">
                     <img src="https://avatars.githubusercontent.com/u/115638760?v=4" width="100;" alt="Damieee"/>
@@ -705,10 +712,10 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                 </a>
             </td>
             <td align="center">
-                <a href="https://github.com/Babigdk">
-                    <img src="https://avatars.githubusercontent.com/u/29020286?v=4" width="100;" alt="Babigdk"/>
+                <a href="https://github.com/KarenZita01">
+                    <img src="https://avatars.githubusercontent.com/u/261386615?v=4" width="100;" alt="KarenZita01"/>
                     <br />
-                    <sub><b>Abdulrazaq Isa Babi</b></sub>
+                    <sub><b>Karen Agbo</b></sub>
                 </a>
             </td>
             <td align="center">
@@ -719,10 +726,10 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                 </a>
             </td>
             <td align="center">
-                <a href="https://github.com/Aycode01">
-                    <img src="https://avatars.githubusercontent.com/u/145759024?v=4" width="100;" alt="Aycode01"/>
+                <a href="https://github.com/JinadJay">
+                    <img src="https://avatars.githubusercontent.com/u/103272555?v=4" width="100;" alt="JinadJay"/>
                     <br />
-                    <sub><b>Omitogun Ayobami</b></sub>
+                    <sub><b>JinadJay</b></sub>
                 </a>
             </td>
             <td align="center">
@@ -732,20 +739,13 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                     <sub><b>fadesany</b></sub>
                 </a>
             </td>
+		</tr>
+		<tr>
             <td align="center">
                 <a href="https://github.com/Fury03">
                     <img src="https://avatars.githubusercontent.com/u/98775983?v=4" width="100;" alt="Fury03"/>
                     <br />
                     <sub><b>Damilola Ogunrotimi</b></sub>
-                </a>
-            </td>
-		</tr>
-		<tr>
-            <td align="center">
-                <a href="https://github.com/JinadJay">
-                    <img src="https://avatars.githubusercontent.com/u/103272555?v=4" width="100;" alt="JinadJay"/>
-                    <br />
-                    <sub><b>JinadJay</b></sub>
                 </a>
             </td>
             <td align="center">

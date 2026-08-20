@@ -119,6 +119,23 @@ export type {
   ReputationRecordedData,
 } from './events';
 
+// ── Contract interaction testing framework (#226) ───────────────────────────
+// `createTestInvoice` / `createTestOffer` — typed factory helpers with
+// sensible defaults + partial overrides.
+// `MockServerBuilder` — fluent builder for configuring failure scenarios on
+// the mock client (insufficient balance, auth errors, network errors, …).
+// `EventTracker` — wraps any InvofiClient and captures protocol events emitted
+// by each state-changing call so tests can assert on event history.
+export {
+  createTestInvoice,
+  createTestOffer,
+  MockServerBuilder,
+  createMockServerBuilder,
+  EventTracker,
+  createEventTracker,
+} from './testing';
+export type { TrackedEventType, TrackedEvent } from './testing';
+
 // ── Offline cache (IndexedDB, stale-while-revalidate) ───────────────────────
 // Browser-only, gracefully no-ops under SSR/Node (see cache.ts). Caches
 // invoice/offer/position reads with configurable per-type TTLs and evicts

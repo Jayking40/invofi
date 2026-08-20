@@ -8,6 +8,25 @@
 // re-exports the typed methods — no contract-call code is duplicated there.
 
 export { createInvofiClient, type InvofiClient } from './client';
+export { createUpgradeClient, type UpgradeClient, type DetectedVersion, type UpgradeNotification } from './upgrade';
+export {
+  parseSemVer,
+  serializeSemVer,
+  compareVersions,
+  isNewerVersion,
+  isMajorUpgrade,
+  getCompatibilityStatus,
+  areVersionsCompatible,
+  lookupCompatibility,
+  COMPATIBILITY_MATRIX,
+  type SemVer,
+  type VersionedContract,
+  type CompatibilityStatus,
+  type CompatibilityEntry,
+  type MigrationStep,
+  type MigrationPlan,
+  type RollbackPlan,
+} from './version';
 export type { InvofiClientConfig } from './config';
 export type { Currency, FinancingOffer, Invoice, InvoiceStatus, OfferStatus } from './types';
 

@@ -26,6 +26,7 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run type-check
+      - run: node ../../../scripts/check-sdk-parity.js
 
   frontend-test:
     name: Frontend / Unit Tests

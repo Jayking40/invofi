@@ -20,6 +20,25 @@ share one implementation instead of each holding a private copy.
   client once (contract IDs + the active wallet signer) and re-exports the
   typed methods. No duplicate contract-call code remains in the frontend.
 
+## Contract–SDK Method Mapping
+
+| Contract Method | SDK Export |
+|---|---|
+| `register_invoice` | `registerInvoice` |
+| `get_invoice` | `getInvoice` |
+| `cancel_invoice` | `cancelInvoice` |
+| `create_offer` | `createOffer` |
+| `get_offer` | `getOffer` |
+| `accept_offer` | `acceptOffer` |
+| `reject_offer` | `rejectOffer` |
+| `repay_invoice` | `repayInvoice` |
+| `mark_overdue` | `markOverdue` |
+| `reclaim_invoice` | `reclaimInvoice` |
+| `get_position_token` | `getPositionTokenId` |
+| `balance` | `getTokenBalance` |
+| `decimals` | `getTokenDecimals` |
+| `transfer` | `transferPositionToken`
+
 ## Usage
 
 ```ts

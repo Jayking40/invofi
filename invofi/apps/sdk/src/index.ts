@@ -7,7 +7,7 @@
 // The frontend binds it once in `apps/frontend/src/lib/contract.ts` and
 // re-exports the typed methods — no contract-call code is duplicated there.
 
-export { createInvofiClient, type InvofiClient, SdkValidationError, ErrorCode } from './client';
+export { createInvofiClient, type InvofiClient, type BatchCall, SdkValidationError, ErrorCode } from './client';
 export type { InvofiClientConfig } from './config';
 export type { Currency, FinancingOffer, Invoice, InvoiceStatus, OfferStatus } from './types';
 

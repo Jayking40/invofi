@@ -17,9 +17,8 @@ Most environment variables for the InvoFi frontend are prefixed with `NEXT_PUBLI
 | `NEXT_PUBLIC_RPC_URL` | Yes | See below | Soroban RPC endpoint (differs by network) |
 | `NEXT_PUBLIC_HORIZON_URL` | Yes | See below | Stellar Horizon REST API (differs by network) |
 | `NEXT_PUBLIC_USDC_ISSUER` | No | `GBBD47IF...` | USDC issuer address. Required to display USDC balances. |
-| `PINATA_API_KEY` | No* | `eSx0P...` | Pinata API key — **server-only**, used to pin invoice documents to IPFS (issue #222). Required only when documents are uploaded. |
-| `PINATA_SECRET_API_KEY` | No* | `9vQwM...` | Pinata secret API key — **server-only** (see above). |
-| `IPFS_GATEWAY_URL` | No | `https://ipfs.io/ipfs` | Public IPFS gateway used server-side to fetch document bytes for preview and verification. Defaults to `https://ipfs.io/ipfs`. |
+| `NEXT_PUBLIC_WS_URL` | No | `wss://relay.invofi.dev` | WebSocket relay for the live portfolio dashboard (issue #221). When empty or unreachable the dashboard degrades to Soroban event-stream + Supabase polling. |
+| `NEXT_PUBLIC_XLM_USD_PRICE` | No | `0.15` | XLM/USD fallback price used for live USD position values when the live price feed (CoinGecko) is unreachable. |
 
 \* Legacy fallback: if the three `*_CONTRACT_ID` variables are unset, the app
 uses the single `NEXT_PUBLIC_CONTRACT_ID` and routes every call to that one
@@ -89,5 +88,5 @@ To use different values for Preview and Production deployments, set the environm
 | `RPC_URL` | `lib/contract.ts` — Soroban RPC for simulating and sending transactions |
 | `HORIZON_URL` | `lib/horizon.ts` — reads account balances and transaction history |
 | `USDC_ISSUER` | `lib/horizon.ts` — identifies the USDC asset when reading balances |
-| `PINATA_API_KEY` + `PINATA_SECRET_API_KEY` | `lib/documents/server.ts` — pins invoice documents to IPFS via the `app/api/documents/upload` route (server-only) |
-| `IPFS_GATEWAY_URL` | `lib/documents/server.ts` — gateway used to fetch document bytes in the `app/api/documents/[id]/content` route (server-only) |
+| `WS_URL` | `lib/live/*` — live portfolio dashboard WebSocket relay; falls back to polling |
+| `XLM_USD_PRICE` | `lib/live/prices.ts` — fallback XLM/USD price for live USD position values |

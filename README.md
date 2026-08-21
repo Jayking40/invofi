@@ -806,6 +806,13 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                     <sub><b>levi</b></sub>
                 </a>
             </td>
+            <td align="center">
+                <a href="https://github.com/xeladev4">
+                    <img src="https://avatars.githubusercontent.com/u/171882586?v=4" width="100;" alt="xeladev4"/>
+                    <br />
+                    <sub><b>xeladev4</b></sub>
+                </a>
+            </td>
 		</tr>
 	<tbody>
 </table>

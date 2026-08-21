@@ -668,6 +668,13 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                 </a>
             </td>
             <td align="center">
+                <a href="https://github.com/Abdulrasaq1515">
+                    <img src="https://avatars.githubusercontent.com/u/209874744?v=4" width="100;" alt="Abdulrasaq1515"/>
+                    <br />
+                    <sub><b>Abdulrasaq1515</b></sub>
+                </a>
+            </td>
+            <td align="center">
                 <a href="https://github.com/MJ-RWA">
                     <img src="https://avatars.githubusercontent.com/u/240063069?v=4" width="100;" alt="MJ-RWA"/>
                     <br />
@@ -688,6 +695,8 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                     <sub><b>scholar</b></sub>
                 </a>
             </td>
+		</tr>
+		<tr>
             <td align="center">
                 <a href="https://github.com/KarenZita01">
                     <img src="https://avatars.githubusercontent.com/u/261386615?v=4" width="100;" alt="KarenZita01"/>
@@ -695,8 +704,6 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                     <sub><b>Karen Agbo</b></sub>
                 </a>
             </td>
-		</tr>
-		<tr>
             <td align="center">
                 <a href="https://github.com/Aycode01">
                     <img src="https://avatars.githubusercontent.com/u/145759024?v=4" width="100;" alt="Aycode01"/>
@@ -732,6 +739,8 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                     <sub><b>JinadJay</b></sub>
                 </a>
             </td>
+		</tr>
+		<tr>
             <td align="center">
                 <a href="https://github.com/fadesany">
                     <img src="https://avatars.githubusercontent.com/u/285033142?v=4" width="100;" alt="fadesany"/>
@@ -739,8 +748,6 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                     <sub><b>fadesany</b></sub>
                 </a>
             </td>
-		</tr>
-		<tr>
             <td align="center">
                 <a href="https://github.com/Fury03">
                     <img src="https://avatars.githubusercontent.com/u/98775983?v=4" width="100;" alt="Fury03"/>
@@ -776,6 +783,8 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                     <sub><b>Raw_Nuke</b></sub>
                 </a>
             </td>
+		</tr>
+		<tr>
             <td align="center">
                 <a href="https://github.com/Jah-yee">
                     <img src="https://avatars.githubusercontent.com/u/166608075?v=4" width="100;" alt="Jah-yee"/>
@@ -783,8 +792,6 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                     <sub><b>RoomWithOutRoof</b></sub>
                 </a>
             </td>
-		</tr>
-		<tr>
             <td align="center">
                 <a href="https://github.com/wagmiiii">
                     <img src="https://avatars.githubusercontent.com/u/130152505?v=4" width="100;" alt="wagmiiii"/>

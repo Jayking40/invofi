@@ -11,9 +11,10 @@
 // a caller cannot tell the two apart from their error behaviour — only that
 // the mock never performs any IO.
 
-import type { InvofiClient } from './client';
+import type { InvofiClient, InvofiClientMethods } from './client';
 import type { Currency, FinancingOffer, Invoice } from './types';
 import type { CacheHandle, CacheScope, CacheEntry, StaleWhileRevalidateResult } from './cache';
+import { createContractsNamespace } from './contracts';
 import {
   validateStellarAddress,
   validatePositiveI128,
@@ -188,7 +189,7 @@ export function createMockClient(options: MockClientOptions = {}): InvofiClient 
     },
   };
 
-  const client: InvofiClient = {
+  const base: InvofiClientMethods = {
     // ── Cache (no-op for offline mock) ──────────────────────────────────────
     cache: mockCache,
 
@@ -376,6 +377,13 @@ export function createMockClient(options: MockClientOptions = {}): InvofiClient 
       validateStellarAddress(address, 'address');
       trustlines.add(address);
     },
+  };
+
+  const client: InvofiClient = {
+    ...base,
+    // Typed call builder (#215) — same wrapping as the real client, so
+    // `client.contracts.*` behaves identically against mock or live state.
+    contracts: createContractsNamespace(base),
   };
 
   return client;

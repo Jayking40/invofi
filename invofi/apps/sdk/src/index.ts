@@ -7,9 +7,49 @@
 // The frontend binds it once in `apps/frontend/src/lib/contract.ts` and
 // re-exports the typed methods — no contract-call code is duplicated there.
 
-export { createInvofiClient, type InvofiClient, type BatchCall, SdkValidationError, ErrorCode } from './client';
+export {
+  createInvofiClient,
+  type InvofiClient,
+  type InvofiClientMethods,
+  type BatchCall,
+  SdkValidationError,
+  ErrorCode,
+} from './client';
 export type { InvofiClientConfig } from './config';
 export type { Currency, FinancingOffer, Invoice, InvoiceStatus, OfferStatus } from './types';
+
+// ── Typed contract call builder (#215) ──────────────────────────────────────
+// `client.contracts.<name>.<method>(params)` — compile-time checked function
+// names and parameter types (derived from the ABI below), plus runtime
+// validation of parameter values before each call reaches the network.
+// Available on both `createInvofiClient` and `createMockClient` results.
+export {
+  createContractsNamespace,
+  buildTypedContract,
+  validateAbiParams,
+  type ContractsNamespace,
+  type RegistryContract,
+  type FinancingContract,
+  type RepaymentContract,
+  type PositionTokenContract,
+  type TypedContract,
+  type TypedContractImpl,
+} from './contracts';
+export {
+  REGISTRY_ABI,
+  FINANCING_ABI,
+  REPAYMENT_ABI,
+  POSITION_TOKEN_ABI,
+  type AbiScalarType,
+  type AbiNativeType,
+  type AbiParamDef,
+  type AbiFunctionDef,
+  type InferParams,
+  type RegistryReturns,
+  type FinancingReturns,
+  type RepaymentReturns,
+  type PositionTokenReturns,
+} from './types/contract-abi';
 
 // ── Offline mock client (#177) ──────────────────────────────────────────────
 // `createMockClient` is a drop-in replacement for `createInvofiClient` backed

@@ -79,6 +79,48 @@ Read-only calls accept an optional `sourceAccount` (the connected wallet);
 when omitted they fall back to a fixed read account that is funded on testnet,
 so reads never fail because a throw-away account doesn't exist in the ledger.
 
+## Typed contract call builder — `client.contracts`
+
+Every method above is also reachable through a namespaced, typed builder
+(#215). It wraps the exact same methods — no duplicate contract-call logic —
+so the two forms are interchangeable:
+
+```ts
+// Flat method (positional args):
+await invofi.acceptOffer('off_001', originatorAddress);
+
+// Typed builder (single params object, matching the on-chain ABI):
+await invofi.contracts.financing.acceptOffer({
+  offer_id: 'off_001',
+  originator: originatorAddress,
+});
+```
+
+What the typed builder adds:
+
+- **Compile-time checking** — the function name (`registerInvoice`, not
+  `registerInvoic`) and every parameter's presence/type are checked by
+  TypeScript against the ABI in `src/types/contract-abi.ts`; a wrong name or
+  wrong parameter type is a build error, and your editor autocompletes both.
+- **Runtime validation** — before a call reaches the network, its `params`
+  object is checked against that same ABI (every required field present, the
+  right JS type for its declared Soroban scalar), independent of whatever
+  field-specific checks (range, address format, …) the underlying flat
+  method already performs. A bad call throws `SdkValidationError` with a
+  `code` you can match on (see `src/validation.ts`).
+
+| Namespace | Methods |
+|---|---|
+| `contracts.registry` | `registerInvoice`, `getInvoice`, `cancelInvoice` |
+| `contracts.financing` | `createOffer`, `getOffer`, `acceptOffer`, `rejectOffer`, `getPositionTokenId` |
+| `contracts.repayment` | `repayInvoice`, `markOverdue`, `reclaimInvoice` |
+| `contracts.positionToken` | `getBalance`, `getDecimals`, `transfer` (takes `token_id` since the SEP-41 token's contract ID is dynamic) |
+
+Available on both `createInvofiClient(...)` and `createMockClient(...)` — a
+component built against `client.contracts.*` works unchanged in offline demo
+mode. See the header comment in `src/types/contract-abi.ts` for how to
+regenerate the ABI after a contract build.
+
 ## Event stream — `listenToEvents`
 
 `listenToEvents` polls the Stellar Soroban RPC for on-chain protocol events and

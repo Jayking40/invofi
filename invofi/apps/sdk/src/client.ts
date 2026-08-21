@@ -33,6 +33,7 @@ import {
 } from './validation';
 import { parseContractError } from './errors';
 import { createCache, type CacheHandle } from './cache';
+import { createContractsNamespace } from './contracts';
 
 export { SdkValidationError, ErrorCode };
 
@@ -41,6 +42,47 @@ export interface BatchCall {
   contractId: string;
   method: string;
   args: xdr.ScVal[];
+}
+
+/**
+ * The flat, hand-authored method surface `createInvofiClient` (and
+ * `createMockClient`, for parity) builds. This is the interface the typed
+ * call builder (`./contracts`, `client.contracts.*` — #215) wraps: each
+ * `contracts.<name>.<method>` delegates to one of these, so signing/
+ * simulation/validation logic keeps living in exactly one place.
+ */
+export interface InvofiClientMethods {
+  cache: CacheHandle;
+  registerInvoice(
+    params: { id: string; amount: bigint; currency: Currency; dueDate: number },
+    originatorAddress: string,
+  ): Promise<Invoice>;
+  getInvoice(id: string, sourceAccount?: string): Promise<Invoice>;
+  cancelInvoice(invoiceId: string, originatorAddress: string): Promise<Invoice>;
+  createOffer(
+    params: {
+      offerId: string;
+      invoiceId: string;
+      amount: bigint;
+      currency: Currency;
+      interestRate: number;
+      duration: number;
+    },
+    lenderAddress: string,
+  ): Promise<FinancingOffer>;
+  getOffer(id: string, sourceAccount?: string): Promise<FinancingOffer>;
+  acceptOffer(offerId: string, originatorAddress: string): Promise<FinancingOffer>;
+  rejectOffer(offerId: string, originatorAddress: string): Promise<FinancingOffer>;
+  repayInvoice(invoiceId: string, offerId: string, repayerAddress: string, amount: bigint): Promise<Invoice>;
+  markOverdue(invoiceId: string, callerAddress: string): Promise<Invoice>;
+  reclaimInvoice(invoiceId: string, offerId: string, lenderAddress: string): Promise<FinancingOffer>;
+  getPositionTokenId(sourceAccount?: string): Promise<string | null>;
+  getTokenBalance(tokenId: string, address: string): Promise<bigint>;
+  getTokenDecimals(tokenId: string): Promise<number>;
+  transferPositionToken(tokenId: string, fromAddress: string, toAddress: string, amount: bigint): Promise<void>;
+  batch(calls: BatchCall[], sourceAddress: string): Promise<xdr.ScVal[]>;
+  hasPositionTrustline(address: string): Promise<boolean>;
+  addPositionTrustline(address: string): Promise<void>;
 }
 
 /**
@@ -252,7 +294,7 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
     return scValToNative(val) as FinancingOffer;
   }
 
-  return {
+  const base: InvofiClientMethods = {
     /**
      * This client's offline-cache handle (Task 218), scoped to
      * `cfg.networkPassphrase`/`cfg.accountAddress`. State-changing methods
@@ -739,6 +781,19 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
       const signedTx = new Transaction(signedXdr, cfg.networkPassphrase);
       await horizon().submitTransaction(signedTx);
     },
+  };
+
+  return {
+    ...base,
+    /**
+     * Typed, namespaced contract calls (#215):
+     * `client.contracts.financing.acceptOffer({ offer_id, originator })`.
+     * Each method is compile-time checked against the ABI in
+     * `src/types/contract-abi.ts` (wrong name or param type is a TS error),
+     * validates its params against that same ABI at runtime, then delegates
+     * to the equivalent method above — no duplicate contract-call logic.
+     */
+    contracts: createContractsNamespace(base),
   };
 }
 

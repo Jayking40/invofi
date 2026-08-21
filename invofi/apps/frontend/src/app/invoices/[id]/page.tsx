@@ -11,6 +11,7 @@ import { AuthGuard } from '@/components/auth/AuthGuard';
 import { useWallet } from '@/components/auth/WalletProvider';
 import { OfferList } from '@/components/invoices/OfferList';
 import { InvoiceDocuments } from '@/components/invoices/documents/InvoiceDocuments';
+import { MessagingPanel } from '@/components/invoices/MessagingPanel';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { getInvoice, cancelInvoice } from '@/lib/contract';
 import { supabase } from '@/lib/supabase';

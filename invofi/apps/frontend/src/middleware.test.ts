@@ -5,7 +5,7 @@ import { __resetRateLimitsForTests } from '@/lib/rate-limit';
 // Mock the Supabase session refresh so the middleware test only exercises the
 // rate-limiting layer, not the Supabase client.
 vi.mock('@/utils/supabase/middleware', () => ({
-  updateSession: vi.fn(async (request: NextRequest) => NextResponse.next({ request })),
+  updateSession: vi.fn(async () => NextResponse.next()),
 }));
 
 import { middleware } from './middleware';

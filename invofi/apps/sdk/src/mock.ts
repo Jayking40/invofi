@@ -14,6 +14,7 @@
 import type { InvofiClient, InvofiClientMethods } from './client';
 import type { Currency, FinancingOffer, Invoice } from './types';
 import type { CacheHandle, CacheScope, CacheEntry, StaleWhileRevalidateResult } from './cache';
+import { xdr } from '@stellar/stellar-sdk';
 import { createContractsNamespace } from './contracts';
 import {
   validateStellarAddress,
@@ -376,6 +377,15 @@ export function createMockClient(options: MockClientOptions = {}): InvofiClient 
     async addPositionTrustline(address) {
       validateStellarAddress(address, 'address');
       trustlines.add(address);
+    },
+
+    // ── Batch ──────────────────────────────────────────────────────────────
+    async batch(calls, sourceAddress) {
+      validateStellarAddress(sourceAddress, 'sourceAddress');
+      // In mock mode, return a dummy empty ScVal for each call.
+      // Real batch execution is network-dependent and cannot be simulated
+      // without a Soroban RPC endpoint.
+      return calls.map(() => xdr.ScVal.scvVoid());
     },
   };
 

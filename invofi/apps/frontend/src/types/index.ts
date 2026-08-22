@@ -49,6 +49,15 @@ export interface UserProfile {
   email: string;
   role: UserRole;
   wallet_address: string | null;
+  /**
+   * True only when `wallet_address` was bound via a verified SEP-10
+   * challenge signature (see `docs/05-authentication.md`, Method 3),
+   * as opposed to the legacy blind-trust `signInWithWallet` linking.
+   * Optional because it requires a schema column (`user_profiles
+   * .wallet_verified boolean`) that may not exist on older projects —
+   * treat `undefined`/`null` the same as `false`.
+   */
+  wallet_verified?: boolean | null;
   display_name: string | null;
   created_at: string;
 }

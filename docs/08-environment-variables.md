@@ -21,6 +21,8 @@ Most environment variables for the InvoFi frontend are prefixed with `NEXT_PUBLI
 | `NEXT_PUBLIC_SEP10_WEB_AUTH_DOMAIN` | No | `invofi.app` | Domain that issued the challenge (SEP-10's `WEB_AUTH_DOMAIN`). Defaults to `NEXT_PUBLIC_SEP10_HOME_DOMAIN`. |
 | `SEP10_SERVER_SIGNING_SECRET` | Yes, for wallet login | *(never committed)* | **Server-only.** Stellar secret key (`S...`) the server uses to sign/validate SEP-10 challenges. See below. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Yes, for wallet login | *(never committed)* | **Server-only.** Supabase service-role key, from Settings → API. See below. |
+| `NEXT_PUBLIC_WS_URL` | No | `wss://relay.invofi.dev` | WebSocket relay for the live portfolio dashboard (issue #221). When empty or unreachable the dashboard degrades to Soroban event-stream + Supabase polling. |
+| `NEXT_PUBLIC_XLM_USD_PRICE` | No | `0.15` | XLM/USD fallback price used for live USD position values when the live price feed (CoinGecko) is unreachable. |
 
 \* Legacy fallback: if the three `*_CONTRACT_ID` variables are unset, the app
 uses the single `NEXT_PUBLIC_CONTRACT_ID` and routes every call to that one
@@ -140,3 +142,5 @@ To use different values for Preview and Production deployments, set the environm
 | `SEP10_HOME_DOMAIN` / `SEP10_WEB_AUTH_DOMAIN` | `lib/sep10-server.ts` — asserted in the SEP-10 challenge; validated on verify |
 | `SEP10_SERVER_SIGNING_SECRET` | `lib/sep10-server.ts` (via `src/app/api/auth/sep10/*`) — signs/validates SEP-10 challenges |
 | `SUPABASE_SERVICE_ROLE_KEY` | `utils/supabase/admin.ts` (via `src/app/api/auth/sep10/verify`) — mints a session for a verified wallet |
+| `WS_URL` | `lib/live/*` — live portfolio dashboard WebSocket relay; falls back to polling |
+| `XLM_USD_PRICE` | `lib/live/prices.ts` — fallback XLM/USD price for live USD position values |

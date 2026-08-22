@@ -11,6 +11,7 @@ import { AuthGuard } from '@/components/auth/AuthGuard';
 import { useWallet } from '@/components/auth/WalletProvider';
 import { OfferList } from '@/components/invoices/OfferList';
 import { MessagingPanel } from '@/components/invoices/MessagingPanel';
+import { EventTimeline } from '@/components/invoices/EventTimeline';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { getInvoice, cancelInvoice } from '@/lib/contract';
 import { supabase } from '@/lib/supabase';
@@ -186,6 +187,9 @@ export default function InvoiceDetailPage() {
 
             {/* Financing offers */}
             <OfferList invoiceId={id} invoice={invoice} onUpdate={setInvoice} />
+
+            {/* On-chain lifecycle events (audit trail, reverse-chronological) */}
+            <EventTimeline invoiceId={id} />
 
             {/* Private messaging — only shown when both parties are known */}
             {publicKey && counterpartyAddress && (

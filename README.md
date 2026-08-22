@@ -182,7 +182,7 @@ invofi/
 │           │   ├── common/           ConfirmDialog, StatsCard, StatsGrid,
 │           │   │                     StatusBadge, PageHeader, EmptyState
 │           │   ├── invoices/         InvoiceCard, InvoiceForm, InvoiceTable,
-│           │   │                     OfferList
+│           │   │                     OfferList, EventTimeline (on-chain audit trail)
 │           │   ├── layout/           Navbar (dark mode + a11y), Footer
 │           │   ├── marketplace/      MarketplaceCard, PositionListingCard, etc.
 │           │   ├── portfolio/        LivePortfolioProvider, ConnectionStatus,

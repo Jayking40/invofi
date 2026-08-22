@@ -147,13 +147,12 @@ jobs:
             2>/dev/null || true)
           for RUN in "${GATED[@]:-}"; do
             [ -n "${RUN}" ] || continue
-            if gh api -X POST \
-              "repos/${REPO}/actions/runs/${RUN}/approve" >/dev/null 2>&1; then
-              echo "  ✅ approved gated run ${RUN}"
-            else
+            gh api -X POST \
+              "repos/${REPO}/actions/runs/${RUN}/approve" >/dev/null 2>&1 && \
+              echo "  ✅ approved gated run ${RUN}" || \
               echo "  could not approve run ${RUN} (may already be approved)"
-            fi
           done
+          # Continue regardless of approval success
 
           # Build a per-check failure summary: annotations first (what the
           # checks UI shows), then error lines from the failed job's log.

@@ -26,4 +26,22 @@ test.describe('invoice detail', () => {
     // Invoice proof documents section (issue #222).
     await expect(page.getByRole('heading', { name: /Documents/ })).toBeVisible();
   });
+
+  test('renders the on-chain event timeline newest-first', async ({ page }) => {
+    await authenticate(page, { invoice: SMOKE_INVOICE });
+
+    await page.goto(`/invoices/${SMOKE_INVOICE.id}`);
+
+    await expect(
+      page.getByRole('heading', { name: /On-chain Activity/ }),
+    ).toBeVisible();
+
+    // Fixture entries (SMOKE_EVENTS) — labels + raw type chips + explorer links.
+    await expect(page.getByText('Invoice registered')).toBeVisible();
+    await expect(page.getByText('Offer created')).toBeVisible();
+    await expect(page.getByText('Repayment made')).toBeVisible();
+
+    const expertLinks = page.locator('a[href*="stellar.expert/explorer/testnet/tx/"]');
+    await expect(expertLinks).toHaveCount(3);
+  });
 });

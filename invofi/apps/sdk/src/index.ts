@@ -210,3 +210,39 @@ export type { TrackedEventType, TrackedEvent } from './testing';
 // ```
 export { createCache, isIndexedDbAvailable, CACHE_TTL_MS, MAX_CACHE_SIZE_BYTES } from './cache';
 export type { CacheEntry, CacheHandle, CacheScope, StaleWhileRevalidateResult } from './cache';
+
+// ── Transaction simulation engine (#220) ───────────────────────────────────
+// Performs dry-run validation of transactions before submission, catching
+// errors early and providing detailed, user-friendly feedback. Simulation
+// results are cached for 30 seconds to avoid duplicate network calls.
+//
+// @example
+// ```ts
+// import { simulateTransaction, SimulationError } from '@invofi/sdk';
+//
+// const result = await simulateTransaction(rpcServer, tx, networkPassphrase);
+// if (!result.success) {
+//   console.error(result.error.message);     // human-readable
+//   console.log(result.error.suggestion);     // "suggested fix" hint
+//   console.log(result.error.simulationCategory); // INSUFFICIENT_BALANCE, etc.
+// }
+// ```
+export {
+  simulateTransaction,
+  simulateBatch,
+  simulateOrThrow,
+  simulateBatchOrThrow,
+  SimulationError,
+  SimulationFailureCategory,
+  clearSimulationCache,
+  setSimulationReporter,
+  SIMULATION_CACHE_TTL_MS,
+} from './simulation';
+export type {
+  SimulationResult,
+  SimulationSuccessResult,
+  SimulationFailureResult,
+  BatchSimulationResult,
+  BatchSimulationSuccessResult,
+  BatchSimulationFailureResult,
+} from './simulation';

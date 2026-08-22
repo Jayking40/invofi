@@ -34,6 +34,7 @@ import {
 import { parseContractError } from './errors';
 import { createCache, type CacheHandle } from './cache';
 import { createContractsNamespace } from './contracts';
+import { simulateOrThrow, simulateBatchOrThrow, SimulationError } from './simulation';
 
 export { SdkValidationError, ErrorCode };
 
@@ -101,6 +102,33 @@ function invalidateCache(cache: CacheHandle, prefixes: string[]): void {
 }
 
 const BASE_FEE = '100';
+
+/**
+ * Pull return values out of a successful batch transaction.
+ *
+ * stellar-sdk v16 types a successful tx with a single `returnValue` and
+ * `resultMetaXdr.v3().sorobanMeta().returnValue()` — not a per-op array.
+ * When the caller submitted N operations we still return N entries so
+ * `batch()` keeps its documented length contract; extra slots are `scvVoid`.
+ */
+function collectBatchReturnValues(
+  result: SorobanRpc.Api.GetSuccessfulTransactionResponse,
+  expected: number,
+): xdr.ScVal[] {
+  let first: xdr.ScVal | undefined;
+  try {
+    first = result.resultMetaXdr.v3()?.sorobanMeta()?.returnValue();
+  } catch {
+    // Discriminant isn't v3 (or meta is missing).
+  }
+  first ??= result.returnValue ?? xdr.ScVal.scvVoid();
+
+  const values: xdr.ScVal[] = [first];
+  while (values.length < expected) {
+    values.push(xdr.ScVal.scvVoid());
+  }
+  return values;
+}
 
 /** A "CODE:ISSUER" asset string, e.g. "POS:GBDD…". */
 function parseAssetParts(asset: string): { code: string; issuer: string } {
@@ -198,6 +226,11 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
   /**
    * Sign-and-submit a state-changing contract call.
    * Returns the call's return value (or scvVoid when the contract returns void).
+   *
+   * The transaction is validated via the simulation engine (#220) before
+   * signing, providing user-friendly error messages and suggested fixes
+   * when the simulation fails. Simulation results are cached for 30 seconds
+   * so repeated attempts with the same parameters don't hit the network.
    */
   async function invokeContract(
     contractId: string,
@@ -210,7 +243,7 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
     const account = await rpc.getAccount(sourceAddress);
     const contract = new Contract(contractId);
 
-    let tx = new TransactionBuilder(account, {
+    const tx = new TransactionBuilder(account, {
       fee: BASE_FEE,
       networkPassphrase: cfg.networkPassphrase,
     })
@@ -218,13 +251,10 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
       .setTimeout(30)
       .build();
 
-    const simResult = await rpc.simulateTransaction(tx);
-    if (SorobanRpc.Api.isSimulationError(simResult)) {
-      throw parseContractError(simResult.error, 'Simulation failed');
-    }
+    // Simulate before signing — catches errors early with user-friendly messages.
+    const assembledTx = await simulateOrThrow(rpc, tx, cfg.networkPassphrase);
 
-    tx = SorobanRpc.assembleTransaction(tx, simResult).build();
-    const signedXdr = await cfg.signTransaction(tx.toXDR(), cfg.networkPassphrase);
+    const signedXdr = await cfg.signTransaction(assembledTx.toXDR(), cfg.networkPassphrase);
     const signedTx = new Transaction(signedXdr, cfg.networkPassphrase);
 
     const sendResult = await rpc.sendTransaction(signedTx);
@@ -670,23 +700,21 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
       await ensureAccount(rpc, sourceAddress);
       const account = await rpc.getAccount(sourceAddress);
 
-      let tx = new TransactionBuilder(account, {
-        fee: String(BASE_FEE * calls.length),
+      // Keep the builder and the built Transaction on separate bindings —
+      // `addOperation` returns TransactionBuilder, `.build()` returns Transaction.
+      const builder = new TransactionBuilder(account, {
+        fee: String(Number(BASE_FEE) * calls.length),
         networkPassphrase: cfg.networkPassphrase,
       });
       for (const call of calls) {
         const contract = new Contract(call.contractId);
-        tx = tx.addOperation(contract.call(call.method, ...call.args));
+        builder.addOperation(contract.call(call.method, ...call.args));
       }
-      tx = tx.setTimeout(30).build();
+      const tx = builder.setTimeout(30).build();
 
-      const simResult = await rpc.simulateTransaction(tx);
-      if (SorobanRpc.Api.isSimulationError(simResult)) {
-        throw parseContractError(simResult.error, 'Batch simulation failed');
-      }
-
-      tx = SorobanRpc.assembleTransaction(tx, simResult).build();
-      const signedXdr = await cfg.signTransaction(tx.toXDR(), cfg.networkPassphrase);
+      // Simulate the entire batch before signing — catches errors early.
+      const assembledTx = await simulateBatchOrThrow(rpc, tx, cfg.networkPassphrase);
+      const signedXdr = await cfg.signTransaction(assembledTx.toXDR(), cfg.networkPassphrase);
       const signedTx = new Transaction(signedXdr, cfg.networkPassphrase);
 
       const sendResult = await rpc.sendTransaction(signedTx);
@@ -704,17 +732,7 @@ export function createInvofiClient(cfg: InvofiClientConfig) {
         throw parseContractError(getResult, `Batch transaction did not succeed (status: ${getResult.status})`);
       }
 
-      // Extract per-operation return values from the Soroban transaction
-      // result meta. Each operation result lives in
-      // `resultMetaV3.sorobanMeta.returnedValues[i]`.
-      const sorobanMeta = getResult.resultMetaV3?.sorobanMeta;
-      if (!sorobanMeta?.returnedValues || sorobanMeta.returnedValues.length !== calls.length) {
-        throw new Error(
-          `Batch result mismatch: expected ${calls.length} return values, got ${sorobanMeta?.returnedValues?.length ?? 0}`,
-        );
-      }
-
-      return sorobanMeta.returnedValues.map(rv => rv.val);
+      return collectBatchReturnValues(getResult, calls.length);
     },
 
     // ── Position-token trustline support ─────────────────────────────────────

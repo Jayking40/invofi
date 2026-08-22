@@ -16,7 +16,8 @@
 //      emitted.  `.getEvents()`, `.getEventCount(type)`, and `.reset()` let
 //      tests assert on event history without touching real Soroban RPC.
 
-import type { InvofiClient } from './client';
+import type { InvofiClient, InvofiClientMethods } from './client';
+import { createContractsNamespace } from './contracts';
 import { createMockClient } from './mock';
 import type { Currency, FinancingOffer, Invoice, InvoiceStatus, OfferStatus } from './types';
 
@@ -219,7 +220,9 @@ export class MockServerBuilder {
     }
 
     // Wrap the base client with a proxy that injects the requested failures.
-    const wrapped: InvofiClient = {
+    // Build the method surface first, then attach `contracts` so the typed
+    // call builder delegates through the same failure shims.
+    const methods: InvofiClientMethods = {
       // Cache pass-through (no failure shim — cache is purely local).
       cache: base.cache,
 
@@ -320,6 +323,15 @@ export class MockServerBuilder {
         : insufficientBalance
         ? () => Promise.reject(new Error('Insufficient balance'))
         : (address) => base.addPositionTrustline(address),
+
+      batch: networkError
+        ? () => Promise.reject(new Error('Network error'))
+        : (calls, sourceAddress) => base.batch(calls, sourceAddress),
+    };
+
+    const wrapped: InvofiClient = {
+      ...methods,
+      contracts: createContractsNamespace(methods),
     };
 
     return wrapped;
@@ -417,7 +429,7 @@ export class EventTracker {
     // We capture `this` (the tracker) in closures below.
     const tracker = this;
 
-    const wrapped: InvofiClient = {
+    const methods: InvofiClientMethods = {
       cache: base.cache,
 
       // ── Read-only pass-throughs (no events) ──────────────────────────────
@@ -503,6 +515,16 @@ export class EventTracker {
       async addPositionTrustline(address) {
         return base.addPositionTrustline(address);
       },
+
+      // Batch is a multi-op submit, not a single protocol event.
+      async batch(calls, sourceAddress) {
+        return base.batch(calls, sourceAddress);
+      },
+    };
+
+    const wrapped: InvofiClient = {
+      ...methods,
+      contracts: createContractsNamespace(methods),
     };
 
     return wrapped;

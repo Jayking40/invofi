@@ -183,7 +183,7 @@ invofi/
 │           │   ├── common/           ConfirmDialog, StatsCard, StatsGrid,
 │           │   │                     StatusBadge, PageHeader, EmptyState
 │           │   ├── invoices/         InvoiceCard, InvoiceForm, InvoiceTable,
-│           │   │                     OfferList, documents/ (upload, verify, preview)
+│           │   │                     OfferList, EventTimeline (on-chain audit trail)
 │           │   ├── layout/           Navbar (dark mode + a11y), Footer
 │           │   ├── marketplace/      MarketplaceCard, PositionListingCard, etc.
 │           │   ├── portfolio/        LivePortfolioProvider, ConnectionStatus,
@@ -729,6 +729,22 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                 </a>
             </td>
             <td align="center">
+                <a href="https://github.com/Agbasimere">
+                    <img src="https://avatars.githubusercontent.com/u/107962282?v=4" width="100;" alt="Agbasimere"/>
+                    <br />
+                    <sub><b>Buik3m</b></sub>
+                </a>
+            </td>
+            <td align="center">
+                <a href="https://github.com/EneGab">
+                    <img src="https://avatars.githubusercontent.com/u/157655503?v=4" width="100;" alt="EneGab"/>
+                    <br />
+                    <sub><b>EneGab</b></sub>
+                </a>
+            </td>
+		</tr>
+		<tr>
+            <td align="center">
                 <a href="https://github.com/ganeshchandra111">
                     <img src="https://avatars.githubusercontent.com/u/166985591?v=4" width="100;" alt="ganeshchandra111"/>
                     <br />
@@ -742,8 +758,6 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                     <sub><b>JinadJay</b></sub>
                 </a>
             </td>
-		</tr>
-		<tr>
             <td align="center">
                 <a href="https://github.com/fadesany">
                     <img src="https://avatars.githubusercontent.com/u/285033142?v=4" width="100;" alt="fadesany"/>
@@ -772,6 +786,8 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                     <sub><b>Pavel</b></sub>
                 </a>
             </td>
+		</tr>
+		<tr>
             <td align="center">
                 <a href="https://github.com/Meet-hybrid">
                     <img src="https://avatars.githubusercontent.com/u/231819661?v=4" width="100;" alt="Meet-hybrid"/>
@@ -786,8 +802,6 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                     <sub><b>Raw_Nuke</b></sub>
                 </a>
             </td>
-		</tr>
-		<tr>
             <td align="center">
                 <a href="https://github.com/Jah-yee">
                     <img src="https://avatars.githubusercontent.com/u/166608075?v=4" width="100;" alt="Jah-yee"/>

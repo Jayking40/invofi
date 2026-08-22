@@ -24,10 +24,17 @@ export function getServerNetworkPassphrase(): string {
 
 /**
  * The domain the challenge asserts as the party requesting authentication.
- * Falls back to `localhost` for local development where the var is unset.
+ * Falls back to `localhost` for local development where the var is unset —
+ * fails fast instead of silently asserting `localhost` in production, where
+ * that would no longer identify this application to the signing wallet.
  */
 export function getSep10HomeDomain(): string {
-  return process.env.NEXT_PUBLIC_SEP10_HOME_DOMAIN ?? 'localhost';
+  const configured = process.env.NEXT_PUBLIC_SEP10_HOME_DOMAIN;
+  if (configured) return configured;
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('NEXT_PUBLIC_SEP10_HOME_DOMAIN must be configured in production.');
+  }
+  return 'localhost';
 }
 
 /**
@@ -37,15 +44,6 @@ export function getSep10HomeDomain(): string {
  */
 export function getSep10WebAuthDomain(): string {
   return process.env.NEXT_PUBLIC_SEP10_WEB_AUTH_DOMAIN ?? getSep10HomeDomain();
-}
-
-/** Reads and validates the server's SEP-10 signing key from the environment. */
-export function getServerSigningKeypair(): Keypair {
-  const secret = process.env.SEP10_SERVER_SIGNING_SECRET;
-  if (!secret) {
-    throw new Error('SEP10_SERVER_SIGNING_SECRET is not configured.');
-  }
-  return Keypair.fromSecret(secret);
 }
 
 export interface Sep10ChallengeParams {

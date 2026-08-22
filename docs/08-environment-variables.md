@@ -66,9 +66,13 @@ create table if not exists public.sep10_used_challenges (
   tx_hash text primary key,
   created_at timestamptz not null default now()
 );
+
+alter table public.sep10_used_challenges enable row level security;
+revoke all on table public.sep10_used_challenges from anon, authenticated;
+grant insert on table public.sep10_used_challenges to service_role;
 ```
 
-No RLS policy is needed — this table is only ever written via the service-role admin client.
+RLS is enabled with no client policies (so `anon`/`authenticated` are denied even if a future `grant` is added by mistake), and the explicit `revoke` removes whatever default privileges the project's Supabase setup may have granted those roles — this table is only ever written via the service-role admin client, which bypasses RLS but still needs the underlying privilege.
 
 **Retention**: a challenge can never be validly re-verified once its timebound plus `WebAuth.readChallengeTx`'s fixed 5-minute grace period has elapsed — `readChallengeTx` rejects it as expired before the single-use check in `claimSep10ChallengeHash` is ever reached. With `SEP10_DEFAULT_TIMEOUT_SECONDS = 300` (`src/lib/sep10-server.ts`) that's a 10-minute maximum window, so a row older than that serves no further replay-protection purpose. Rather than a new scheduled job/service, this repo uses Postgres's own `pg_cron` (enable the extension once under Supabase Dashboard → Database → Extensions) to delete stale rows in place:
 

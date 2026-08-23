@@ -173,6 +173,7 @@ invofi/
 │           │   ├── invoices/         Create and view invoices
 │           │   ├── marketplace/      Lender invoice browser
 │           │   │   └── positions/    Secondary-market position listings
+│           │   ├── api/documents/    Invoice document upload + content routes (issue #222)
 │           │   ├── portfolio/        Lender investment tracker
 │           │   ├── profile/          User profile + display name
 │           │   └── settings/         Account settings
@@ -182,7 +183,7 @@ invofi/
 │           │   ├── common/           ConfirmDialog, StatsCard, StatsGrid,
 │           │   │                     StatusBadge, PageHeader, EmptyState
 │           │   ├── invoices/         InvoiceCard, InvoiceForm, InvoiceTable,
-│           │   │                     OfferList
+│           │   │                     OfferList, EventTimeline (on-chain audit trail)
 │           │   ├── layout/           Navbar (dark mode + a11y), Footer
 │           │   ├── marketplace/      MarketplaceCard, PositionListingCard, etc.
 │           │   ├── portfolio/        LivePortfolioProvider, ConnectionStatus,
@@ -202,6 +203,8 @@ invofi/
 │               ├── supabase.ts       Auth + database helpers
 │               ├── formatters.ts     Amount, date, address formatters
 │               ├── csv.ts            CSV export helpers
+│               ├── documents/        Invoice document validation, SHA-256 hash,
+│               │                     IPFS/Pinata server helpers
 │               └── constants.ts      Network config, risk tiers, enums
 ├── scripts/
 │   └── close-issues.sh              Bulk GitHub issue close
@@ -668,6 +671,20 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                 </a>
             </td>
             <td align="center">
+                <a href="https://github.com/fadesany">
+                    <img src="https://avatars.githubusercontent.com/u/285033142?v=4" width="100;" alt="fadesany"/>
+                    <br />
+                    <sub><b>fadesany</b></sub>
+                </a>
+            </td>
+            <td align="center">
+                <a href="https://github.com/Abdulrasaq1515">
+                    <img src="https://avatars.githubusercontent.com/u/209874744?v=4" width="100;" alt="Abdulrasaq1515"/>
+                    <br />
+                    <sub><b>Abdulrasaq1515</b></sub>
+                </a>
+            </td>
+            <td align="center">
                 <a href="https://github.com/MJ-RWA">
                     <img src="https://avatars.githubusercontent.com/u/240063069?v=4" width="100;" alt="MJ-RWA"/>
                     <br />
@@ -681,6 +698,8 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                     <sub><b>Alhassan Nuhu Idris</b></sub>
                 </a>
             </td>
+		</tr>
+		<tr>
             <td align="center">
                 <a href="https://github.com/retkatmun">
                     <img src="https://avatars.githubusercontent.com/u/153809730?v=4" width="100;" alt="retkatmun"/>
@@ -695,8 +714,13 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                     <sub><b>Karen Agbo</b></sub>
                 </a>
             </td>
-		</tr>
-		<tr>
+            <td align="center">
+                <a href="https://github.com/Aycode01">
+                    <img src="https://avatars.githubusercontent.com/u/145759024?v=4" width="100;" alt="Aycode01"/>
+                    <br />
+                    <sub><b>Omitogun Ayobami</b></sub>
+                </a>
+            </td>
             <td align="center">
                 <a href="https://github.com/Damieee">
                     <img src="https://avatars.githubusercontent.com/u/115638760?v=4" width="100;" alt="Damieee"/>
@@ -712,6 +736,22 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                 </a>
             </td>
             <td align="center">
+                <a href="https://github.com/Agbasimere">
+                    <img src="https://avatars.githubusercontent.com/u/107962282?v=4" width="100;" alt="Agbasimere"/>
+                    <br />
+                    <sub><b>Buik3m</b></sub>
+                </a>
+            </td>
+		</tr>
+		<tr>
+            <td align="center">
+                <a href="https://github.com/EneGab">
+                    <img src="https://avatars.githubusercontent.com/u/157655503?v=4" width="100;" alt="EneGab"/>
+                    <br />
+                    <sub><b>EneGab</b></sub>
+                </a>
+            </td>
+            <td align="center">
                 <a href="https://github.com/ganeshchandra111">
                     <img src="https://avatars.githubusercontent.com/u/166985591?v=4" width="100;" alt="ganeshchandra111"/>
                     <br />
@@ -719,17 +759,10 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                 </a>
             </td>
             <td align="center">
-                <a href="https://github.com/Aycode01">
-                    <img src="https://avatars.githubusercontent.com/u/145759024?v=4" width="100;" alt="Aycode01"/>
+                <a href="https://github.com/JinadJay">
+                    <img src="https://avatars.githubusercontent.com/u/103272555?v=4" width="100;" alt="JinadJay"/>
                     <br />
-                    <sub><b>Omitogun Ayobami</b></sub>
-                </a>
-            </td>
-            <td align="center">
-                <a href="https://github.com/fadesany">
-                    <img src="https://avatars.githubusercontent.com/u/285033142?v=4" width="100;" alt="fadesany"/>
-                    <br />
-                    <sub><b>fadesany</b></sub>
+                    <sub><b>JinadJay</b></sub>
                 </a>
             </td>
             <td align="center">
@@ -739,8 +772,6 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                     <sub><b>Damilola Ogunrotimi</b></sub>
                 </a>
             </td>
-		</tr>
-		<tr>
             <td align="center">
                 <a href="https://github.com/Jayking40">
                     <img src="https://avatars.githubusercontent.com/u/101714779?v=4" width="100;" alt="Jayking40"/>
@@ -755,6 +786,8 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                     <sub><b>Pavel</b></sub>
                 </a>
             </td>
+		</tr>
+		<tr>
             <td align="center">
                 <a href="https://github.com/Meet-hybrid">
                     <img src="https://avatars.githubusercontent.com/u/231819661?v=4" width="100;" alt="Meet-hybrid"/>
@@ -781,6 +814,29 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                     <img src="https://avatars.githubusercontent.com/u/130152505?v=4" width="100;" alt="wagmiiii"/>
                     <br />
                     <sub><b>WAGMI</b></sub>
+                </a>
+            </td>
+            <td align="center">
+                <a href="https://github.com/mansur-codes">
+                    <img src="https://avatars.githubusercontent.com/u/114710463?v=4" width="100;" alt="mansur-codes"/>
+                    <br />
+                    <sub><b>levi</b></sub>
+                </a>
+            </td>
+            <td align="center">
+                <a href="https://github.com/waterWang">
+                    <img src="https://avatars.githubusercontent.com/u/6082925?v=4" width="100;" alt="waterWang"/>
+                    <br />
+                    <sub><b>water</b></sub>
+                </a>
+            </td>
+		</tr>
+		<tr>
+            <td align="center">
+                <a href="https://github.com/xeladev4">
+                    <img src="https://avatars.githubusercontent.com/u/171882586?v=4" width="100;" alt="xeladev4"/>
+                    <br />
+                    <sub><b>xeladev4</b></sub>
                 </a>
             </td>
 		</tr>

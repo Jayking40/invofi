@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2, Plus } from 'lucide-react';
+import { Loader2, Plus, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,7 +15,8 @@ import { useWallet } from '@/components/auth/WalletProvider';
 import { createOffer, acceptOffer, rejectOffer, repayInvoice, markOverdue, reclaimInvoice } from '@/lib/contract';
 import { supabase } from '@/lib/supabase';
 import { formatAmount, interestRateLabel, durationLabel, generateOfferId, amountToStroops, toStroopsBigInt, OFFER_STATUS_COLORS } from '@/lib/utils';
-import { GRACE_PERIOD_SECS } from '@/lib/constants';
+import { toCsv, downloadCsv } from '@/lib/csv';
+import { GRACE_PERIOD_SECS, STROOPS_PER_XLM } from '@/lib/constants';
 import { useToast } from '@/components/ui/use-toast';
 import type { Currency, FinancingOffer, Invoice } from '@/types';
 
@@ -216,11 +217,43 @@ export function OfferList({ invoiceId, invoice, onUpdate }: OfferListProps) {
     invoice.status === 'Overdue' && (offer.status === 'Accepted' || offer.status === 'Financed') && publicKey === offer.lender &&
     nowSecs >= invoice.due_date + GRACE_PERIOD_SECS;
 
+  const exportOffersCsv = () => {
+    if (offers.length === 0) return;
+    const rows = offers.map(o => ({
+      id: o.id,
+      lender: o.lender,
+      amount: `${Number(o.amount) / STROOPS_PER_XLM} ${o.currency}`,
+      interest_rate: o.interest_rate,
+      term_days: Math.round(o.duration / 86_400),
+      status: o.status,
+      created_at: (o as unknown as { created_at?: string }).created_at ?? '',
+    }));
+    const csv = toCsv(rows, [
+      { key: 'id', header: 'Offer ID' },
+      { key: 'lender', header: 'Lender' },
+      { key: 'amount', header: 'Amount' },
+      { key: 'interest_rate', header: 'Interest (bps)' },
+      { key: 'term_days', header: 'Term (days)' },
+      { key: 'status', header: 'Status' },
+      { key: 'created_at', header: 'Created Date' },
+    ]);
+    downloadCsv(`invofi-offers-${invoiceId}-${new Date().toISOString().slice(0, 10)}.csv`, csv);
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-base">Financing Offers ({offers.length})</CardTitle>
         <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={exportOffersCsv}
+            disabled={offers.length === 0}
+            title={offers.length === 0 ? 'No offers to export' : 'Export offers as CSV'}
+          >
+            <Download className="h-3 w-3 mr-1" /> Export
+          </Button>
           {canMarkOverdue && (
             <Button
               size="sm"

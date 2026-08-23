@@ -10,8 +10,32 @@ export type {
 } from '@invofi/sdk';
 
 import type { Currency } from '@invofi/sdk';
+import type { DocumentMimeType } from '@/lib/documents/validation';
+import type { DocumentStatus } from '@/lib/documents/status';
 
 export type UserRole = 'business' | 'lender';
+
+/**
+ * An invoice proof document attached by the originator and verified by
+ * lenders (issue #222). Bytes live on IPFS; this row is the access-controlled
+ * index (CID + SHA-256 hash + verification state).
+ */
+export interface InvoiceDocument {
+  id: string;
+  invoice_id: string;
+  uploader_id: string;
+  file_name: string;
+  mime_type: DocumentMimeType;
+  file_size: number;
+  ipfs_cid: string;
+  /** SHA-256 hex digest of the file bytes, for tamper detection. */
+  document_hash: string;
+  status: DocumentStatus;
+  verification_comment: string | null;
+  verified_by: string | null;
+  verified_at: string | null;
+  created_at: string;
+}
 
 export type PositionListingStatus = 'Open' | 'Settled' | 'Withdrawn';
 
@@ -49,6 +73,15 @@ export interface UserProfile {
   email: string;
   role: UserRole;
   wallet_address: string | null;
+  /**
+   * True only when `wallet_address` was bound via a verified SEP-10
+   * challenge signature (see `docs/05-authentication.md`, Method 3),
+   * as opposed to the legacy blind-trust `signInWithWallet` linking.
+   * Optional because it requires a schema column (`user_profiles
+   * .wallet_verified boolean`) that may not exist on older projects —
+   * treat `undefined`/`null` the same as `false`.
+   */
+  wallet_verified?: boolean | null;
   display_name: string | null;
   created_at: string;
 }

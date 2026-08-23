@@ -150,14 +150,14 @@ function dbNameFor(scope: CacheScope): string {
 // entry mutation that changed it.
 
 async function readMetaSize(
-  tx: IDBPTransaction<unknown, string[], 'readwrite'>,
+  tx: IDBPTransaction<unknown, readonly string[], 'readwrite'>,
 ): Promise<number> {
   const meta = (await tx.objectStore(META_STORE_NAME).get(META_KEY)) as MetaRecord | undefined;
   return meta?.totalBytes ?? 0;
 }
 
 async function writeMetaSize(
-  tx: IDBPTransaction<unknown, string[], 'readwrite'>,
+  tx: IDBPTransaction<unknown, readonly string[], 'readwrite'>,
   totalBytes: number,
 ): Promise<void> {
   await tx.objectStore(META_STORE_NAME).put({ key: META_KEY, totalBytes: Math.max(0, totalBytes) });

@@ -30,7 +30,7 @@
 //     `./testing.ts` (re-exported from the package root) for composing
 //     custom pre-seeded data.
 
-import type { InvofiClient } from './client';
+import type { InvofiClient, InvofiClientMethods } from './client';
 import type { Currency, FinancingOffer, Invoice } from './types';
 import type { CacheEntry, CacheHandle, CacheScope, StaleWhileRevalidateResult } from './cache';
 import { ContractError, ContractErrorType } from './errors';

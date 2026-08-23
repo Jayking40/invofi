@@ -7,7 +7,14 @@
 // The frontend binds it once in `apps/frontend/src/lib/contract.ts` and
 // re-exports the typed methods — no contract-call code is duplicated there.
 
-export { createInvofiClient, type InvofiClient, SdkValidationError, ErrorCode } from './client';
+export {
+  createInvofiClient,
+  type InvofiClient,
+  type InvofiClientMethods,
+  type BatchCall,
+  SdkValidationError,
+  ErrorCode,
+} from './client';
 export type { InvofiClientConfig } from './config';
 export type { Currency, FinancingOffer, Invoice, InvoiceStatus, OfferStatus } from './types';
 
@@ -148,6 +155,23 @@ export type {
   ReputationRecordedData,
 } from './events';
 
+// ── Contract interaction testing framework (#226) ───────────────────────────
+// `createTestInvoice` / `createTestOffer` — typed factory helpers with
+// sensible defaults + partial overrides.
+// `MockServerBuilder` — fluent builder for configuring failure scenarios on
+// the mock client (insufficient balance, auth errors, network errors, …).
+// `EventTracker` — wraps any InvofiClient and captures protocol events emitted
+// by each state-changing call so tests can assert on event history.
+export {
+  createTestInvoice,
+  createTestOffer,
+  MockServerBuilder,
+  createMockServerBuilder,
+  EventTracker,
+  createEventTracker,
+} from './testing';
+export type { TrackedEventType, TrackedEvent } from './testing';
+
 // ── Offline cache (IndexedDB, stale-while-revalidate) ───────────────────────
 // Browser-only, gracefully no-ops under SSR/Node (see cache.ts). Caches
 // invoice/offer/position reads with configurable per-type TTLs and evicts
@@ -182,3 +206,39 @@ export type {
 // ```
 export { createCache, isIndexedDbAvailable, CACHE_TTL_MS, MAX_CACHE_SIZE_BYTES } from './cache';
 export type { CacheEntry, CacheHandle, CacheScope, StaleWhileRevalidateResult } from './cache';
+
+// ── Transaction simulation engine (#220) ───────────────────────────────────
+// Performs dry-run validation of transactions before submission, catching
+// errors early and providing detailed, user-friendly feedback. Simulation
+// results are cached for 30 seconds to avoid duplicate network calls.
+//
+// @example
+// ```ts
+// import { simulateTransaction, SimulationError } from '@invofi/sdk';
+//
+// const result = await simulateTransaction(rpcServer, tx, networkPassphrase);
+// if (!result.success) {
+//   console.error(result.error.message);     // human-readable
+//   console.log(result.error.suggestion);     // "suggested fix" hint
+//   console.log(result.error.simulationCategory); // INSUFFICIENT_BALANCE, etc.
+// }
+// ```
+export {
+  simulateTransaction,
+  simulateBatch,
+  simulateOrThrow,
+  simulateBatchOrThrow,
+  SimulationError,
+  SimulationFailureCategory,
+  clearSimulationCache,
+  setSimulationReporter,
+  SIMULATION_CACHE_TTL_MS,
+} from './simulation';
+export type {
+  SimulationResult,
+  SimulationSuccessResult,
+  SimulationFailureResult,
+  BatchSimulationResult,
+  BatchSimulationSuccessResult,
+  BatchSimulationFailureResult,
+} from './simulation';

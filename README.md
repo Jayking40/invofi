@@ -773,12 +773,21 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                 </a>
             </td>
             <td align="center">
+                <a href="https://github.com/AbuJulaybeeb">
+                    <img src="https://avatars.githubusercontent.com/u/178188157?v=4" width="100;" alt="AbuJulaybeeb"/>
+                    <br />
+                    <sub><b>Jibril Raji Qasim </b></sub>
+                </a>
+            </td>
+            <td align="center">
                 <a href="https://github.com/Fury03">
                     <img src="https://avatars.githubusercontent.com/u/98775983?v=4" width="100;" alt="Fury03"/>
                     <br />
                     <sub><b>Damilola Ogunrotimi</b></sub>
                 </a>
             </td>
+		</tr>
+		<tr>
             <td align="center">
                 <a href="https://github.com/Jayking40">
                     <img src="https://avatars.githubusercontent.com/u/101714779?v=4" width="100;" alt="Jayking40"/>
@@ -786,8 +795,6 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                     <sub><b>joseph okoronkwo</b></sub>
                 </a>
             </td>
-		</tr>
-		<tr>
             <td align="center">
                 <a href="https://github.com/Pavel-glitch-ui">
                     <img src="https://avatars.githubusercontent.com/u/208336145?v=4" width="100;" alt="Pavel-glitch-ui"/>
@@ -823,6 +830,8 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                     <sub><b>WAGMI</b></sub>
                 </a>
             </td>
+		</tr>
+		<tr>
             <td align="center">
                 <a href="https://github.com/mansur-codes">
                     <img src="https://avatars.githubusercontent.com/u/114710463?v=4" width="100;" alt="mansur-codes"/>
@@ -830,8 +839,6 @@ Thanks to everyone who has contributed to InvoFi!! Happy to have you here!
                     <sub><b>levi</b></sub>
                 </a>
             </td>
-		</tr>
-		<tr>
             <td align="center">
                 <a href="https://github.com/xeladev4">
                     <img src="https://avatars.githubusercontent.com/u/171882586?v=4" width="100;" alt="xeladev4"/>

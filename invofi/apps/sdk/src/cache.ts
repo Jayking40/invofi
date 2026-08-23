@@ -37,15 +37,6 @@
 
 import { openDB, type IDBPDatabase, type IDBPTransaction } from 'idb';
 
-// ── Global type declarations ───────────────────────────────────────────────
-// The SDK runs in browsers (where indexedDB is a global) but is also type-
-// checked by Node-only scripts (e.g. e2e-onchain.ts) whose tsconfig lacks
-// the DOM lib.  Declaring the globals here keeps the SDK self-contained.
-declare global {
-  // eslint-disable-next-line no-var
-  var indexedDB: IDBFactory | undefined;
-}
-
 // ── Schema ────────────────────────────────────────────────────────────────────
 
 /**
@@ -159,14 +150,14 @@ function dbNameFor(scope: CacheScope): string {
 // entry mutation that changed it.
 
 async function readMetaSize(
-  tx: IDBPTransaction<unknown, string[], 'readwrite'>,
+  tx: IDBPTransaction<unknown, readonly string[], 'readwrite'>,
 ): Promise<number> {
   const meta = (await tx.objectStore(META_STORE_NAME).get(META_KEY)) as MetaRecord | undefined;
   return meta?.totalBytes ?? 0;
 }
 
 async function writeMetaSize(
-  tx: IDBPTransaction<unknown, string[], 'readwrite'>,
+  tx: IDBPTransaction<unknown, readonly string[], 'readwrite'>,
   totalBytes: number,
 ): Promise<void> {
   await tx.objectStore(META_STORE_NAME).put({ key: META_KEY, totalBytes: Math.max(0, totalBytes) });
@@ -250,7 +241,7 @@ export function createCache(scope: CacheScope = {}): CacheHandle {
    */
   async function evictLru(conn: IDBPDatabase, maxSizeBytes: number): Promise<void> {
     try {
-      const tx = conn.transaction([STORE_NAME, META_STORE_NAME], 'readwrite') as IDBPTransaction<unknown, string[], 'readwrite'>;
+      const tx = conn.transaction([STORE_NAME, META_STORE_NAME], 'readwrite');
       const store = tx.objectStore(STORE_NAME);
       let totalBytes = await readMetaSize(tx);
       if (totalBytes <= maxSizeBytes) {
@@ -287,7 +278,7 @@ export function createCache(scope: CacheScope = {}): CacheHandle {
     if (!db) return null;
     try {
       const conn = await db;
-      const tx = conn.transaction(STORE_NAME, 'readwrite') as IDBPTransaction<unknown, string[], 'readwrite'>;
+      const tx = conn.transaction(STORE_NAME, 'readwrite');
       const store = tx.objectStore(STORE_NAME);
       const entry = (await store.get(key)) as StoredEntry<T> | undefined;
       if (!entry) {
@@ -328,7 +319,7 @@ export function createCache(scope: CacheScope = {}): CacheHandle {
       const entry: StoredEntry<T> = { key, data, timestamp: now, version, lastAccessed: now };
       const newSize = safeStringify(entry).length;
 
-      const tx = conn.transaction([STORE_NAME, META_STORE_NAME], 'readwrite') as IDBPTransaction<unknown, string[], 'readwrite'>;
+      const tx = conn.transaction([STORE_NAME, META_STORE_NAME], 'readwrite');
       const store = tx.objectStore(STORE_NAME);
       const previous = (await store.get(key)) as StoredEntry<T> | undefined;
       const previousSize = previous ? safeStringify(previous).length : 0;
@@ -361,7 +352,7 @@ export function createCache(scope: CacheScope = {}): CacheHandle {
     if (!db) return;
     try {
       const conn = await db;
-      const tx = conn.transaction([STORE_NAME, META_STORE_NAME], 'readwrite') as IDBPTransaction<unknown, string[], 'readwrite'>;
+      const tx = conn.transaction([STORE_NAME, META_STORE_NAME], 'readwrite');
       const store = tx.objectStore(STORE_NAME);
       let totalBytes = await readMetaSize(tx);
       let cursor = await store.openCursor();
@@ -396,7 +387,7 @@ export function createCache(scope: CacheScope = {}): CacheHandle {
     if (!db) return;
     try {
       const conn = await db;
-      const tx = conn.transaction([STORE_NAME, META_STORE_NAME], 'readwrite') as IDBPTransaction<unknown, string[], 'readwrite'>;
+      const tx = conn.transaction([STORE_NAME, META_STORE_NAME], 'readwrite');
       await tx.objectStore(STORE_NAME).clear();
       await writeMetaSize(tx, 0);
       await tx.done;

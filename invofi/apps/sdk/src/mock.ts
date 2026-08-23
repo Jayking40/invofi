@@ -35,6 +35,8 @@ import type { Currency, FinancingOffer, Invoice } from './types';
 import type { CacheEntry, CacheHandle, CacheScope, StaleWhileRevalidateResult } from './cache';
 import { ContractError, ContractErrorType } from './errors';
 import type { ProtocolEvent } from './events';
+import { xdr } from '@stellar/stellar-sdk';
+import { createContractsNamespace } from './contracts';
 import {
   validateStellarAddress,
   validatePositiveI128,
@@ -339,7 +341,7 @@ export function createMockClient(options: MockClientOptions = {}): MockClient {
     },
   };
 
-  const client: InvofiClient = {
+  const base: InvofiClientMethods = {
     // ── Registry ────────────────────────────────────────────────────────────
     async registerInvoice(params, originatorAddress) {
       validateStellarAddress(originatorAddress, 'originatorAddress');
@@ -595,6 +597,15 @@ export function createMockClient(options: MockClientOptions = {}): MockClient {
       trustlines.add(address);
     },
 
+    // ── Batch ───────────────────────────────────────────────────────────────
+    async batch(calls, sourceAddress) {
+      validateStellarAddress(sourceAddress, 'sourceAddress');
+      // In mock mode, return a dummy empty ScVal for each call.
+      // Real batch execution is network-dependent and cannot be simulated
+      // without a Soroban RPC endpoint.
+      return calls.map(() => xdr.ScVal.scvVoid());
+    },
+
     // ── Offline cache (Task 218) ─────────────────────────────────────────────
     // Type parity with the real client, which always exposes a `cache` handle.
     // The mock is pure in-memory and never touches IndexedDB, so `cache` is a
@@ -603,6 +614,11 @@ export function createMockClient(options: MockClientOptions = {}): MockClient {
     // data is ever served), which mirrors the real client's cache contract
     // from a caller's perspective while keeping the mock fully offline.
     cache: mockCache,
+  };
+
+  const client: InvofiClient = {
+    ...base,
+    contracts: createContractsNamespace(base),
   };
 
   // ── Testing surface (#226) ─────────────────────────────────────────────────

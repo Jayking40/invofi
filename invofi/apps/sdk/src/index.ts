@@ -127,11 +127,12 @@ export { Contract, Networks, xdr, nativeToScVal, scValToNative } from '@stellar/
 // // Stop polling when done:
 // stop();
 // ```
-export { listenToEvents } from './events';
+export { listenToEvents, replayEvents } from './events';
 export type {
   ProtocolEventName,
   ProtocolEvent,
   ListenToEventsOptions,
+  ReplayEventsOptions,
   StopListening,
   // Per-event payload types
   InvoiceRegisteredData,

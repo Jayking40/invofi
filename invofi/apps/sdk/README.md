@@ -232,7 +232,7 @@ shapes that `listenToEvents` delivers.
   `addFailure(...)`.
 - **State control** — `reset()` restores the seed between tests,
   `setBalance`/`getBalance` set up balance scenarios, and
-  `seededInvoices()`/`seededOffers()` expose the fixture builders.
+  `seededInvoices()`/`seededOffers()` expose seeded fixtures.
 - **Fixture builders** — `createTestInvoice()` / `createTestOffer()` compose
   SDK-valid pre-seeded data with sensible defaults and full overrides.
 

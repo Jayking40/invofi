@@ -108,7 +108,7 @@ export interface MockClientOptions {
 }
 
 /** Any callable method on the client — valid failure-rule target. */
-export type MockMethodName = Exclude<keyof InvofiClient, 'cache'>;
+export type MockMethodName = Exclude<keyof InvofiClient, 'cache' | 'contracts'>;
 
 /**
  * A deterministic, injectable failure rule (testing framework, #226).

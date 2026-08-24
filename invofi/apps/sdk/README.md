@@ -239,7 +239,7 @@ shapes that `listenToEvents` delivers.
 ### Example — happy path with event assertions
 
 ```ts
-import { createMockClient, createTestInvoice, MOCK_BUSINESS_A, ContractErrorType } from '@invofi/sdk';
+import { createMockClient, createTestInvoice, toStroops, MOCK_BUSINESS_A, ContractErrorType } from '@invofi/sdk';
 
 const client = createMockClient();
 
@@ -273,6 +273,8 @@ await expect(client.cancelInvoice('inv_mock_p001', MOCK_BUSINESS_A)).rejects.toM
 
 // Inject an arbitrary failure for the next call only:
 client.failNext('acceptOffer', undefined, 'simulated outage');
+const offerId = 'off_mock_006';
+const originator = MOCK_BUSINESS_B;
 await expect(client.acceptOffer(offerId, originator)).rejects.toThrow(/simulated outage/);
 
 // Or configure a sticky rule up front:

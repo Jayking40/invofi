@@ -267,17 +267,20 @@ export function createMockClient(options: MockClientOptions = {}): MockClient {
   let ledger = 1000;
   let txSeq = 0;
 
+  /** Distributive Omit — preserves the per-variant `type`↔`data` correlation across a union. */
+  type DistributiveOmit<T, K extends keyof T> = T extends unknown ? Omit<T, K> : never;
+
   /** Record a protocol event with deterministic (fake) ledger + txHash fields. */
-  function emit(event: Omit<ProtocolEvent, 'ledger' | 'txHash'>): void {
+  function emit(event: DistributiveOmit<ProtocolEvent, 'ledger' | 'txHash'>): void {
     ledger += 1;
     txSeq += 1;
-    // The `as` cast is required because spreading a union-typed value loses the
-    // per-variant `type`↔`data` correlation; call sites still validate their
-    // literals against the Omit'd union, so the cast is safe here.
+    // The `as` cast is required because spreading a union-typed value widens it;
+    // `DistributiveOmit` keeps the per-variant `type`↔`data` correlation at the
+    // call sites, so the cast is safe here.
     events.push({
       ...event,
       ledger,
-      txHash: `000000000000000000000000000000000000000000000000000000000000${txSeq.toString(16).padStart(4, '0')}`,
+      txHash: txSeq.toString(16).padStart(64, '0'),
     } as ProtocolEvent);
   }
 
@@ -476,6 +479,10 @@ export function createMockClient(options: MockClientOptions = {}): MockClient {
       const injected = takeFailure('rejectOffer');
       if (injected) throw injected;
       const offer = requireOffer(offerId);
+      const invoice = requireInvoice(offer.invoice_id);
+      if (invoice.originator !== originatorAddress) {
+        throw new ContractError(1, ContractErrorType.UNAUTHORIZED, 'Only the invoice originator can reject an offer');
+      }
       offer.status = 'Rejected';
       emit({ type: 'off_rej', subjectId: offer.id, contractId: MOCK_FINANCING_ID, data: { invoiceId: offer.invoice_id } });
       return offer;
@@ -600,6 +607,8 @@ export function createMockClient(options: MockClientOptions = {}): MockClient {
     // ── Batch ───────────────────────────────────────────────────────────────
     async batch(calls, sourceAddress) {
       validateStellarAddress(sourceAddress, 'sourceAddress');
+      const injected = takeFailure('batch');
+      if (injected) throw injected;
       // In mock mode, return a dummy empty ScVal for each call.
       // Real batch execution is network-dependent and cannot be simulated
       // without a Soroban RPC endpoint.
@@ -638,10 +647,12 @@ export function createMockClient(options: MockClientOptions = {}): MockClient {
       trustlines.clear();
       trustlines.add(MOCK_WALLET_ADDRESS);
       events.length = 0;
+      ledger = 1000;
+      txSeq = 0;
       failures.splice(0, failures.length, ...(options.failures ?? []).map(rule => ({ ...rule })));
     },
     failNext(on: MockMethodName | '*', error?: Error, message?: string): void {
-      failures.push({ on, error, message, times: 1 });
+      failures.unshift({ on, error, message, times: 1 });
     },
     addFailure(rule: MockFailureRule): void {
       failures.push(rule);
